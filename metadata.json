@@ -1,0 +1,6 @@
+{
+  "name": "McDonald's Nightfall — DEMO",
+  "description": "Playable first-person survival horror game set in an abandoned McDonald's restaurant during late-night shifts.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
