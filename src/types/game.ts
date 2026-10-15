@@ -57,6 +57,9 @@ export interface CustomerPerson {
   walkProgress: number;
   hasTriggeredChime: boolean;
   speed: number;
+  archetypeIndex: number;
+  archetypeName: string;
+  archetypeTitle: string;
 }
 
 export interface NightState {
@@ -82,6 +85,19 @@ export interface NightState {
   teaserStep: number;
 }
 
+export interface DialogueLine {
+  speaker: string;
+  text: string;
+}
+
+export interface DialogueState {
+  active: boolean;
+  isMonologue: boolean;
+  lines: DialogueLine[];
+  currentIndex: number;
+  npcId?: string;
+}
+
 export interface InteractiveItem {
   id: string;
   type:
@@ -95,8 +111,10 @@ export interface InteractiveItem {
     | 'hallway_spill'
     | 'cardboard_bundle'
     | 'drive_thru_window'
+    | 'drive_thru_order_station'
     | 'cctv_monitor'
-    | 'front_door_exit';
+    | 'front_door_exit'
+    | 'seated_customer';
   name: string;
   actionText: string;
   position: [number, number, number];

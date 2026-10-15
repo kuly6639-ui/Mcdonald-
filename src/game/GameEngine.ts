@@ -11,6 +11,8 @@ import {
   InteractiveItem,
   CustomerCar,
   CustomerPerson,
+  DialogueLine,
+  DialogueState,
 } from '../types/game';
 import {
   buildCompactRestaurantWorld,
@@ -26,7 +28,94 @@ export interface GameEngineCallbacks {
   onPlayerStatsUpdate: (stats: PlayerStats) => void;
   onNightStateUpdate: (state: NightState) => void;
   onInteractionPrompt: (prompt: string | null) => void;
+  onDialogueUpdate: (dialogue: DialogueState) => void;
+  onFadeAlphaUpdate: (alpha: number) => void;
 }
+
+// Strict mapping of active objective IDs to allowed interactive item IDs
+const STEP_ALLOWED_ITEMS: Record<string, string[]> = {
+  // Night 1
+  'clock_in': ['time_clock'],
+  'clean_tables': ['clean_table_1', 'clean_table_2'],
+  'collect_trash': ['trash_bag_1', 'trash_bag_2'],
+  'dump_trash': ['outdoor_dumpster'],
+  'kitchen_fryers': ['kitchen_switch'],
+  'storage_log': ['storage_clipboard'],
+  'check_cctv': ['cctv_monitor'],
+  'finish_shift': ['front_door_exit'],
+
+  // Night 2
+  'n2_clock_in': ['time_clock'],
+  'n2_breaker': ['office_switch'],
+  'n2_freezer': ['freezer_temp_gauge'],
+  'n2_mop_puddle': ['hallway_spill'],
+  'n2_cardboard': ['cardboard_bundle', 'outdoor_dumpster'],
+  'n2_drive_thru': ['drive_thru_order_station'],
+  'n2_cctv_final': ['cctv_monitor'],
+};
+
+// Customer NPC Archetypes with distinct personalities & Duck's employee dialogues
+export interface CustomerArchetype {
+  name: string;
+  title: string;
+  dialogue: DialogueLine[];
+}
+
+export const CUSTOMER_ARCHETYPES: CustomerArchetype[] = [
+  // 1. Exhausted Night-Shift Worker
+  {
+    name: 'Nurse Ramirez',
+    title: 'Exhausted Night-Shift Worker',
+    dialogue: [
+      { speaker: 'Nurse Ramirez', text: 'Hey... please tell me the coffee pot is still hot. Just wrapped a brutal 14-hour ER shift.' },
+      { speaker: 'Duck', text: 'Freshly brewed five minutes ago. Night shifts really drain your soul, don\'t they?' },
+      { speaker: 'Nurse Ramirez', text: 'You have no idea. But honestly... it feels quieter than a morgue in here tonight. The road outside was dead empty.' },
+      { speaker: 'Duck', text: 'Yeah, usually I get rowdy kids. Tonight it\'s just me, the fryers, and that creepy clown mascot sitting by the booths.' },
+      { speaker: 'Nurse Ramirez', text: 'Keep the front doors locked if you can, kid. Something in the air out there feels completely off.' },
+      { speaker: 'Duck', text: 'Corporate policy says 24/7 lobby access. Even if a ghost clown attacks, management would dock my pay.' },
+    ],
+  },
+  // 2. Nervous Teenager
+  {
+    name: 'Tyler',
+    title: 'Jittery Teenager',
+    dialogue: [
+      { speaker: 'Tyler', text: 'Yo... bro. Bro! Did you see that?! Did that Ronald clown statue over in the dining booth just turn its head?!' },
+      { speaker: 'Duck', text: 'It\'s hollow plastic and fiberglass bolted into the linoleum. It doesn\'t move, Tyler.' },
+      { speaker: 'Tyler', text: 'I swear on my life it was facing the window when I parked my car! Now its head is tilted straight toward the register!' },
+      { speaker: 'Duck', text: 'I make eight bucks an hour. Even if that clown comes to life, I don\'t get paid enough to run.' },
+      { speaker: 'Tyler', text: 'I\'m grabbing my fries to go. You are insane for working here alone in the dark, man.' },
+      { speaker: 'Duck', text: 'Have a wonderful night. Don\'t forget to leave five stars on the customer survey.' },
+    ],
+  },
+  // 3. Cryptic / Unsettling Regular
+  {
+    name: 'Old Man Silas',
+    title: 'Cryptic Regular',
+    dialogue: [
+      { speaker: 'Old Man Silas', text: 'He doesn\'t care for the fluorescent buzz, young man. He only listens when the tubes start to flicker.' },
+      { speaker: 'Duck', text: 'Sir, if you\'re not ordering food, company guidelines say you can\'t stand around whispering ominously.' },
+      { speaker: 'Old Man Silas', text: 'Forty years ago, this ground belonged to the woods. The painted smiles in greasepaint never really wash away.' },
+      { speaker: 'Duck', text: 'Right. Look, Silas, the burgers are beef and the clown is resin. Take your hot tea and have a seat.' },
+      { speaker: 'Old Man Silas', text: 'When the bells chime six, check the glass. He is always watching who walks out the front door.' },
+      { speaker: 'Duck', text: '...Great. Another lovely bedtime story for my shift.' },
+    ],
+  },
+  // 4. Highway Long-Hauler Trucker
+  {
+    name: 'Big Ray',
+    title: 'Highway Long-Hauler',
+    dialogue: [
+      { speaker: 'Big Ray', text: 'Evening, chief. Big Mac meal and a black coffee to keep my eyes glued open till Omaha.' },
+      { speaker: 'Duck', text: 'Coming right up. Long drive ahead of you tonight?' },
+      { speaker: 'Big Ray', text: 'Eight hundred miles. Hey, who\'s the fella in the yellow suit standing out back by the dumpster?' },
+      { speaker: 'Duck', text: '...Excuse me? Nobody is allowed out back behind the kitchen.' },
+      { speaker: 'Big Ray', text: 'Tall guy, bright red hair, yellow jumpsuit. Saw him peering through the storeroom window when I swung the rig around.' },
+      { speaker: 'Duck', text: '...I just took the trash out back ten minutes ago. There wasn\'t anyone out there.' },
+      { speaker: 'Big Ray', text: 'Well, somebody\'s out there now, kid. You keep your guard up.' },
+    ],
+  },
+];
 
 export class GameEngine {
   private container: HTMLElement;
@@ -38,7 +127,7 @@ export class GameEngine {
   private world: RestaurantWorld;
 
   // Player state
-  private playerPos = new THREE.Vector3(0, 1.65, 3.5); // Starts inside dining area
+  private playerPos = new THREE.Vector3(0, 1.65, 5.2); // Starts at front entrance facing inside
   private playerVel = new THREE.Vector3();
   private pitch: number = 0;
   private yaw: number = 0;
@@ -87,7 +176,7 @@ export class GameEngine {
     { id: 'kitchen_fryers', title: 'CHECK KITCHEN', description: 'Power down the kitchen fryers and heating equipment.' },
     { id: 'storage_log', title: 'INSPECT STORAGE', description: 'Check and sign the supply inventory checklist in the storage room.' },
     { id: 'check_cctv', title: 'INSPECT SECURITY', description: 'Inspect the security office CCTV surveillance console.' },
-    { id: 'finish_shift', title: 'FINISH SHIFT', description: 'Survive until 6:00 AM and exit through the front doors.' },
+    { id: 'finish_shift', title: 'SURVIVE UNTIL 6:00 AM', description: 'Opening preparation complete. Customer service is active. Attend to customers and survive until 6:00 AM.' },
   ];
 
   private night2Steps: ObjectiveStep[] = [
@@ -96,7 +185,7 @@ export class GameEngine {
     { id: 'n2_freezer', title: 'FREEZER TEMPERATURE', description: 'Record the walk-in freezer temperature log.' },
     { id: 'n2_mop_puddle', title: 'MOP HALLWAY', description: 'Mop up the mysterious dark fluid puddle in the back hallway.' },
     { id: 'n2_cardboard', title: 'RECYCLE CARDBOARD', description: 'Take bundled cardboard boxes outside to the rear dumpster.' },
-    { id: 'n2_drive_thru', title: 'DRIVE-THRU CHECK', description: 'Inspect the drive-thru window for exterior road movement.' },
+    { id: 'n2_drive_thru', title: 'DRIVE-THRU CHECK', description: 'Inspect the relocated drive-thru order station at the cashier counter.' },
     { id: 'n2_cctv_final', title: 'CHECK SURVEILLANCE', description: 'Inspect the security office cameras before closing up.' },
   ];
 
@@ -109,6 +198,17 @@ export class GameEngine {
     crtFilter: true,
     graphicsQuality: 'high',
   };
+
+  // Dialogue & Monologue state for Duck and Customers
+  private dialogueState: DialogueState = {
+    active: false,
+    isMonologue: false,
+    lines: [],
+    currentIndex: 0,
+  };
+  private fadeAlpha: number = 0;
+  private nearbyCustomer: CustomerPerson | null = null;
+  private customerConvoIndex: number = 0;
 
   // Flashlight (Unlimited battery)
   private flashlight: THREE.SpotLight;
@@ -127,6 +227,7 @@ export class GameEngine {
   private activeCustomerPerson: CustomerPerson | null = null;
   private customerSpawnTimer: number = 8; // Spawns customer car after 8s
   private frontChimePlayedForCurrentCustomer: boolean = false;
+  private backgroundTrafficCars: { mesh: THREE.Group; speed: number; direction: number; laneZ: number }[] = [];
 
   private reqId: number | null = null;
   private lastTime: number = 0;
@@ -157,6 +258,19 @@ export class GameEngine {
     const pmremGenerator = new THREE.PMREMGenerator(this.renderer);
     this.scene.environment = pmremGenerator.fromScene(new RoomEnvironment(), 0.04).texture;
     pmremGenerator.dispose();
+
+    // Spawn 2 Moving Background Highway Cars (Both Directions)
+    const traffic1 = createDetailedCar(0x2a3b4c);
+    traffic1.position.set(16, 0, 22.5); // Westbound lane
+    traffic1.rotation.y = -Math.PI / 2;
+    this.scene.add(traffic1);
+    this.backgroundTrafficCars.push({ mesh: traffic1, speed: 11.5, direction: -1, laneZ: 22.5 });
+
+    const traffic2 = createDetailedCar(0x522320);
+    traffic2.position.set(-18, 0, 25.5); // Eastbound lane
+    traffic2.rotation.y = Math.PI / 2;
+    this.scene.add(traffic2);
+    this.backgroundTrafficCars.push({ mesh: traffic2, speed: 13.0, direction: 1, laneZ: 25.5 });
 
     // 3. Cameras
     this.camera = new THREE.PerspectiveCamera(
@@ -271,7 +385,20 @@ export class GameEngine {
     }
 
     if (code === 'KeyE' && this.currentScreen === 'playing' && !this.isPaused) {
+      if (this.dialogueState.active) {
+        // DialogueBox handles typewriter skip and line advance
+        return;
+      }
+      if (this.nearbyCustomer) {
+        this.startCustomerDialogue();
+        return;
+      }
       this.triggerInteraction();
+    }
+
+    if (code === 'Space' && this.currentScreen === 'playing' && !this.isPaused && this.dialogueState.active) {
+      // DialogueBox handles typewriter skip and line advance
+      return;
     }
 
     if (code === 'Escape') {
@@ -282,6 +409,44 @@ export class GameEngine {
       }
     }
   };
+
+  public advanceDialogue() {
+    if (!this.dialogueState.active) return;
+    soundEngine.playDialogueBlip();
+
+    if (this.dialogueState.currentIndex < this.dialogueState.lines.length - 1) {
+      this.dialogueState.currentIndex += 1;
+      this.callbacks.onDialogueUpdate({ ...this.dialogueState });
+    } else {
+      this.closeDialogue();
+    }
+  }
+
+  private startDialogue(lines: DialogueLine[], isMonologue: boolean, npcId?: string) {
+    this.dialogueState = {
+      active: true,
+      isMonologue,
+      lines,
+      currentIndex: 0,
+      npcId,
+    };
+    this.playerVel.set(0, 0, 0);
+    this.callbacks.onDialogueUpdate({ ...this.dialogueState });
+  }
+
+  private closeDialogue() {
+    this.dialogueState.active = false;
+    this.callbacks.onDialogueUpdate({ ...this.dialogueState });
+    this.notifyActiveObjective();
+  }
+
+  private startCustomerDialogue() {
+    if (!this.nearbyCustomer) return;
+    const archIdx = this.nearbyCustomer.archetypeIndex ?? (this.customerConvoIndex % CUSTOMER_ARCHETYPES.length);
+    const archetype = CUSTOMER_ARCHETYPES[archIdx % CUSTOMER_ARCHETYPES.length];
+    this.customerConvoIndex += 1;
+    this.startDialogue(archetype.dialogue, false, this.nearbyCustomer.id);
+  }
 
   private handleKeyUp = (e: KeyboardEvent) => {
     this.keys[e.code] = false;
@@ -337,12 +502,16 @@ export class GameEngine {
     this.stats.hasTrashInHand = false;
     this.stats.hasCardboardInHand = false;
 
-    // Reset player position inside compact restaurant
-    this.playerPos.set(0, 1.65, 3.5);
+    // Main character Duck starts at the front entrance of the restaurant, facing inside!
+    this.playerPos.set(0, 1.65, 5.2);
     this.playerVel.set(0, 0, 0);
-    this.yaw = 0;
+    this.yaw = 0; // Facing into the restaurant towards the counter
     this.pitch = 0;
     this.targetHeight = 1.65;
+
+    // Smooth fade-in from black
+    this.fadeAlpha = 1.0;
+    this.callbacks.onFadeAlphaUpdate(1.0);
 
     // Reset world mesh states
     this.world.interactiveMeshes.forEach((mesh) => {
@@ -363,7 +532,22 @@ export class GameEngine {
 
     // Load active steps
     this.currentSteps = night === 1 ? [...this.night1Steps] : [...this.night2Steps];
-    this.notifyActiveObjective();
+
+    // Opening Monologue from Duck
+    const monologueLines: DialogueLine[] =
+      night === 1
+        ? [
+            { speaker: 'Duck', text: 'Another night at this place… seriously?' },
+            { speaker: 'Duck', text: 'Minimum wage, creepy customers, and a whole shift ahead of me. Great.' },
+            { speaker: 'Duck', text: 'Whatever. Let\'s just get this over with.' },
+          ]
+        : [
+            { speaker: 'Duck', text: 'Back again for Night 2… The air feels even colder tonight.' },
+            { speaker: 'Duck', text: 'Just focus on the checklist, get through the shift, and get out of here.' },
+            { speaker: 'Duck', text: 'Whatever. Let\'s clock in.' },
+          ];
+
+    this.startDialogue(monologueLines, true);
 
     this.isPaused = false;
     this.setScreen('playing');
@@ -376,6 +560,17 @@ export class GameEngine {
     const active = this.currentSteps[this.nightState.currentObjectiveIndex] || null;
     this.callbacks.onActiveObjectiveUpdate(active);
     this.callbacks.onNightStateUpdate({ ...this.nightState });
+  }
+
+  public isCustomerArrivalUnlocked(): boolean {
+    if (this.nightState.night === 1) {
+      const currentStep = this.currentSteps[this.nightState.currentObjectiveIndex];
+      return currentStep?.id === 'finish_shift';
+    }
+    if (this.nightState.night === 2) {
+      return this.nightState.currentObjectiveIndex >= 5;
+    }
+    return false;
   }
 
   private advanceObjective() {
@@ -391,6 +586,12 @@ export class GameEngine {
 
     this.nightState.currentObjectiveIndex += 1;
     this.notifyActiveObjective();
+
+    // Check if transition to customer phase just occurred
+    const nextStep = this.currentSteps[this.nightState.currentObjectiveIndex];
+    if (nextStep && nextStep.id === 'finish_shift') {
+      this.customerSpawnTimer = 3.0; // Arrival begins in 3 seconds!
+    }
   }
 
   public setScreen(screen: GameScreen) {
@@ -426,6 +627,14 @@ export class GameEngine {
   private triggerInteraction() {
     if (!this.activeItemNearby) return;
     const item = this.activeItemNearby;
+
+    // Optional conversation with seated customer (Silas)
+    if (item.id === 'seated_customer') {
+      const arch = CUSTOMER_ARCHETYPES[2]; // Silas (Cryptic Regular)
+      this.startDialogue(arch.dialogue, false, 'seated_customer');
+      return;
+    }
+
     const currentStep = this.currentSteps[this.nightState.currentObjectiveIndex];
     if (!currentStep) return;
 
@@ -586,9 +795,12 @@ export class GameEngine {
         }
       }
 
-      // Step 5: Drive-thru window inspection
-      if (currentStep.id === 'n2_drive_thru' && item.type === 'drive_thru_window') {
-        soundEngine.playFootstep();
+      // Step 5: Relocated drive-thru order station check at cashier counter corner
+      if (
+        currentStep.id === 'n2_drive_thru' &&
+        (item.type === 'drive_thru_order_station' || item.id === 'drive_thru_order_station' || item.type === 'drive_thru_window')
+      ) {
+        soundEngine.playSwitchToggle();
         item.completed = true;
         this.nightState.driveThruInspected = true;
         this.advanceObjective();
@@ -707,6 +919,26 @@ export class GameEngine {
     this.nightState.timeHour = newHour;
     this.nightState.timeMinute = newMinute;
 
+    // Smooth visual fade-in from black
+    if (this.fadeAlpha > 0) {
+      this.fadeAlpha = Math.max(0, this.fadeAlpha - dt / 1.8);
+      this.callbacks.onFadeAlphaUpdate(this.fadeAlpha);
+    }
+
+    // Positional / area-faded cricket ambience behind the restaurant
+    let cricketVol = 0.0;
+    if (this.playerPos.z < -6.0) {
+      // Outdoor rear garbage disposal & dumpster area
+      cricketVol = 0.22;
+    } else if (this.playerPos.z >= -6.0 && this.playerPos.z <= -3.0 && this.playerPos.x > 1.2) {
+      // Inside near rear service door (faint distant chirping)
+      cricketVol = 0.04;
+    } else {
+      // Inside dining room, kitchen, or security office
+      cricketVol = 0.0;
+    }
+    soundEngine.setCricketVolume(cricketVol);
+
     // Movement & Controls
     this.updatePlayerMovement(dt);
 
@@ -724,6 +956,23 @@ export class GameEngine {
 
   private updatePlayerMovement(dt: number) {
     this.playerHeight = THREE.MathUtils.damp(this.playerHeight, this.targetHeight, 10, dt);
+
+    // Lock player walking movement while dialogue or monologue is open
+    if (this.dialogueState.active) {
+      this.playerVel.set(0, 0, 0);
+      this.camera.position.copy(this.playerPos);
+      const lookTarget = new THREE.Vector3()
+        .copy(this.playerPos)
+        .add(
+          new THREE.Vector3(
+            Math.cos(this.pitch) * -Math.sin(this.yaw),
+            Math.sin(this.pitch),
+            Math.cos(this.pitch) * -Math.cos(this.yaw)
+          )
+        );
+      this.camera.lookAt(lookTarget);
+      return;
+    }
 
     const wantsSprint =
       (this.keys['ShiftLeft'] || this.keys['ShiftRight']) &&
@@ -847,7 +1096,13 @@ export class GameEngine {
   // --- CUSTOMER VEHICLE & WALK-IN AI ---
 
   private updateCustomerAI(dt: number) {
-    // 1. Spawning arriving customer car
+    // 1. Customer Arrival Gate:
+    // Customers must NOT enter the restaurant before Duck finishes opening preparation tasks!
+    if (!this.isCustomerArrivalUnlocked()) {
+      return;
+    }
+
+    // 2. Spawning arriving customer car
     if (!this.activeCustomerCar && !this.activeCustomerPerson) {
       this.customerSpawnTimer -= dt;
       if (this.customerSpawnTimer <= 0) {
@@ -856,7 +1111,7 @@ export class GameEngine {
       }
     }
 
-    // 2. Animate arriving car
+    // 3. Animate arriving car
     if (this.activeCustomerCar) {
       const car = this.activeCustomerCar;
       if (car.state === 'driving_in') {
@@ -892,9 +1147,11 @@ export class GameEngine {
       }
     }
 
-    // 3. Animate customer person walking to restaurant front entrance
+    // 4. Animate customer person walking to restaurant front entrance
     if (this.activeCustomerPerson) {
       const person = this.activeCustomerPerson;
+      const limbs = person.meshGroup.userData.limbs;
+
       if (person.state === 'walking_to_door') {
         // Walk from parked car [carX, 0, carZ] to front entrance [0, 0, 5.0]
         const targetX = 0;
@@ -909,6 +1166,18 @@ export class GameEngine {
           person.currentPos[2] += (dz / dist) * person.speed * dt;
           person.meshGroup.position.set(person.currentPos[0], 0, person.currentPos[2]);
           person.meshGroup.rotation.y = Math.atan2(dx, dz);
+
+          // Animate walking limbs
+          person.walkProgress += dt * 6.2;
+          if (limbs) {
+            const swing = Math.sin(person.walkProgress);
+            limbs.legL.rotation.x = swing * 0.52;
+            limbs.legR.rotation.x = -swing * 0.52;
+            limbs.armL.rotation.x = -swing * 0.42;
+            limbs.armR.rotation.x = swing * 0.42;
+            limbs.head.rotation.y = Math.sin(person.walkProgress * 0.5) * 0.08;
+            person.meshGroup.position.y = Math.abs(swing) * 0.035;
+          }
         } else {
           // Inside dining area: walk to cashier counter
           person.state = 'inside_counter';
@@ -928,15 +1197,40 @@ export class GameEngine {
           person.currentPos[2] += (dz / dist) * person.speed * dt;
           person.meshGroup.position.set(person.currentPos[0], 0, person.currentPos[2]);
           person.meshGroup.rotation.y = Math.atan2(dx, dz);
+
+          // Animate walking limbs
+          person.walkProgress += dt * 6.2;
+          if (limbs) {
+            const swing = Math.sin(person.walkProgress);
+            limbs.legL.rotation.x = swing * 0.52;
+            limbs.legR.rotation.x = -swing * 0.52;
+            limbs.armL.rotation.x = -swing * 0.42;
+            limbs.armR.rotation.x = swing * 0.42;
+            limbs.head.rotation.y = Math.sin(person.walkProgress * 0.5) * 0.08;
+            person.meshGroup.position.y = Math.abs(swing) * 0.035;
+          }
         } else {
-          // Standing at counter browsing menu for 25s
+          // Standing at counter browsing menu or waiting for order
           person.state = 'seated';
           person.walkProgress = 0;
           person.meshGroup.rotation.y = -Math.PI / 2; // Facing register
         }
       } else if (person.state === 'seated') {
-        person.walkProgress += dt;
-        if (person.walkProgress >= 22) {
+        // Smoothly settle limbs into idle stance
+        if (limbs) {
+          limbs.legL.rotation.x = THREE.MathUtils.damp(limbs.legL.rotation.x, 0, 10, dt);
+          limbs.legR.rotation.x = THREE.MathUtils.damp(limbs.legR.rotation.x, 0, 10, dt);
+          limbs.armL.rotation.x = THREE.MathUtils.damp(limbs.armL.rotation.x, 0, 10, dt);
+          limbs.armR.rotation.x = THREE.MathUtils.damp(limbs.armR.rotation.x, 0, 10, dt);
+          limbs.head.rotation.y = THREE.MathUtils.damp(limbs.head.rotation.y, 0, 10, dt);
+          person.meshGroup.position.y = THREE.MathUtils.damp(person.meshGroup.position.y, 0, 10, dt);
+        }
+
+        // Do not advance departure timer while Duck is talking to customer!
+        if (!this.dialogueState.active || this.dialogueState.npcId !== person.id) {
+          person.walkProgress += dt;
+        }
+        if (person.walkProgress >= 30) {
           // Leaves restaurant
           this.scene.remove(person.meshGroup);
           this.activeCustomerPerson = null;
@@ -974,10 +1268,10 @@ export class GameEngine {
   }
 
   private spawnCustomerFromCar(carX: number, carZ: number) {
-    const jacketColors = [0x334455, 0x6b3b28, 0x2d4f3b, 0x4a443f];
-    const jacket = jacketColors[Math.floor(Math.random() * jacketColors.length)];
+    const archetypeIndex = this.customerConvoIndex % CUSTOMER_ARCHETYPES.length;
+    const archetype = CUSTOMER_ARCHETYPES[archetypeIndex];
 
-    const personMesh = createCustomerCharacter(jacket);
+    const personMesh = createCustomerCharacter(0x334455, archetypeIndex);
     personMesh.position.set(carX, 0, carZ);
     this.scene.add(personMesh);
 
@@ -991,31 +1285,126 @@ export class GameEngine {
       walkProgress: 0,
       hasTriggeredChime: false,
       speed: 1.8,
+      archetypeIndex,
+      archetypeName: archetype.name,
+      archetypeTitle: archetype.title,
     };
   }
 
   private updateInteractions() {
+    if (this.dialogueState.active) {
+      this.activeItemNearby = null;
+      this.nearbyCustomer = null;
+      this.callbacks.onInteractionPrompt(null);
+      return;
+    }
+
+    // 1. Check Customer NPC conversation (High priority contextual prompt: "[E] Talk to Customer")
+    if (this.activeCustomerPerson) {
+      const p = this.activeCustomerPerson;
+      if (p.state === 'inside_counter' || p.state === 'seated' || p.currentPos[2] < 5.8) {
+        const cPos = new THREE.Vector3(p.currentPos[0], 1.35, p.currentPos[2]);
+        const toCustomer = new THREE.Vector3().subVectors(cPos, this.camera.position);
+        const distToCustomer = toCustomer.length();
+        toCustomer.normalize();
+        const camDir = new THREE.Vector3();
+        this.camera.getWorldDirection(camDir);
+        const dot = camDir.dot(toCustomer);
+
+        if (distToCustomer <= 2.8 && dot > 0.4) {
+          this.nearbyCustomer = p;
+          this.activeItemNearby = null;
+          this.callbacks.onInteractionPrompt(`[E] Talk to ${p.archetypeName || 'Customer'}`);
+          return;
+        }
+      }
+    }
+    this.nearbyCustomer = null;
+
+    // Seated regular customer in dining booth (Silas)
+    const seatedItem = this.world.interactiveItems.find((it) => it.id === 'seated_customer');
+    if (seatedItem) {
+      const sPos = new THREE.Vector3(...seatedItem.position);
+      const toSeated = new THREE.Vector3().subVectors(sPos, this.camera.position);
+      const distToSeated = toSeated.length();
+      toSeated.normalize();
+      const camDir = new THREE.Vector3();
+      this.camera.getWorldDirection(camDir);
+      const dot = camDir.dot(toSeated);
+
+      if (distToSeated <= 2.6 && dot > 0.42) {
+        this.activeItemNearby = seatedItem;
+        this.callbacks.onInteractionPrompt('[E] Talk to Silas (Regular Customer)');
+        return;
+      }
+    }
+
+    // 2. Strict Sequential Objective Task Prompts (Only UNLOCKED active tasks can show prompts)
+    const currentStep = this.currentSteps[this.nightState.currentObjectiveIndex];
+    if (!currentStep) {
+      this.activeItemNearby = null;
+      this.callbacks.onInteractionPrompt(null);
+      return;
+    }
+
+    const allowedIds = STEP_ALLOWED_ITEMS[currentStep.id] || [];
+    const camDir = new THREE.Vector3();
+    this.camera.getWorldDirection(camDir);
+
     let closestItem: InteractiveItem | null = null;
     let minDist = Infinity;
 
     for (const item of this.world.interactiveItems) {
       if (item.completed) continue;
-      const d = this.playerPos.distanceTo(new THREE.Vector3(...item.position));
+      // Tasks that have not been unlocked MUST NOT display interaction buttons or prompts
+      if (!allowedIds.includes(item.id)) continue;
+
+      // Special contextual conditions
+      if (currentStep.id === 'dump_trash' && !this.stats.hasTrashInHand && item.type === 'outdoor_dumpster') {
+        continue;
+      }
+      if (currentStep.id === 'n2_cardboard') {
+        if (this.stats.hasCardboardInHand && item.type !== 'outdoor_dumpster') continue;
+        if (!this.stats.hasCardboardInHand && item.type !== 'cardboard_bundle') continue;
+      }
+      if (currentStep.id === 'finish_shift' && item.type === 'front_door_exit') {
+        if (this.nightState.timeHour < 6 && this.nightState.timeTotalSeconds < 180) {
+          continue;
+        }
+      }
+
+      const itemPos = new THREE.Vector3(...item.position);
+      const d = this.playerPos.distanceTo(itemPos);
       if (d < item.radius && d < minDist) {
-        minDist = d;
-        closestItem = item;
+        // Player must be looking towards the interactable object (not looking away or behind)
+        const toItem = new THREE.Vector3().subVectors(itemPos, this.camera.position).normalize();
+        const dot = camDir.dot(toItem);
+        if (dot > 0.35) {
+          minDist = d;
+          closestItem = item;
+        }
       }
     }
 
     this.activeItemNearby = closestItem;
     if (closestItem) {
-      this.callbacks.onInteractionPrompt(`[E] ${closestItem.actionText}`);
+      this.callbacks.onInteractionPrompt(`E — ${closestItem.actionText}`);
     } else {
       this.callbacks.onInteractionPrompt(null);
     }
   }
 
   private updateAtmosphere(dt: number, timeSec: number) {
+    // Moving Background Traffic in both highway directions
+    for (const car of this.backgroundTrafficCars) {
+      car.mesh.position.x += car.direction * car.speed * dt;
+      if (car.direction === -1 && car.mesh.position.x < -36) {
+        car.mesh.position.x = 36;
+      } else if (car.direction === 1 && car.mesh.position.x > 36) {
+        car.mesh.position.x = -36;
+      }
+    }
+
     // Rain particle animation
     const rain = this.world.rainSystem;
     const posAttr = rain.geometry.getAttribute('position') as THREE.BufferAttribute;

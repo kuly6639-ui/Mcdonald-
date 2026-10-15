@@ -36,7 +36,7 @@ export const HUD: React.FC<HUDProps> = ({
           <div className="flex items-center justify-between text-[10px] text-amber-500 font-bold uppercase tracking-widest pb-1 border-b border-neutral-800">
             <span className="flex items-center gap-1.5">
               <ChevronRight className="w-3.5 h-3.5 text-amber-400" />
-              Current Shift Objective (Night {nightState.night})
+              Night {nightState.night} Shift — Employee: Duck
             </span>
             <span className="text-neutral-400">Step {nightState.currentObjectiveIndex + 1}</span>
           </div>

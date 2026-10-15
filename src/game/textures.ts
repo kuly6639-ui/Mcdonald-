@@ -305,3 +305,301 @@ export function createAsphaltTexture(): THREE.CanvasTexture {
 
   return finalizeTexture(canvas, true);
 }
+
+/** McDonald's POS Register Touchscreen Interface */
+export function createPOSTouchScreenTexture(regNum: number = 1): THREE.CanvasTexture {
+  const width = 512;
+  const height = 384;
+  const canvas = document.createElement('canvas');
+  canvas.width = width;
+  canvas.height = height;
+  const ctx = canvas.getContext('2d')!;
+
+  // Dark slate POS background
+  ctx.fillStyle = '#181c20';
+  ctx.fillRect(0, 0, width, height);
+
+  // Top header bar (Red McDonald's band)
+  ctx.fillStyle = '#b31e1c';
+  ctx.fillRect(0, 0, width, 48);
+
+  // Golden arches mini M icon
+  ctx.strokeStyle = '#f5b800';
+  ctx.lineWidth = 4;
+  ctx.beginPath();
+  ctx.arc(24, 28, 10, Math.PI, 0, false);
+  ctx.stroke();
+  ctx.beginPath();
+  ctx.arc(44, 28, 10, Math.PI, 0, false);
+  ctx.stroke();
+
+  // Header Title
+  ctx.fillStyle = '#ffffff';
+  ctx.font = 'bold 18px monospace';
+  ctx.textAlign = 'left';
+  ctx.fillText(`MCDONALD'S POS  |  REG 0${regNum}`, 68, 30);
+
+  // Cashier info & status
+  ctx.font = 'bold 14px monospace';
+  ctx.textAlign = 'right';
+  ctx.fillStyle = '#fce4a6';
+  ctx.fillText('CASHIER: DUCK', width - 80, 24);
+  ctx.fillStyle = '#4ade80';
+  ctx.fillText('● ONLINE', width - 16, 24);
+
+  // Left Receipt Box (Itemized order ticket)
+  ctx.fillStyle = '#0f1214';
+  ctx.fillRect(16, 60, 210, 250);
+  ctx.strokeStyle = '#333b42';
+  ctx.lineWidth = 2;
+  ctx.strokeRect(16, 60, 210, 250);
+
+  // Receipt items
+  ctx.fillStyle = '#a6b4c2';
+  ctx.font = '12px monospace';
+  ctx.textAlign = 'left';
+  ctx.fillText('ORDER #42 - DINE IN', 24, 82);
+  ctx.strokeStyle = '#333b42';
+  ctx.beginPath();
+  ctx.moveTo(24, 90);
+  ctx.lineTo(216, 90);
+  ctx.stroke();
+
+  ctx.fillStyle = '#e2e8f0';
+  ctx.fillText('1x BIG MAC COMBO', 24, 112);
+  ctx.fillText('   $8.99', 156, 112);
+  ctx.fillText('1x MED FRIES', 24, 132);
+  ctx.fillText('   $2.79', 156, 132);
+  ctx.fillText('1x COCA-COLA (L)', 24, 152);
+  ctx.fillText('   $1.99', 156, 152);
+  ctx.fillText('1x APPLE PIE', 24, 172);
+  ctx.fillText('   $1.49', 156, 172);
+
+  ctx.beginPath();
+  ctx.moveTo(24, 190);
+  ctx.lineTo(216, 190);
+  ctx.stroke();
+
+  ctx.fillStyle = '#94a3b8';
+  ctx.fillText('SUBTOTAL:      $15.26', 24, 212);
+  ctx.fillText('TAX (8.25%):    $1.26', 24, 230);
+  ctx.fillStyle = '#fbbf24';
+  ctx.font = 'bold 15px monospace';
+  ctx.fillText('TOTAL DUE: $16.52', 24, 260);
+  ctx.fillStyle = '#4ade80';
+  ctx.font = '12px monospace';
+  ctx.fillText('STATUS: AWAITING PAYMENT', 24, 290);
+
+  // Right Side Menu Touch Buttons
+  const buttons = [
+    { label: 'BURGERS', color: '#dc2626' },
+    { label: 'CHICKEN', color: '#ea580c' },
+    { label: 'FRIES', color: '#d97706' },
+    { label: 'BEVERAGES', color: '#0284c7' },
+    { label: 'DESSERT', color: '#9333ea' },
+    { label: 'HAPPY MEAL', color: '#16a34a' },
+  ];
+
+  buttons.forEach((btn, idx) => {
+    const col = idx % 2;
+    const row = Math.floor(idx / 2);
+    const bx = 240 + col * 128;
+    const by = 60 + row * 80;
+
+    // Button background
+    ctx.fillStyle = btn.color;
+    ctx.fillRect(bx, by, 118, 70);
+
+    // Bevel highlights
+    ctx.fillStyle = 'rgba(255, 255, 255, 0.25)';
+    ctx.fillRect(bx, by, 118, 4);
+    ctx.fillRect(bx, by, 4, 70);
+    ctx.fillStyle = 'rgba(0, 0, 0, 0.35)';
+    ctx.fillRect(bx, by + 66, 118, 4);
+    ctx.fillRect(bx + 114, by, 4, 70);
+
+    // Label
+    ctx.fillStyle = '#ffffff';
+    ctx.font = 'bold 14px monospace';
+    ctx.textAlign = 'center';
+    ctx.fillText(btn.label, bx + 59, by + 42);
+  });
+
+  // Bottom action bar
+  ctx.fillStyle = '#22c55e';
+  ctx.fillRect(16, 324, 150, 48);
+  ctx.fillStyle = '#ffffff';
+  ctx.font = 'bold 16px monospace';
+  ctx.textAlign = 'center';
+  ctx.fillText('EXACT CASH', 91, 354);
+
+  ctx.fillStyle = '#3b82f6';
+  ctx.fillRect(180, 324, 150, 48);
+  ctx.fillStyle = '#ffffff';
+  ctx.fillText('CREDIT / CHIP', 255, 354);
+
+  ctx.fillStyle = '#ef4444';
+  ctx.fillRect(344, 324, 150, 48);
+  ctx.fillStyle = '#ffffff';
+  ctx.fillText('STORE #0412', 419, 354);
+
+  return finalizeTexture(canvas, true);
+}
+
+/** Customer-Facing VFD Pole Display Texture */
+export function createCustomerPoleDisplayTexture(): THREE.CanvasTexture {
+  const width = 512;
+  const height = 128;
+  const canvas = document.createElement('canvas');
+  canvas.width = width;
+  canvas.height = height;
+  const ctx = canvas.getContext('2d')!;
+
+  // Deep dark vacuum fluorescent display glass
+  ctx.fillStyle = '#061309';
+  ctx.fillRect(0, 0, width, height);
+
+  // Outer bezel frame
+  ctx.strokeStyle = '#0e2413';
+  ctx.lineWidth = 6;
+  ctx.strokeRect(6, 6, width - 12, height - 12);
+
+  // Fluorescent green VFD glow text
+  ctx.fillStyle = '#00ff66';
+  ctx.shadowColor = '#00ff66';
+  ctx.shadowBlur = 10;
+  ctx.font = 'bold 32px "Courier New", monospace';
+  ctx.textAlign = 'center';
+  ctx.textBaseline = 'middle';
+  ctx.fillText('WELCOME TO McDONALD\'S', width / 2, 42);
+
+  ctx.font = 'bold 28px "Courier New", monospace';
+  ctx.fillStyle = '#33ff88';
+  ctx.fillText('TOTAL DUE:     $16.52', width / 2, 88);
+
+  return finalizeTexture(canvas, true);
+}
+
+/** Biometric / Digital Time Attendance Machine LCD Screen */
+export function createTimeAttendanceScreenTexture(): THREE.CanvasTexture {
+  const width = 512;
+  const height = 256;
+  const canvas = document.createElement('canvas');
+  canvas.width = width;
+  canvas.height = height;
+  const ctx = canvas.getContext('2d')!;
+
+  // High contrast backlit terminal glass
+  ctx.fillStyle = '#0a1622';
+  ctx.fillRect(0, 0, width, height);
+
+  // Subtle grid raster lines
+  ctx.strokeStyle = 'rgba(0, 200, 255, 0.08)';
+  ctx.lineWidth = 1;
+  for (let y = 0; y < height; y += 8) {
+    ctx.beginPath();
+    ctx.moveTo(0, y);
+    ctx.lineTo(width, y);
+    ctx.stroke();
+  }
+
+  // Header banner
+  ctx.fillStyle = '#0f2942';
+  ctx.fillRect(0, 0, width, 44);
+  ctx.fillStyle = '#38bdf8';
+  ctx.font = 'bold 18px monospace';
+  ctx.textAlign = 'center';
+  ctx.fillText('MCDONALD\'S TIME & ATTENDANCE SYSTEM', width / 2, 28);
+
+  // Digital clock
+  ctx.fillStyle = '#00ffcc';
+  ctx.shadowColor = '#00ffcc';
+  ctx.shadowBlur = 8;
+  ctx.font = 'bold 44px "Courier New", monospace';
+  ctx.fillText('00:00:00 AM', width / 2, 98);
+  ctx.shadowBlur = 0;
+
+  // Active shift & Employee badge info
+  ctx.fillStyle = '#e2e8f0';
+  ctx.font = 'bold 20px monospace';
+  ctx.fillText('OVERNIGHT CLOSING SHIFT', width / 2, 136);
+
+  ctx.fillStyle = '#fbbf24';
+  ctx.font = 'bold 22px monospace';
+  ctx.fillText('EMP: DUCK  (ID #0412)', width / 2, 172);
+
+  // Interaction prompt
+  ctx.fillStyle = '#4ade80';
+  ctx.font = 'bold 18px monospace';
+  ctx.fillText('>> PRESS [E] TO CLOCK IN <<', width / 2, 214);
+
+  // Status footer
+  ctx.fillStyle = '#64748b';
+  ctx.font = '12px monospace';
+  ctx.fillText('READER: READY  |  BIOMETRIC SCANNER: ACTIVE', width / 2, 242);
+
+  return finalizeTexture(canvas, true);
+}
+
+/** CCTV Multi-Camera Surveillance Monitor Screen Texture */
+export function createComputerCCTVScreenTexture(): THREE.CanvasTexture {
+  const width = 512;
+  const height = 384;
+  const canvas = document.createElement('canvas');
+  canvas.width = width;
+  canvas.height = height;
+  const ctx = canvas.getContext('2d')!;
+
+  // Dark surveillance CRT green
+  ctx.fillStyle = '#06160b';
+  ctx.fillRect(0, 0, width, height);
+
+  // 4 camera quadrant grid lines
+  ctx.strokeStyle = '#1a4f2b';
+  ctx.lineWidth = 3;
+  ctx.beginPath();
+  ctx.moveTo(width / 2, 0);
+  ctx.lineTo(width / 2, height);
+  ctx.moveTo(0, height / 2);
+  ctx.lineTo(width, height / 2);
+  ctx.stroke();
+
+  // CRT scanlines
+  for (let y = 0; y < height; y += 4) {
+    ctx.fillStyle = 'rgba(0, 0, 0, 0.35)';
+    ctx.fillRect(0, y, width, 2);
+  }
+
+  // Camera feeds labels
+  const cams = [
+    { name: 'CAM 01: FRONT ENTRANCE', x: 16, y: 32 },
+    { name: 'CAM 02: CASHIER LOBBY', x: 272, y: 32 },
+    { name: 'CAM 03: DRIVE-THRU', x: 16, y: 224 },
+    { name: 'CAM 04: BACK DUMPSTER', x: 272, y: 224 },
+  ];
+
+  cams.forEach((cam) => {
+    ctx.fillStyle = 'rgba(0, 0, 0, 0.6)';
+    ctx.fillRect(cam.x - 6, cam.y - 18, 220, 24);
+
+    ctx.fillStyle = '#00ff66';
+    ctx.font = 'bold 13px monospace';
+    ctx.textAlign = 'left';
+    ctx.fillText(cam.name, cam.x, cam.y);
+
+    // Blinking REC dot
+    ctx.fillStyle = '#ff2222';
+    ctx.beginPath();
+    ctx.arc(cam.x + 195, cam.y - 4, 4, 0, Math.PI * 2);
+    ctx.fill();
+  });
+
+  // Center console watermark
+  ctx.fillStyle = '#00ff66';
+  ctx.font = 'bold 14px monospace';
+  ctx.textAlign = 'center';
+  ctx.fillText('SECURITY MONITORING CONSOLE - LIVE FEED', width / 2, height / 2 + 6);
+
+  return finalizeTexture(canvas, true);
+}
+

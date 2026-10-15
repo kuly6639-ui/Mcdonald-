@@ -7,6 +7,7 @@ import {
   ObjectiveStep,
   PlayerStats,
   NightState,
+  DialogueState,
 } from './types/game';
 import { LoadingScreen } from './components/LoadingScreen';
 import { MainMenu } from './components/MainMenu';
@@ -14,6 +15,7 @@ import { HUD } from './components/HUD';
 import { CCTVOverlay } from './components/CCTVOverlay';
 import { PauseMenu } from './components/PauseMenu';
 import { VictoryModal } from './components/VictoryModal';
+import { DialogueBox } from './components/DialogueBox';
 
 export default function App() {
   const canvasMountRef = useRef<HTMLDivElement>(null);
@@ -76,6 +78,13 @@ export default function App() {
   const [activeObjective, setActiveObjective] = useState<ObjectiveStep | null>(null);
   const [objectiveCompletedNotice, setObjectiveCompletedNotice] = useState<string | null>(null);
   const [interactionPrompt, setInteractionPrompt] = useState<string | null>(null);
+  const [dialogue, setDialogue] = useState<DialogueState>({
+    active: false,
+    isMonologue: false,
+    lines: [],
+    currentIndex: 0,
+  });
+  const [fadeAlpha, setFadeAlpha] = useState<number>(0);
 
   useEffect(() => {
     if (!canvasMountRef.current) return;
@@ -93,6 +102,8 @@ export default function App() {
       onPlayerStatsUpdate: (stats) => setPlayerStats(stats),
       onNightStateUpdate: (state) => setNightState(state),
       onInteractionPrompt: (prompt) => setInteractionPrompt(prompt),
+      onDialogueUpdate: (d) => setDialogue(d),
+      onFadeAlphaUpdate: (alpha) => setFadeAlpha(alpha),
     });
 
     engine.updateSettings(settings);
@@ -163,6 +174,14 @@ export default function App() {
         />
       )}
 
+      {/* Cinematic Scene Fade-in from Black */}
+      {fadeAlpha > 0.001 && currentScreen === 'playing' && (
+        <div
+          className="absolute inset-0 pointer-events-none z-30 bg-black transition-opacity duration-75"
+          style={{ opacity: fadeAlpha }}
+        />
+      )}
+
       {/* Active Playing HUD */}
       {currentScreen === 'playing' && !isPaused && (
         <HUD
@@ -172,6 +191,14 @@ export default function App() {
           objectiveCompletedNotice={objectiveCompletedNotice}
           interactionPrompt={interactionPrompt}
           onPauseClick={handleTogglePause}
+        />
+      )}
+
+      {/* Dialogue / Monologue Interface */}
+      {currentScreen === 'playing' && dialogue.active && !isPaused && (
+        <DialogueBox
+          dialogue={dialogue}
+          onAdvance={() => engineRef.current?.advanceDialogue()}
         />
       )}
 

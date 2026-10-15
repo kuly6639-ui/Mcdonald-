@@ -57,15 +57,15 @@ export const VictoryModal: React.FC<VictoryModalProps> = ({
 
           <div className="bg-neutral-900 border border-neutral-800 p-4 rounded mb-6 text-neutral-300 text-xs leading-relaxed text-left space-y-2">
             <p>
-              You clocked out and stepped into the damp morning air.
+              Duck clocked out and stepped through the automatic sliding doors into the damp morning air.
             </p>
             <p className="text-amber-400 italic">
-              When you turned around and glanced through the front glass window, the clown mascot was standing in the dark dining room, perfectly still, staring straight toward the exit.
+              When Duck turned around and glanced through the front glass window, the clown mascot was standing in the dark dining room, perfectly still, staring straight toward the exit.
             </p>
           </div>
 
           <p className="text-[11px] text-neutral-500 mb-6">
-            He didn't chase you. He didn't move. He just watched.
+            He didn't chase Duck. He didn't move. He just watched.
           </p>
 
           <div className="space-y-3">

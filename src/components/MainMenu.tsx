@@ -45,7 +45,7 @@ export const MainMenu: React.FC<MainMenuProps> = ({
           </div>
 
           <p className="mt-4 text-xs text-neutral-400 max-w-sm leading-relaxed">
-            Take on the overnight shift at an eerie 24-hour fast-food restaurant. Complete routine duties while a strange mascot observes from the shadows.
+            Step into the shoes of Duck, an exhausted employee on the overnight shift at an eerie 24-hour fast-food restaurant. Complete routine duties, converse with late-night customers, and survive until dawn while a strange mascot observes from the shadows.
           </p>
         </div>
 
@@ -274,7 +274,7 @@ export const MainMenu: React.FC<MainMenuProps> = ({
               </div>
               <div className="flex justify-between border-b border-neutral-800 pb-1">
                 <span className="text-amber-400 font-bold">E</span>
-                <span>Interact (Wipe Tables, Collect Trash, Switches)</span>
+                <span>Talk to Customers / Complete Tasks</span>
               </div>
               <div className="flex justify-between border-b border-neutral-800 pb-1">
                 <span className="text-amber-400 font-bold">ESC</span>

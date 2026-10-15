@@ -23,6 +23,9 @@ import {
   createClipboardProp,
   createHallwayPuddle,
   createDetailedCar,
+  createMopAndBucket,
+  createDriveThruOrderStation,
+  createSeatedCustomerInBooth,
 } from './props';
 import { InteractiveItem } from '../types/game';
 
@@ -164,23 +167,8 @@ export function buildCompactRestaurantWorld(): RestaurantWorld {
 
   // Exterior West Wall (X = -8)
   createWall(0.3, 3.2, 12, -8, 1.6, 0);
-  // Exterior East Wall (X = 8, with drive-thru window opening at Z = -3)
-  createWall(0.3, 3.2, 4.5, 8, 1.6, 3.75);
-  createWall(0.3, 3.2, 4.5, 8, 1.6, -3.75);
-  // Drive-Thru glass window
-  const dtWindow = new THREE.Mesh(new THREE.BoxGeometry(0.1, 1.4, 1.6), glassMat);
-  dtWindow.position.set(8, 1.5, 0);
-  root.add(dtWindow);
-  addCollision(7.8, 8.2, -1.0, 1.0);
-
-  interactiveItems.push({
-    id: 'drive_thru_window',
-    type: 'drive_thru_window',
-    name: 'Drive-Thru Window',
-    actionText: 'Inspect Drive-Thru Window',
-    position: [7.2, 1.4, 0],
-    radius: 1.8,
-  });
+  // Exterior East Wall (X = 8, continuous solid wall)
+  createWall(0.3, 3.2, 12, 8, 1.6, 0);
 
   // Exterior South Wall (Z = -6, with doorway for rear service door at X = 4)
   createWall(11.5, 3.2, 0.3, -2.25, 1.6, -6);
@@ -354,11 +342,10 @@ export function buildCompactRestaurantWorld(): RestaurantWorld {
 
   // --- 4. INTERIOR ROOM PARTITIONS & FURNISHINGS ---
   // Wall separating Dining Area (Z: 0 to 6) from Kitchen & Office (Z: -6 to 0)
-  // Hallway opening between X: -4.5 and -3.0
-  // Counter sits at X: 1.5, Z: 0.5
-  createWall(3.5, 3.2, 0.3, -6.25, 1.6, 0); // Wall left of hallway
-  createWall(4.0, 3.2, 0.3, -1.0, 1.6, 0); // Wall between hallway and kitchen counter
-  createWall(3.0, 3.2, 0.3, 6.5, 1.6, 0); // Wall right of counter
+  // Generous, clear hallway opening into security office between X: -5.6 and -2.7 (2.9m wide)
+  createWall(2.4, 3.2, 0.3, -6.8, 1.6, 0); // Wall left of security hallway
+  createWall(4.2, 3.2, 0.3, -0.6, 1.6, 0); // Wall between hallway and cashier counter
+  createWall(1.8, 3.2, 0.3, 7.1, 1.6, 0); // Wall right of counter (leaves wide 1.0m right passage)
 
   // Divider between Kitchen (X: -1 to 8) and Office/Freezer (X: -8 to -1)
   createWall(0.3, 3.2, 6.0, -1.0, 1.6, -3.0);
@@ -366,15 +353,31 @@ export function buildCompactRestaurantWorld(): RestaurantWorld {
   // Divider between Security Office (Z: -3 to 0) and Freezer (Z: -6 to -3)
   createWall(7.0, 3.2, 0.3, -4.5, 1.6, -3.0);
 
-  // --- COMPACT CASHIER COUNTER (X: 2.2, Z: 0.5) ---
+  // --- COMPACT CASHIER COUNTER (X: 3.4, Z: 0.5) ---
   const cashierCounter = createCompactCashierCounter();
-  cashierCounter.position.set(2.4, 0, 0.4);
+  cashierCounter.position.set(3.4, 0, 0.5);
   root.add(cashierCounter);
-  addCollision(0.4, 4.4, 0.0, 0.8);
+  addCollision(1.6, 5.2, 0.1, 0.9);
 
-  // Employee Time Clock Punch Machine mounted on wall near counter (X: 4.8, Z: 0.2)
+  // --- DRIVE-THRU ORDER STATION (Relocated to right corner of cashier counter) ---
+  const driveThruStation = createDriveThruOrderStation();
+  driveThruStation.position.set(4.8, 1.08, 0.5);
+  root.add(driveThruStation);
+  interactiveMeshes.set('drive_thru_order_station', driveThruStation);
+
+  interactiveItems.push({
+    id: 'drive_thru_order_station',
+    type: 'drive_thru_order_station',
+    name: 'Drive-Thru Order Station',
+    actionText: 'Check Drive-Thru Headset & Order Screen',
+    position: [4.8, 1.2, 0.7],
+    radius: 1.8,
+  });
+
+  // Employee Time Clock Punch Station
+  // Placed in employee-only area beside wall (X: -1.5, Z: 0.18), away from cashier entrance
   const timeClock = createTimeClockPunch();
-  timeClock.position.set(4.8, 1.5, 0.18);
+  timeClock.position.set(-1.5, 1.5, 0.18);
   root.add(timeClock);
 
   interactiveItems.push({
@@ -382,7 +385,7 @@ export function buildCompactRestaurantWorld(): RestaurantWorld {
     type: 'time_clock',
     name: 'Employee Time Clock',
     actionText: 'Punch Time Card & Clock In',
-    position: [4.8, 1.5, 0.6],
+    position: [-1.5, 1.5, 0.6],
     radius: 1.8,
   });
 
@@ -398,6 +401,21 @@ export function buildCompactRestaurantWorld(): RestaurantWorld {
     booth.position.set(bx, 0, bz);
     root.add(booth);
     addCollision(bx - 0.9, bx + 0.9, bz - 0.7, bz + 0.7);
+  });
+
+  // --- SEATED CUSTOMER MODEL IN BOOTH #3 (Old Man Silas / Night Regular) ---
+  const seatedCustomer = createSeatedCustomerInBooth(2);
+  seatedCustomer.position.set(5.0, 0, 4.2);
+  root.add(seatedCustomer);
+  interactiveMeshes.set('seated_customer', seatedCustomer);
+
+  interactiveItems.push({
+    id: 'seated_customer',
+    type: 'seated_customer',
+    name: 'Silas (Night Regular)',
+    actionText: 'Talk to Customer',
+    position: [5.0, 1.1, 4.2],
+    radius: 2.2,
   });
 
   // Table Mess Tasks (Tables to clean)
@@ -483,27 +501,36 @@ export function buildCompactRestaurantWorld(): RestaurantWorld {
   });
 
   // --- SECURITY OFFICE (X: -8 to -1, Z: -3 to 0) ---
+  // --- SECURITY OFFICE (X: -8 to -1, Z: -3 to 0) ---
   const officeDesk = createSecurityOfficeDesk(cameraScreens);
-  officeDesk.position.set(-4.5, 0, -1.2);
-  officeDesk.rotation.y = Math.PI;
+  officeDesk.position.set(-4.5, 0, -2.35);
+  officeDesk.rotation.y = 0; // Screen and keyboard face room entrance
   root.add(officeDesk);
-  addCollision(-5.5, -3.5, -1.7, -0.7);
+  addCollision(-5.5, -3.5, -2.85, -1.8);
+
+  interactiveMeshes.set('cctv_monitor', officeDesk);
 
   interactiveItems.push({
     id: 'cctv_monitor',
     type: 'cctv_monitor',
-    name: 'Security Camera Console',
+    name: 'Security Surveillance Computer (CCTV)',
     actionText: 'Inspect Security Surveillance Cameras',
-    position: [-4.5, 1.2, -1.5],
-    radius: 2.0,
+    position: [-4.5, 1.2, -1.8],
+    radius: 2.2,
   });
+
+  // Mop and Yellow Bucket (Placed in unused corner against west wall, far from doorway)
+  const mopAndBucket = createMopAndBucket();
+  mopAndBucket.position.set(-7.3, 0, -0.5);
+  root.add(mopAndBucket);
+  addCollision(-7.6, -7.0, -0.7, -0.3);
 
   // Office auxiliary light breaker switch (Night 2)
   const officeSwitch = new THREE.Mesh(
     new THREE.BoxGeometry(0.15, 0.25, 0.08),
     new THREE.MeshStandardMaterial({ color: 0xcc2222 })
   );
-  officeSwitch.position.set(-7.85, 1.5, -0.8);
+  officeSwitch.position.set(-7.85, 1.5, -1.5);
   root.add(officeSwitch);
 
   interactiveItems.push({
@@ -511,7 +538,7 @@ export function buildCompactRestaurantWorld(): RestaurantWorld {
     type: 'kitchen_switch',
     name: 'Night Maintenance Power Switch',
     actionText: 'Turn On Auxiliary Hallway Lights',
-    position: [-7.4, 1.5, -0.8],
+    position: [-7.4, 1.5, -1.5],
     radius: 1.8,
   });
 
@@ -543,9 +570,9 @@ export function buildCompactRestaurantWorld(): RestaurantWorld {
     radius: 1.8,
   });
 
-  // Hallway Spill (Night 2)
+  // Hallway / Office Corner Fluid Spill (Night 2) - positioned safely in corner beside mop bucket
   const puddle = createHallwayPuddle();
-  puddle.position.set(-3.5, 0.01, -0.5);
+  puddle.position.set(-6.8, 0.01, -0.5);
   root.add(puddle);
   interactiveMeshes.set('hallway_spill', puddle);
 
@@ -554,7 +581,7 @@ export function buildCompactRestaurantWorld(): RestaurantWorld {
     type: 'hallway_spill',
     name: 'Unidentified Fluid Spill',
     actionText: 'Mop & Clean Dark Liquid Puddle',
-    position: [-3.5, 0.2, -0.5],
+    position: [-6.8, 0.2, -0.5],
     radius: 1.8,
   });
 

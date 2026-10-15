@@ -10,12 +10,14 @@ export class SoundEngine {
   private masterGain: GainNode | null = null;
   private ambientGain: GainNode | null = null;
   private rainGain: GainNode | null = null;
+  private cricketsGain: GainNode | null = null;
   private droneOsc1: OscillatorNode | null = null;
   private droneOsc2: OscillatorNode | null = null;
   private droneFilter: BiquadFilterNode | null = null;
   private isMuted: boolean = false;
   private masterVolume: number = 0.8;
   private tensionLevel: number = 0;
+  private lastChimeTime: number = 0;
 
   constructor() {}
 
@@ -30,6 +32,7 @@ export class SoundEngine {
       this.masterGain.connect(this.ctx.destination);
 
       this.startRainAndDrone();
+      this.startCricketAmbience();
     } catch (e) {
       console.warn('AudioContext initialization deferred until user interaction');
     }
@@ -58,6 +61,71 @@ export class SoundEngine {
       const targetGain = 0.12 + this.tensionLevel * 0.15;
       this.ambientGain.gain.setTargetAtTime(targetGain, this.ctx.currentTime, 0.5);
     }
+  }
+
+  public setCricketVolume(targetGain: number) {
+    if (!this.cricketsGain || !this.ctx) return;
+    const clamped = Math.max(0, Math.min(0.28, targetGain));
+    this.cricketsGain.gain.setTargetAtTime(clamped, this.ctx.currentTime, 0.35);
+  }
+
+  private startCricketAmbience() {
+    if (!this.ctx || !this.masterGain) return;
+
+    // Procedural synthesis of nighttime crickets chirping
+    // Crickets chirp in bursts at ~4600Hz - 5000Hz
+    const sampleRate = this.ctx.sampleRate;
+    const duration = 2.5; // 2.5s looping buffer
+    const frameCount = Math.floor(sampleRate * duration);
+    const buffer = this.ctx.createBuffer(1, frameCount, sampleRate);
+    const data = buffer.getChannelData(0);
+
+    // Create 3 chirp clusters per loop
+    const chirpStarts = [0.15, 0.95, 1.75];
+    for (const startSec of chirpStarts) {
+      const pulses = 4; // 4 rapid wing rubs per chirp cluster
+      const pulseDuration = 0.024;
+      const pulseInterval = 0.038;
+
+      for (let p = 0; p < pulses; p++) {
+        const pulseStart = Math.floor((startSec + p * pulseInterval) * sampleRate);
+        const pulseLength = Math.floor(pulseDuration * sampleRate);
+
+        for (let i = 0; i < pulseLength; i++) {
+          const t = i / sampleRate;
+          const sampleIdx = pulseStart + i;
+          if (sampleIdx < frameCount) {
+            // Amplitude envelope: fast rise, exponential decay
+            const env = Math.sin((i / pulseLength) * Math.PI);
+            // Carrier frequency ~4850Hz with harmonics
+            const wave =
+              Math.sin(2 * Math.PI * 4850 * t) * 0.7 +
+              Math.sin(2 * Math.PI * 5200 * t) * 0.3;
+            // Modulated noise for realistic insect texture
+            const noise = (Math.random() * 2 - 1) * 0.25;
+            data[sampleIdx] += (wave + noise) * env * 0.35;
+          }
+        }
+      }
+    }
+
+    const cricketSrc = this.ctx.createBufferSource();
+    cricketSrc.buffer = buffer;
+    cricketSrc.loop = true;
+
+    const cricketFilter = this.ctx.createBiquadFilter();
+    cricketFilter.type = 'bandpass';
+    cricketFilter.frequency.value = 4900;
+    cricketFilter.Q.value = 3.5;
+
+    this.cricketsGain = this.ctx.createGain();
+    this.cricketsGain.gain.value = 0.0; // starts silent inside restaurant
+
+    cricketSrc.connect(cricketFilter);
+    cricketFilter.connect(this.cricketsGain);
+    this.cricketsGain.connect(this.masterGain);
+
+    cricketSrc.start();
   }
 
   private startRainAndDrone() {
@@ -113,34 +181,45 @@ export class SoundEngine {
     this.droneOsc2.start();
   }
 
-  // --- STORE ENTRANCE CHIME ("DING-DONG / KENG!") ---
+  // --- EXTENDED STORE ENTRANCE CHIME (0.8–1.2s resonant electronic chime) ---
   public playEntranceChime() {
     if (!this.ctx || !this.masterGain) return;
     const now = this.ctx.currentTime;
+    // Prevent overlapping chimes within 2.5 seconds
+    if (now - this.lastChimeTime < 2.5) return;
+    this.lastChimeTime = now;
 
-    // First bright bell note: E6 (1318.5 Hz)
+    // Tone 1: High bell - E6 (1318.5 Hz) with crisp attack and smooth body
     const bell1 = this.ctx.createOscillator();
     const gain1 = this.ctx.createGain();
     bell1.type = 'sine';
     bell1.frequency.setValueAtTime(1318.5, now);
-    gain1.gain.setValueAtTime(0.2, now);
-    gain1.gain.exponentialRampToValueAtTime(0.001, now + 0.6);
+
+    gain1.gain.setValueAtTime(0, now);
+    gain1.gain.linearRampToValueAtTime(0.22, now + 0.015); // Clear crisp attack
+    gain1.gain.exponentialRampToValueAtTime(0.04, now + 0.35); // Body
+    gain1.gain.exponentialRampToValueAtTime(0.0001, now + 0.75); // Fade
+
     bell1.connect(gain1);
     gain1.connect(this.masterGain);
     bell1.start(now);
-    bell1.stop(now + 0.65);
+    bell1.stop(now + 0.8);
 
-    // Second resonant bell note: B5 (987.77 Hz)
+    // Tone 2: Resolving lower bell - B5 (987.77 Hz) starting at +0.26s with long resonant tail
     const bell2 = this.ctx.createOscillator();
     const gain2 = this.ctx.createGain();
     bell2.type = 'sine';
-    bell2.frequency.setValueAtTime(987.77, now + 0.14);
-    gain2.gain.setValueAtTime(0.18, now + 0.14);
-    gain2.gain.exponentialRampToValueAtTime(0.001, now + 0.85);
+    bell2.frequency.setValueAtTime(987.77, now + 0.26);
+
+    gain2.gain.setValueAtTime(0, now + 0.26);
+    gain2.gain.linearRampToValueAtTime(0.24, now + 0.28); // Clear attack
+    gain2.gain.exponentialRampToValueAtTime(0.06, now + 0.65); // Warm resonant body
+    gain2.gain.exponentialRampToValueAtTime(0.0001, now + 1.15); // Long gentle tail (~1.15s total)
+
     bell2.connect(gain2);
     gain2.connect(this.masterGain);
-    bell2.start(now + 0.14);
-    bell2.stop(now + 0.9);
+    bell2.start(now + 0.26);
+    bell2.stop(now + 1.2);
   }
 
   // --- AUTOMATIC SLIDING DOOR SOUND ---
@@ -298,21 +377,105 @@ export class SoundEngine {
     if (!this.ctx || !this.masterGain) return;
     const now = this.ctx.currentTime;
 
+    if (turnOn) {
+      // Crisp mechanical switch ON: high sharp latch snap
+      const oscPrimary = this.ctx.createOscillator();
+      const gainPrimary = this.ctx.createGain();
+      oscPrimary.type = 'square';
+      oscPrimary.frequency.setValueAtTime(1750, now);
+      oscPrimary.frequency.exponentialRampToValueAtTime(650, now + 0.025);
+
+      gainPrimary.gain.setValueAtTime(0.12, now);
+      gainPrimary.gain.exponentialRampToValueAtTime(0.0001, now + 0.045);
+
+      oscPrimary.connect(gainPrimary);
+      gainPrimary.connect(this.masterGain);
+      oscPrimary.start(now);
+      oscPrimary.stop(now + 0.05);
+
+      // Micro metallic ping
+      const oscPing = this.ctx.createOscillator();
+      const gainPing = this.ctx.createGain();
+      oscPing.type = 'sine';
+      oscPing.frequency.setValueAtTime(2400, now + 0.008);
+      gainPing.gain.setValueAtTime(0.05, now + 0.008);
+      gainPing.gain.exponentialRampToValueAtTime(0.0001, now + 0.038);
+
+      oscPing.connect(gainPing);
+      gainPing.connect(this.masterGain);
+      oscPing.start(now + 0.008);
+      oscPing.stop(now + 0.04);
+    } else {
+      // Lower, duller mechanical switch OFF: thumb release clack
+      const oscOff = this.ctx.createOscillator();
+      const gainOff = this.ctx.createGain();
+      oscOff.type = 'triangle';
+      oscOff.frequency.setValueAtTime(950, now);
+      oscOff.frequency.exponentialRampToValueAtTime(220, now + 0.032);
+
+      gainOff.gain.setValueAtTime(0.11, now);
+      gainOff.gain.exponentialRampToValueAtTime(0.0001, now + 0.045);
+
+      oscOff.connect(gainOff);
+      gainOff.connect(this.masterGain);
+      oscOff.start(now);
+      oscOff.stop(now + 0.05);
+    }
+  }
+
+  public playDialogueBlip() {
+    if (!this.ctx || !this.masterGain) return;
+    const now = this.ctx.currentTime;
+
     const osc = this.ctx.createOscillator();
     const gain = this.ctx.createGain();
+    osc.type = 'sine';
+    osc.frequency.setValueAtTime(800, now);
+    osc.frequency.exponentialRampToValueAtTime(450, now + 0.018);
 
-    osc.type = 'square';
-    osc.frequency.setValueAtTime(turnOn ? 1400 : 900, now);
-    osc.frequency.exponentialRampToValueAtTime(350, now + 0.04);
-
-    gain.gain.setValueAtTime(0.09, now);
-    gain.gain.exponentialRampToValueAtTime(0.001, now + 0.05);
+    gain.gain.setValueAtTime(0.05, now);
+    gain.gain.exponentialRampToValueAtTime(0.0001, now + 0.022);
 
     osc.connect(gain);
     gain.connect(this.masterGain);
+    osc.start(now);
+    osc.stop(now + 0.025);
+  }
+
+  /**
+   * Low-pitched retro electronic beeping sound accompanying scrolling typewriter dialogue text.
+   * Duck has a deeper, dry monotone (140-160Hz), while customer NPCs have slightly distinct tones.
+   */
+  public playDialogueTypewriterBeep(isDuck: boolean = true) {
+    if (!this.ctx || !this.masterGain) return;
+    const now = this.ctx.currentTime;
+
+    const osc = this.ctx.createOscillator();
+    const gain = this.ctx.createGain();
+    const filter = this.ctx.createBiquadFilter();
+
+    // Low-pitched fundamental frequency with subtle variation for organic retro feel
+    const baseFreq = isDuck ? 150 : 185;
+    const jitter = (Math.random() - 0.5) * 14;
+    const startFreq = baseFreq + jitter;
+
+    osc.type = isDuck ? 'triangle' : 'sawtooth';
+    osc.frequency.setValueAtTime(startFreq, now);
+    osc.frequency.exponentialRampToValueAtTime(startFreq * 0.88, now + 0.032);
+
+    filter.type = 'lowpass';
+    filter.frequency.setValueAtTime(isDuck ? 420 : 540, now);
+
+    // Warm, muted click/beep envelope
+    gain.gain.setValueAtTime(0.048, now);
+    gain.gain.exponentialRampToValueAtTime(0.0001, now + 0.036);
+
+    osc.connect(filter);
+    filter.connect(gain);
+    gain.connect(this.masterGain);
 
     osc.start(now);
-    osc.stop(now + 0.06);
+    osc.stop(now + 0.04);
   }
 
   public playCleaningWipe() {
