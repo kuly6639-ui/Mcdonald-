@@ -215,8 +215,10 @@ export class GameEngine {
   private flashlightTarget: THREE.Object3D;
   private playerDimLight: THREE.PointLight;
 
-  // Controls
+  // Controls & Mobile Touch Input
   private keys: Record<string, boolean> = {};
+  private mobileMoveInput: THREE.Vector2 = new THREE.Vector2(0, 0);
+  private mobileSprint: boolean = false;
   private activeItemNearby: InteractiveItem | null = null;
   private isPaused: boolean = false;
   private currentScreen: GameScreen = 'loading';

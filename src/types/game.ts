@@ -23,6 +23,8 @@ export interface ObjectiveStep {
 export interface GameSettings {
   masterVolume: number;
   mouseSensitivity: number;
+  touchSensitivity?: number;
+  touchControls?: 'auto' | 'always' | 'off';
   invertY: boolean;
   crtFilter: boolean;
   graphicsQuality: GraphicsQuality;
