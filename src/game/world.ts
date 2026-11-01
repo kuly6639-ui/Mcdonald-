@@ -4,7 +4,10 @@ import {
   createFreezerWallTexture,
   createMcDonaldsSignTexture,
   createAsphaltTexture,
+  createMcDonaldsEntranceSignTexture,
+  createMcDonaldsAdPosterTexture,
 } from './textures';
+import { populateSurroundingForest } from './forest';
 import {
   createCompactCashierCounter,
   createTimeClockPunch,
@@ -15,6 +18,10 @@ import {
   createDiningBooth,
   createKitchenCounter,
   createDeepFryer,
+  createCommercialCoffeeMachine,
+  createFriedChickenVendingMachine,
+  createFoodPrepTableItems,
+  createFriedChickenBucket,
   createSecurityOfficeDesk,
   createLocker,
   createFreezerShelves,
@@ -68,6 +75,7 @@ export interface RestaurantWorld {
     group: THREE.Group;
     doorLeaf: THREE.Mesh;
   };
+  kitchenLight: THREE.PointLight;
 }
 
 export function buildCompactRestaurantWorld(): RestaurantWorld {
@@ -159,16 +167,182 @@ export function buildCompactRestaurantWorld(): RestaurantWorld {
   floorMesh.receiveShadow = true;
   root.add(floorMesh);
 
-  // Ceiling
+  // --- 1. COMPACT BUILDING STRUCTURE & EXTERIOR ROOF ---
+  // Interior Ceiling
   const ceilingMesh = new THREE.Mesh(new THREE.PlaneGeometry(16, 12), ceilingMat);
   ceilingMesh.rotation.x = Math.PI / 2;
   ceilingMesh.position.set(0, 3.2, 0);
   root.add(ceilingMesh);
 
+  // Exterior Tar & Gravel Roof Deck Slab (16.6m wide x 12.6m deep x 0.3m thick)
+  const roofDeckMat = new THREE.MeshStandardMaterial({
+    color: 0x1c1e21,
+    roughness: 0.95,
+    metalness: 0.1,
+  });
+  const roofDeck = new THREE.Mesh(new THREE.BoxGeometry(16.6, 0.28, 12.6), roofDeckMat);
+  roofDeck.position.set(0, 3.34, 0);
+  roofDeck.receiveShadow = true;
+  root.add(roofDeck);
+
+  // Roof Parapet Walls & Metal Coping
+  const parapetMat = new THREE.MeshStandardMaterial({
+    color: 0x24282c,
+    roughness: 0.85,
+    metalness: 0.25,
+  });
+  const parapetN = new THREE.Mesh(new THREE.BoxGeometry(16.6, 0.45, 0.32), parapetMat);
+  parapetN.position.set(0, 3.65, 6.16);
+  const parapetS = new THREE.Mesh(new THREE.BoxGeometry(16.6, 0.45, 0.32), parapetMat);
+  parapetS.position.set(0, 3.65, -6.16);
+  const parapetW = new THREE.Mesh(new THREE.BoxGeometry(0.32, 0.45, 12.6), parapetMat);
+  parapetW.position.set(-8.16, 3.65, 0);
+  const parapetE = new THREE.Mesh(new THREE.BoxGeometry(0.32, 0.45, 12.6), parapetMat);
+  parapetE.position.set(8.16, 3.65, 0);
+  root.add(parapetN, parapetS, parapetW, parapetE);
+
+  // Classic McDonald's Crimson Mansard Roof Facade Overhang (Angled front roof canopy)
+  const mansardMat = new THREE.MeshStandardMaterial({
+    color: 0x991b1b, // Signature McDonald's red mansard
+    roughness: 0.45,
+    metalness: 0.3,
+  });
+  const frontMansard = new THREE.Mesh(new THREE.BoxGeometry(16.8, 0.95, 0.45), mansardMat);
+  frontMansard.position.set(0, 3.9, 6.25);
+  frontMansard.rotation.x = 0.25; // Sloped down towards street
+  root.add(frontMansard);
+
+  // Front Entrance Protective Canopy Marquee over sliding doors
+  const canopyMat = new THREE.MeshStandardMaterial({
+    color: 0x1f2327,
+    roughness: 0.6,
+    metalness: 0.6,
+  });
+  const entranceCanopy = new THREE.Mesh(new THREE.BoxGeometry(5.2, 0.18, 1.8), canopyMat);
+  entranceCanopy.position.set(0, 3.12, 6.9);
+  root.add(entranceCanopy);
+
+  // Canopy Steel Diagonal Support Struts
+  const strutMat = new THREE.MeshStandardMaterial({ color: 0x111111, metalness: 0.8, roughness: 0.3 });
+  const strutL = new THREE.Mesh(new THREE.CylinderGeometry(0.035, 0.035, 1.6, 8), strutMat);
+  strutL.position.set(-2.4, 3.65, 6.8);
+  strutL.rotation.x = 0.55;
+  const strutR = new THREE.Mesh(new THREE.CylinderGeometry(0.035, 0.035, 1.6, 8), strutMat);
+  strutR.position.set(2.4, 3.65, 6.8);
+  strutR.rotation.x = 0.55;
+  root.add(strutL, strutR);
+
+  // Commercial Industrial Rooftop HVAC Unit (Steel condenser unit on roof deck)
+  const hvacGroup = new THREE.Group();
+  hvacGroup.position.set(2.5, 3.48, -1.5);
+  const hvacMat = new THREE.MeshStandardMaterial({ color: 0x717980, metalness: 0.8, roughness: 0.35 });
+  const hvacBody = new THREE.Mesh(new THREE.BoxGeometry(2.4, 1.35, 1.8), hvacMat);
+  hvacBody.position.y = 0.68;
+  hvacGroup.add(hvacBody);
+
+  // Dual Rooftop Fans
+  const fanMat = new THREE.MeshStandardMaterial({ color: 0x222222, metalness: 0.9, roughness: 0.2 });
+  const fan1 = new THREE.Mesh(new THREE.CylinderGeometry(0.45, 0.45, 0.15, 16), fanMat);
+  fan1.position.set(-0.6, 1.42, 0);
+  const fan2 = new THREE.Mesh(new THREE.CylinderGeometry(0.45, 0.45, 0.15, 16), fanMat);
+  fan2.position.set(0.6, 1.42, 0);
+  hvacGroup.add(fan1, fan2);
+
+  // HVAC Exhaust Vent Pipe
+  const pipe = new THREE.Mesh(new THREE.CylinderGeometry(0.14, 0.14, 1.8, 12), hvacMat);
+  pipe.position.set(-1.4, 0.9, 0.5);
+  pipe.rotation.z = 0.2;
+  hvacGroup.add(pipe);
+  root.add(hvacGroup);
+
+  // --- ILLUMINATED McDONALD'S SIGNBOARD OUTSIDE THE FRONT DOOR ---
+  const signMat = new THREE.MeshBasicMaterial({
+    map: createMcDonaldsEntranceSignTexture(),
+  });
+  const entranceSign = new THREE.Mesh(new THREE.BoxGeometry(7.6, 1.35, 0.18), signMat);
+  entranceSign.position.set(0, 3.75, 6.42);
+  root.add(entranceSign);
+
+  // Warm Golden Entrance Neon Light casting glow onto the sidewalk and doors
+  const entranceSignLight = new THREE.PointLight(0xffbe26, 2.2, 14);
+  entranceSignLight.position.set(0, 3.3, 7.2);
+  root.add(entranceSignLight);
+  flickeringLights.push({ light: entranceSignLight, baseIntensity: 2.2, flickerRate: 0.05 });
+
+  // --- OUTDOOR McDONALD'S ADVERTISEMENTS FLANKING THE FRONT DOORS ---
+  // 1. Big Mac Promotional Lightbox Poster (Left of front doors)
+  const adBigMacMat = new THREE.MeshBasicMaterial({
+    map: createMcDonaldsAdPosterTexture('bigmac'),
+  });
+  const adBigMacFrame = new THREE.Mesh(
+    new THREE.BoxGeometry(1.25, 1.85, 0.08),
+    new THREE.MeshStandardMaterial({ color: 0x18181b, metalness: 0.7, roughness: 0.3 })
+  );
+  adBigMacFrame.position.set(-2.8, 1.75, 6.18);
+  const adBigMacFace = new THREE.Mesh(new THREE.PlaneGeometry(1.15, 1.75), adBigMacMat);
+  adBigMacFace.position.set(-2.8, 1.75, 6.23);
+  root.add(adBigMacFrame, adBigMacFace);
+
+  const adLightL = new THREE.PointLight(0xfff5e0, 0.85, 4.5);
+  adLightL.position.set(-2.8, 2.5, 6.55);
+  root.add(adLightL);
+
+  // 2. World Famous Fries Promotional Lightbox Poster (Right of front doors)
+  const adFriesMat = new THREE.MeshBasicMaterial({
+    map: createMcDonaldsAdPosterTexture('fries'),
+  });
+  const adFriesFrame = new THREE.Mesh(
+    new THREE.BoxGeometry(1.25, 1.85, 0.08),
+    new THREE.MeshStandardMaterial({ color: 0x18181b, metalness: 0.7, roughness: 0.3 })
+  );
+  adFriesFrame.position.set(2.8, 1.75, 6.18);
+  const adFriesFace = new THREE.Mesh(new THREE.PlaneGeometry(1.15, 1.75), adFriesMat);
+  adFriesFace.position.set(2.8, 1.75, 6.23);
+  root.add(adFriesFrame, adFriesFace);
+
+  const adLightR = new THREE.PointLight(0xfff5e0, 0.85, 4.5);
+  adLightR.position.set(2.8, 2.5, 6.55);
+  root.add(adLightR);
+
+  // 3. Freestanding Promotional Sidewalk A-Frame Sign (Grimace Shake Promo)
+  const aFrameGroup = new THREE.Group();
+  aFrameGroup.position.set(-3.6, 0, 7.6);
+  aFrameGroup.rotation.y = 0.25;
+  const adGrimaceMat = new THREE.MeshBasicMaterial({
+    map: createMcDonaldsAdPosterTexture('grimace'),
+  });
+  const aFrameBoard1 = new THREE.Mesh(new THREE.BoxGeometry(0.75, 1.1, 0.04), adGrimaceMat);
+  aFrameBoard1.position.set(0, 0.58, 0.12);
+  aFrameBoard1.rotation.x = -0.18;
+  const aFrameBoard2 = new THREE.Mesh(new THREE.BoxGeometry(0.75, 1.1, 0.04), adGrimaceMat);
+  aFrameBoard2.position.set(0, 0.58, -0.12);
+  aFrameBoard2.rotation.x = 0.18;
+  aFrameGroup.add(aFrameBoard1, aFrameBoard2);
+  root.add(aFrameGroup);
+  addCollision(-4.1, -3.1, 7.1, 8.1);
+
   // Exterior West Wall (X = -8)
   createWall(0.3, 3.2, 12, -8, 1.6, 0);
-  // Exterior East Wall (X = 8, continuous solid wall)
-  createWall(0.3, 3.2, 12, 8, 1.6, 0);
+
+  // Exterior East Wall (X = 8, with Drive-Thru Service Window)
+  createWall(0.3, 3.2, 5.0, 8, 1.6, 3.5); // East front segment
+  createWall(0.3, 3.2, 5.0, 8, 1.6, -3.5); // East rear segment
+  createWall(0.3, 0.8, 2.0, 8, 0.4, 0); // Wall under drive-thru window
+  createWall(0.3, 0.8, 2.0, 8, 2.8, 0); // Wall above drive-thru window
+
+  // --- DRIVE-THRU SERVICE WINDOW (X = 8.0, Z = 0) ---
+  const dtWindowFrameMat = new THREE.MeshStandardMaterial({ color: 0x1f2328, roughness: 0.4, metalness: 0.7 });
+  const dtFrame = new THREE.Mesh(new THREE.BoxGeometry(0.35, 1.65, 2.05), dtWindowFrameMat);
+  dtFrame.position.set(8.0, 1.6, 0);
+  const dtGlass = new THREE.Mesh(new THREE.BoxGeometry(0.08, 1.5, 1.9), glassMat);
+  dtGlass.position.set(8.0, 1.6, 0);
+  // Stainless steel customer service ledge projecting outside
+  const dtLedge = new THREE.Mesh(
+    new THREE.BoxGeometry(0.65, 0.08, 1.8),
+    new THREE.MeshStandardMaterial({ color: 0x999da0, metalness: 0.85, roughness: 0.25 })
+  );
+  dtLedge.position.set(8.25, 0.82, 0);
+  root.add(dtFrame, dtGlass, dtLedge);
 
   // Exterior South Wall (Z = -6, with doorway for rear service door at X = 4)
   createWall(11.5, 3.2, 0.3, -2.25, 1.6, -6);
@@ -178,11 +352,55 @@ export function buildCompactRestaurantWorld(): RestaurantWorld {
   // Exterior North Wall (Z = 6, Front Facade with Automatic Sliding Doors at X = 0)
   createWall(6.5, 3.2, 0.3, -4.75, 1.6, 6);
   createWall(6.5, 3.2, 0.3, 4.75, 1.6, 6);
-  // Large storefront glass windows on left & right of sliding door
-  const windowL = new THREE.Mesh(new THREE.BoxGeometry(4.8, 2.4, 0.1), glassMat);
-  windowL.position.set(-4.5, 1.5, 6.0);
-  const windowR = new THREE.Mesh(new THREE.BoxGeometry(4.8, 2.4, 0.1), glassMat);
-  windowR.position.set(4.5, 1.5, 6.0);
+
+  // --- LARGE ARCHITECTURAL STOREFRONT WINDOWS WITH ALUMINUM FRAMES & SILLS ---
+  const windowFrameMat = new THREE.MeshStandardMaterial({
+    color: 0x1b1e22,
+    roughness: 0.35,
+    metalness: 0.75,
+  });
+
+  const createWindowAssembly = (xCenter: number) => {
+    const wGroup = new THREE.Group();
+    wGroup.position.set(xCenter, 1.55, 6.0);
+
+    // Main clear glass panel (high transmission, reveals dark interior)
+    const glassPane = new THREE.Mesh(new THREE.BoxGeometry(4.7, 2.3, 0.06), glassMat);
+    wGroup.add(glassPane);
+
+    // Exterior aluminum surrounding frame
+    const topBar = new THREE.Mesh(new THREE.BoxGeometry(4.8, 0.09, 0.14), windowFrameMat);
+    topBar.position.y = 1.15;
+    const bottomBar = new THREE.Mesh(new THREE.BoxGeometry(4.8, 0.09, 0.14), windowFrameMat);
+    bottomBar.position.y = -1.15;
+    const leftPost = new THREE.Mesh(new THREE.BoxGeometry(0.09, 2.3, 0.14), windowFrameMat);
+    leftPost.position.x = -2.35;
+    const rightPost = new THREE.Mesh(new THREE.BoxGeometry(0.09, 2.3, 0.14), windowFrameMat);
+    rightPost.position.x = 2.35;
+
+    // Horizontal Transom Divider
+    const transom = new THREE.Mesh(new THREE.BoxGeometry(4.7, 0.07, 0.1), windowFrameMat);
+    transom.position.y = 0.45;
+
+    // Vertical Mullions (dividing into 3 large storefront glass panes)
+    const mullion1 = new THREE.Mesh(new THREE.BoxGeometry(0.07, 2.3, 0.1), windowFrameMat);
+    mullion1.position.x = -0.78;
+    const mullion2 = new THREE.Mesh(new THREE.BoxGeometry(0.07, 2.3, 0.1), windowFrameMat);
+    mullion2.position.x = 0.78;
+
+    // Exterior projecting window sill ledge
+    const sill = new THREE.Mesh(
+      new THREE.BoxGeometry(4.9, 0.12, 0.28),
+      new THREE.MeshStandardMaterial({ color: 0x474d54, roughness: 0.8 })
+    );
+    sill.position.set(0, -1.2, 0.12);
+
+    wGroup.add(topBar, bottomBar, leftPost, rightPost, transom, mullion1, mullion2, sill);
+    return wGroup;
+  };
+
+  const windowL = createWindowAssembly(-4.5);
+  const windowR = createWindowAssembly(4.5);
   root.add(windowL, windowR);
 
   // --- AUTOMATIC FRONT SLIDING GLASS DOORS (X = 0, Z = 6) ---
@@ -326,19 +544,36 @@ export function buildCompactRestaurantWorld(): RestaurantWorld {
   signBoard.position.set(-14, 7.5, 18);
   root.add(signBoard);
 
-  const signLight = new THREE.PointLight(0xffbb00, 1.8, 16);
-  signLight.position.set(-14, 7, 16.5);
+  // 3D Glowing Golden Arches ("M") atop the roadside totem
+  const archMat = new THREE.MeshBasicMaterial({ color: 0xffba00 });
+  const leftArch = new THREE.Mesh(new THREE.TorusGeometry(0.55, 0.08, 8, 20, Math.PI), archMat);
+  leftArch.position.set(-14.48, 8.8, 18);
+  leftArch.rotation.y = 0;
+  root.add(leftArch);
+
+  const rightArch = new THREE.Mesh(new THREE.TorusGeometry(0.55, 0.08, 8, 20, Math.PI), archMat);
+  rightArch.position.set(-13.52, 8.8, 18);
+  rightArch.rotation.y = 0;
+  root.add(rightArch);
+
+  const signLight = new THREE.PointLight(0xffbb00, 2.0, 18);
+  signLight.position.set(-14, 7.5, 16.5);
   root.add(signLight);
-  flickeringLights.push({ light: signLight, baseIntensity: 1.8, flickerRate: 0.08 });
+  flickeringLights.push({ light: signLight, baseIntensity: 2.0, flickerRate: 0.08 });
 
   // Streetlamps along road
-  const streetLight1 = new THREE.PointLight(0xffa834, 1.2, 20);
+  const streetLight1 = new THREE.PointLight(0xffa834, 1.3, 22);
   streetLight1.position.set(-8, 5.5, 23);
   root.add(streetLight1);
 
-  const streetLight2 = new THREE.PointLight(0xffa834, 1.2, 20);
+  const streetLight2 = new THREE.PointLight(0xffa834, 1.3, 22);
   streetLight2.position.set(10, 5.5, 23);
   root.add(streetLight2);
+
+  // --- PROCEDURAL HORROR FOREST PERIMETER ---
+  // Dense varied conifer, twisted dead tree, and shrub foliage
+  const forest = populateSurroundingForest(addCollision);
+  root.add(forest.group);
 
   // --- 4. INTERIOR ROOM PARTITIONS & FURNISHINGS ---
   // Wall separating Dining Area (Z: 0 to 6) from Kitchen & Office (Z: -6 to 0)
@@ -472,16 +707,33 @@ export function buildCompactRestaurantWorld(): RestaurantWorld {
     radius: 1.6,
   });
 
-  // --- KITCHEN PROPS (Stainless prep table, fryers) ---
+  // --- KITCHEN PROPS (Stainless prep table, coffee machine, prep items, fried chicken warmer) ---
   const kitchenCounter = createKitchenCounter();
   kitchenCounter.position.set(3.5, 0, -2.5);
   root.add(kitchenCounter);
   addCollision(2.3, 4.7, -3.0, -2.0);
 
-  const fryer = createDeepFryer();
+  // High-Detail Commercial Coffee & Espresso Machine on the Food Prep Table
+  const coffeeMachine = createCommercialCoffeeMachine();
+  coffeeMachine.position.set(2.7, 0.95, -2.5);
+  root.add(coffeeMachine);
+
+  // Food Preparation Area Items (Condiment bottles, burger boxes, fry cartons, tongs, wrappers)
+  const prepItems = createFoodPrepTableItems();
+  prepItems.position.set(3.8, 0.95, -2.5);
+  root.add(prepItems);
+
+  // Fried Chicken Bucket on Food Prep Table
+  const prepChickenBucket = createFriedChickenBucket();
+  prepChickenBucket.scale.setScalar(0.85);
+  prepChickenBucket.position.set(4.35, 0.95, -2.4);
+  root.add(prepChickenBucket);
+
+  // Commercial Fried Chicken Warming Showcase Machine & Deep Fryer
+  const fryer = createFriedChickenVendingMachine();
   fryer.position.set(6.8, 0, -3.5);
   root.add(fryer);
-  addCollision(6.3, 7.3, -4.0, -3.0);
+  addCollision(6.2, 7.4, -4.1, -2.9);
 
   // Fryer & Grill power switch
   const switchBox = new THREE.Mesh(
@@ -548,26 +800,14 @@ export function buildCompactRestaurantWorld(): RestaurantWorld {
   locker.rotation.y = Math.PI / 2;
   root.add(locker);
 
-  // --- WALK-IN FREEZER (X: -8 to -1, Z: -6 to -3) ---
-  const freezerShelf = createFreezerShelves();
-  freezerShelf.position.set(-4.5, 0, -5.4);
-  root.add(freezerShelf);
-  addCollision(-5.5, -3.5, -5.8, -5.0);
-
-  // Temperature log clipboard inside freezer
-  const freezerClip = createClipboardProp('TEMP LOG');
-  freezerClip.position.set(-7.85, 1.4, -4.5);
-  freezerClip.rotation.y = Math.PI / 2;
-  root.add(freezerClip);
-  interactiveMeshes.set('freezer_temp_gauge', freezerClip);
-
+  // --- KITCHEN FOOD PREPARATION COUNTER (Active during customer ordering phase) ---
   interactiveItems.push({
-    id: 'freezer_temp_gauge',
-    type: 'freezer_temp_gauge',
-    name: 'Freezer Temp Monitor (-18°C)',
-    actionText: 'Record Walk-in Freezer Temperature',
-    position: [-7.3, 1.4, -4.5],
-    radius: 1.8,
+    id: 'kitchen_prep_station',
+    type: 'kitchen_prep_station',
+    name: 'Kitchen Food Prep & Assembly Counter',
+    actionText: 'Prepare & Bag Customer Food Order',
+    position: [3.5, 1.0, -2.5],
+    radius: 2.2,
   });
 
   // Hallway / Office Corner Fluid Spill (Night 2) - positioned safely in corner beside mop bucket
@@ -582,22 +822,6 @@ export function buildCompactRestaurantWorld(): RestaurantWorld {
     name: 'Unidentified Fluid Spill',
     actionText: 'Mop & Clean Dark Liquid Puddle',
     position: [-6.8, 0.2, -0.5],
-    radius: 1.8,
-  });
-
-  // Storage room inventory checklist
-  const storageClip = createClipboardProp('SUPPLY LOG');
-  storageClip.position.set(-1.15, 1.4, -1.8);
-  storageClip.rotation.y = -Math.PI / 2;
-  root.add(storageClip);
-  interactiveMeshes.set('storage_clipboard', storageClip);
-
-  interactiveItems.push({
-    id: 'storage_clipboard',
-    type: 'storage_clipboard',
-    name: 'Supply Inventory Checklist',
-    actionText: 'Sign & Inspect Storage Inventory Log',
-    position: [-1.8, 1.4, -1.8],
     radius: 1.8,
   });
 
@@ -699,5 +923,6 @@ export function buildCompactRestaurantWorld(): RestaurantWorld {
     parkingSpots,
     slidingDoors,
     rearDoor,
+    kitchenLight,
   };
 }

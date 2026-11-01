@@ -19,7 +19,8 @@ import {
   RestaurantWorld,
   ParkingSpot,
 } from './world';
-import { createDetailedCar, createCustomerCharacter } from './props';
+import { createDetailedCar, createCustomerCharacter, createFirstPersonHeldMeal } from './props';
+import { populateSurroundingForest } from './forest';
 
 export interface GameEngineCallbacks {
   onScreenChange: (screen: GameScreen) => void;
@@ -34,30 +35,30 @@ export interface GameEngineCallbacks {
 
 // Strict mapping of active objective IDs to allowed interactive item IDs
 const STEP_ALLOWED_ITEMS: Record<string, string[]> = {
-  // Night 1
+  // Night 1 (Cold storage task removed)
   'clock_in': ['time_clock'],
   'clean_tables': ['clean_table_1', 'clean_table_2'],
   'collect_trash': ['trash_bag_1', 'trash_bag_2'],
   'dump_trash': ['outdoor_dumpster'],
   'kitchen_fryers': ['kitchen_switch'],
-  'storage_log': ['storage_clipboard'],
   'check_cctv': ['cctv_monitor'],
-  'finish_shift': ['front_door_exit'],
+  'finish_shift': ['front_door_exit', 'kitchen_prep_station'],
+  'prep_order': ['kitchen_prep_station'],
 
-  // Night 2
+  // Night 2 (Walk-in freezer task removed)
   'n2_clock_in': ['time_clock'],
   'n2_breaker': ['office_switch'],
-  'n2_freezer': ['freezer_temp_gauge'],
   'n2_mop_puddle': ['hallway_spill'],
   'n2_cardboard': ['cardboard_bundle', 'outdoor_dumpster'],
   'n2_drive_thru': ['drive_thru_order_station'],
   'n2_cctv_final': ['cctv_monitor'],
 };
 
-// Customer NPC Archetypes with distinct personalities & Duck's employee dialogues
+// Customer NPC Archetypes with distinct personalities, orders & Duck's employee dialogues
 export interface CustomerArchetype {
   name: string;
   title: string;
+  orderItem: string;
   dialogue: DialogueLine[];
 }
 
@@ -66,6 +67,7 @@ export const CUSTOMER_ARCHETYPES: CustomerArchetype[] = [
   {
     name: 'Nurse Ramirez',
     title: 'Exhausted Night-Shift Worker',
+    orderItem: 'Big Mac Meal with Hot McCafé Coffee & Fries',
     dialogue: [
       { speaker: 'Nurse Ramirez', text: 'Hey... please tell me the coffee pot is still hot. Just wrapped a brutal 14-hour ER shift.' },
       { speaker: 'Duck', text: 'Freshly brewed five minutes ago. Night shifts really drain your soul, don\'t they?' },
@@ -73,46 +75,50 @@ export const CUSTOMER_ARCHETYPES: CustomerArchetype[] = [
       { speaker: 'Duck', text: 'Yeah, usually I get rowdy kids. Tonight it\'s just me, the fryers, and that creepy clown mascot sitting by the booths.' },
       { speaker: 'Nurse Ramirez', text: 'Keep the front doors locked if you can, kid. Something in the air out there feels completely off.' },
       { speaker: 'Duck', text: 'Corporate policy says 24/7 lobby access. Even if a ghost clown attacks, management would dock my pay.' },
+      { speaker: 'Nurse Ramirez', text: 'Anyway, can I get a Big Mac meal with hot coffee and fries? I am completely starving.' },
+      { speaker: 'Duck', text: 'Coming right up! I\'ll prepare that for you back in the kitchen.' },
     ],
   },
   // 2. Nervous Teenager
   {
     name: 'Tyler',
     title: 'Jittery Teenager',
+    orderItem: '10-Piece Chicken McNuggets with Fries & Sprite',
     dialogue: [
       { speaker: 'Tyler', text: 'Yo... bro. Bro! Did you see that?! Did that Ronald clown statue over in the dining booth just turn its head?!' },
       { speaker: 'Duck', text: 'It\'s hollow plastic and fiberglass bolted into the linoleum. It doesn\'t move, Tyler.' },
       { speaker: 'Tyler', text: 'I swear on my life it was facing the window when I parked my car! Now its head is tilted straight toward the register!' },
       { speaker: 'Duck', text: 'I make eight bucks an hour. Even if that clown comes to life, I don\'t get paid enough to run.' },
-      { speaker: 'Tyler', text: 'I\'m grabbing my fries to go. You are insane for working here alone in the dark, man.' },
-      { speaker: 'Duck', text: 'Have a wonderful night. Don\'t forget to leave five stars on the customer survey.' },
+      { speaker: 'Tyler', text: 'I\'m grabbing my food to go. Can I get a 10-piece McNuggets combo with BBQ sauce and a large Sprite?' },
+      { speaker: 'Duck', text: 'Right on it. I\'ll get your nuggets and fries cooking right away in the kitchen.' },
     ],
   },
   // 3. Cryptic / Unsettling Regular
   {
     name: 'Old Man Silas',
     title: 'Cryptic Regular',
+    orderItem: 'Hot Black Tea & Baked Apple Pie',
     dialogue: [
       { speaker: 'Old Man Silas', text: 'He doesn\'t care for the fluorescent buzz, young man. He only listens when the tubes start to flicker.' },
-      { speaker: 'Duck', text: 'Sir, if you\'re not ordering food, company guidelines say you can\'t stand around whispering ominously.' },
+      { speaker: 'Duck', text: 'Sir, if you\'re ordering food, I\'m ready at the register.' },
       { speaker: 'Old Man Silas', text: 'Forty years ago, this ground belonged to the woods. The painted smiles in greasepaint never really wash away.' },
-      { speaker: 'Duck', text: 'Right. Look, Silas, the burgers are beef and the clown is resin. Take your hot tea and have a seat.' },
-      { speaker: 'Old Man Silas', text: 'When the bells chime six, check the glass. He is always watching who walks out the front door.' },
-      { speaker: 'Duck', text: '...Great. Another lovely bedtime story for my shift.' },
+      { speaker: 'Duck', text: 'Right. Look, Silas, the burgers are beef and the clown is resin. What can I get started for you?' },
+      { speaker: 'Old Man Silas', text: 'A hot black tea and a warm baked apple pie, young duck. Keep the tea piping hot.' },
+      { speaker: 'Duck', text: 'Understood. Heading into the kitchen to prepare your tea and apple pie now.' },
     ],
   },
   // 4. Highway Long-Hauler Trucker
   {
     name: 'Big Ray',
     title: 'Highway Long-Hauler',
+    orderItem: 'Double Quarter Pounder Combo & Large Fries',
     dialogue: [
-      { speaker: 'Big Ray', text: 'Evening, chief. Big Mac meal and a black coffee to keep my eyes glued open till Omaha.' },
-      { speaker: 'Duck', text: 'Coming right up. Long drive ahead of you tonight?' },
-      { speaker: 'Big Ray', text: 'Eight hundred miles. Hey, who\'s the fella in the yellow suit standing out back by the dumpster?' },
-      { speaker: 'Duck', text: '...Excuse me? Nobody is allowed out back behind the kitchen.' },
-      { speaker: 'Big Ray', text: 'Tall guy, bright red hair, yellow jumpsuit. Saw him peering through the storeroom window when I swung the rig around.' },
-      { speaker: 'Duck', text: '...I just took the trash out back ten minutes ago. There wasn\'t anyone out there.' },
-      { speaker: 'Big Ray', text: 'Well, somebody\'s out there now, kid. You keep your guard up.' },
+      { speaker: 'Big Ray', text: 'Evening, chief. Long haul tonight—eight hundred miles till Omaha.' },
+      { speaker: 'Duck', text: 'Long drive ahead of you. What can I get you for fuel?' },
+      { speaker: 'Big Ray', text: 'Double Quarter Pounder meal, extra fries, and a black coffee. Hey, who\'s the fella in the yellow suit standing out back by the dumpster?' },
+      { speaker: 'Duck', text: '...Nobody is supposed to be out back behind the kitchen.' },
+      { speaker: 'Big Ray', text: 'Tall guy, bright red hair, yellow jumpsuit. Saw him peering through the window when I swung the rig around.' },
+      { speaker: 'Duck', text: '...I just took the trash out back ten minutes ago. I\'ll keep my guard up. Let me cook your meal right now.' },
     ],
   },
 ];
@@ -126,14 +132,15 @@ export class GameEngine {
 
   private world: RestaurantWorld;
 
-  // Player state
-  private playerPos = new THREE.Vector3(0, 1.65, 5.2); // Starts at front entrance facing inside
+  // Player state: Spawns outside the front entrance doors on the sidewalk, looking at the illuminated McDonald's facade
+  private playerPos = new THREE.Vector3(0, 1.65, 8.5);
   private playerVel = new THREE.Vector3();
   private pitch: number = 0;
-  private yaw: number = 0;
+  private yaw: number = Math.PI; // Facing towards doors (Z = 6.0)
   private playerHeight: number = 1.65;
   private targetHeight: number = 1.65;
   private isPointerLocked: boolean = false;
+  private isLeftFoot: boolean = false; // Alternating stereo footstep panning
 
   private stats: PlayerStats = {
     stamina: 100,
@@ -142,6 +149,7 @@ export class GameEngine {
     flashlightOn: true,
     hasTrashInHand: false,
     hasCardboardInHand: false,
+    hasFoodInHand: false,
   };
 
   private nightState: NightState = {
@@ -167,22 +175,20 @@ export class GameEngine {
     teaserStep: 0,
   };
 
-  // Sequential Objectives for Night 1 & Night 2
+  // Sequential Objectives for Night 1 & Night 2 (Cold storage and non-area tasks deleted)
   private night1Steps: ObjectiveStep[] = [
-    { id: 'clock_in', title: 'CLOCK IN', description: 'Clock in for your night shift using the employee time clock near the counter.' },
+    { id: 'clock_in', title: 'CLOCK IN', description: 'Walk inside through the sliding doors and clock in using the employee time clock near the counter.' },
     { id: 'clean_tables', title: 'CLEAN TABLES', description: 'Wipe down and sanitize the dirty dining tables (0/2).', targetCount: 2, currentCount: 0 },
     { id: 'collect_trash', title: 'COLLECT TRASH', description: 'Collect fast-food trash bags from the dining area (0/2).', targetCount: 2, currentCount: 0 },
     { id: 'dump_trash', title: 'TAKE TRASH OUTSIDE', description: 'Take the trash outside through the rear kitchen door to the dumpster.' },
     { id: 'kitchen_fryers', title: 'CHECK KITCHEN', description: 'Power down the kitchen fryers and heating equipment.' },
-    { id: 'storage_log', title: 'INSPECT STORAGE', description: 'Check and sign the supply inventory checklist in the storage room.' },
     { id: 'check_cctv', title: 'INSPECT SECURITY', description: 'Inspect the security office CCTV surveillance console.' },
-    { id: 'finish_shift', title: 'SURVIVE UNTIL 6:00 AM', description: 'Opening preparation complete. Customer service is active. Attend to customers and survive until 6:00 AM.' },
+    { id: 'finish_shift', title: 'SURVIVE UNTIL 6:00 AM', description: 'Preparation complete. Customers are arriving. Attend to customer orders and survive until 6:00 AM.' },
   ];
 
   private night2Steps: ObjectiveStep[] = [
     { id: 'n2_clock_in', title: 'CLOCK IN', description: 'Clock in for Night 2 shift at the employee time clock.' },
     { id: 'n2_breaker', title: 'MAINTENANCE BREAKER', description: 'Flip the auxiliary maintenance breaker in the security office.' },
-    { id: 'n2_freezer', title: 'FREEZER TEMPERATURE', description: 'Record the walk-in freezer temperature log.' },
     { id: 'n2_mop_puddle', title: 'MOP HALLWAY', description: 'Mop up the mysterious dark fluid puddle in the back hallway.' },
     { id: 'n2_cardboard', title: 'RECYCLE CARDBOARD', description: 'Take bundled cardboard boxes outside to the rear dumpster.' },
     { id: 'n2_drive_thru', title: 'DRIVE-THRU CHECK', description: 'Inspect the relocated drive-thru order station at the cashier counter.' },
@@ -190,6 +196,17 @@ export class GameEngine {
   ];
 
   private currentSteps: ObjectiveStep[] = [];
+
+  // Customer Food Order & Preparation State
+  private activeCustomerOrder: { customerName: string; customerId: string; itemText: string } | null = null;
+  private orderPhase: 'none' | 'preparing' | 'ready_to_serve' = 'none';
+  private pendingThankYouDialogue: boolean = false;
+  private currentDialogueCustomer: CustomerPerson | null = null;
+  private prepCountdown: number = 0;
+  private isPreparingFood: boolean = false;
+  private prepAudioTimer: number = 0;
+  private flickerBuzzTimer: number = 0;
+  private heldMealMesh: THREE.Group | null = null;
 
   private settings: GameSettings = {
     masterVolume: 0.8,
@@ -286,6 +303,14 @@ export class GameEngine {
     // 4. Compact Restaurant World
     this.world = buildCompactRestaurantWorld();
     this.scene.add(this.world.scene);
+
+    // 4B. First-Person Viewmodel: Held Meal in Duck's Hands
+    this.heldMealMesh = createFirstPersonHeldMeal();
+    this.heldMealMesh.position.set(0.24, -0.22, -0.42);
+    this.heldMealMesh.rotation.set(0.12, -0.15, 0.05);
+    this.heldMealMesh.visible = false;
+    this.camera.add(this.heldMealMesh);
+    this.scene.add(this.camera);
 
     // 5. Flashlight (Unlimited battery)
     this.flashlight = new THREE.SpotLight(0xffeedd, 3.2, 22, Math.PI / 6, 0.45, 1.2);
@@ -439,11 +464,96 @@ export class GameEngine {
   private closeDialogue() {
     this.dialogueState.active = false;
     this.callbacks.onDialogueUpdate({ ...this.dialogueState });
+
+    // 1. If Duck just served the food and customer thanked him
+    if (this.pendingThankYouDialogue) {
+      this.pendingThankYouDialogue = false;
+      this.orderPhase = 'none';
+      this.activeCustomerOrder = null;
+      this.isPreparingFood = false;
+      this.prepCountdown = 0;
+      if (this.activeCustomerPerson) {
+        this.activeCustomerPerson.state = 'leaving';
+        this.activeCustomerPerson.walkProgress = 0;
+      }
+      this.notifyActiveObjective();
+      return;
+    }
+
+    // 2. If customer just finished ordering their meal -> AUTOMATICALLY ADD PREPARE FOOD TASK
+    const customer = this.nearbyCustomer || this.currentDialogueCustomer;
+    if (this.orderPhase === 'none' && customer) {
+      const archIdx = customer.archetypeIndex ?? 0;
+      const archetype = CUSTOMER_ARCHETYPES[archIdx % CUSTOMER_ARCHETYPES.length];
+      this.activeCustomerOrder = {
+        customerName: archetype.name,
+        customerId: customer.id,
+        itemText: archetype.orderItem,
+      };
+      this.orderPhase = 'preparing';
+      this.isPreparingFood = false;
+      this.prepCountdown = 0;
+      this.currentDialogueCustomer = null;
+
+      soundEngine.playObjectiveComplete();
+      this.callbacks.onObjectiveCompletedNotice(`NEW TASK: PREPARE FOOD FOR ${archetype.name.toUpperCase()}`);
+      window.setTimeout(() => this.callbacks.onObjectiveCompletedNotice(null), 3500);
+      this.notifyActiveObjective();
+      return;
+    }
+
     this.notifyActiveObjective();
   }
 
   private startCustomerDialogue() {
     if (!this.nearbyCustomer) return;
+
+    // A. Food is ready in Duck's hands: Hand over the meal to the customer!
+    if (this.orderPhase === 'ready_to_serve' && this.activeCustomerOrder) {
+      soundEngine.playCashRegisterSale();
+      this.stats.hasFoodInHand = false;
+      this.callbacks.onPlayerStatsUpdate({ ...this.stats });
+
+      // Generate a random price strictly limited to $15 ($5.50 - $14.50)
+      const randomPrice = (Math.random() * 9.0 + 5.5).toFixed(2);
+      const thankLines: DialogueLine[] = [
+        {
+          speaker: this.activeCustomerOrder.customerName,
+          text: `Thank you so much, Donald! Here's $${randomPrice} for the food. Keep the change!`,
+        },
+        {
+          speaker: 'Duck',
+          text: 'Thank you! Enjoy your meal and stay safe out there tonight.',
+        },
+      ];
+
+      this.pendingThankYouDialogue = true;
+      soundEngine.playObjectiveComplete();
+      this.callbacks.onObjectiveCompletedNotice(`ORDER COMPLETED: $${randomPrice}`);
+      window.setTimeout(() => this.callbacks.onObjectiveCompletedNotice(null), 3500);
+
+      this.startDialogue(thankLines, false, this.nearbyCustomer.id);
+      return;
+    }
+
+    // B. Player already took the order, but hasn't cooked it yet in the kitchen
+    if (this.orderPhase === 'preparing' && this.activeCustomerOrder) {
+      const waitingLines: DialogueLine[] = [
+        {
+          speaker: this.activeCustomerOrder.customerName,
+          text: `Still waiting on my ${this.activeCustomerOrder.itemText}, please! Smells good back there.`,
+        },
+        {
+          speaker: 'Duck',
+          text: 'Cooking it at the kitchen prep counter right now! Won\'t be long.',
+        },
+      ];
+      this.startDialogue(waitingLines, false, this.nearbyCustomer.id);
+      return;
+    }
+
+    // C. Initial arrival: customer places order
+    this.currentDialogueCustomer = this.nearbyCustomer;
     const archIdx = this.nearbyCustomer.archetypeIndex ?? (this.customerConvoIndex % CUSTOMER_ARCHETYPES.length);
     const archetype = CUSTOMER_ARCHETYPES[archIdx % CUSTOMER_ARCHETYPES.length];
     this.customerConvoIndex += 1;
@@ -503,11 +613,21 @@ export class GameEngine {
     this.stats.flashlightOn = true;
     this.stats.hasTrashInHand = false;
     this.stats.hasCardboardInHand = false;
+    this.stats.hasFoodInHand = false;
 
-    // Main character Duck starts at the front entrance of the restaurant, facing inside!
-    this.playerPos.set(0, 1.65, 5.2);
+    // Reset customer food order state
+    this.activeCustomerOrder = null;
+    this.orderPhase = 'none';
+    this.pendingThankYouDialogue = false;
+    this.currentDialogueCustomer = null;
+    this.isPreparingFood = false;
+    this.prepCountdown = 0;
+    if (this.heldMealMesh) this.heldMealMesh.visible = false;
+
+    // Main character Duck starts outside the front entrance doors on the sidewalk!
+    this.playerPos.set(0, 1.65, 8.5);
     this.playerVel.set(0, 0, 0);
-    this.yaw = 0; // Facing into the restaurant towards the counter
+    this.yaw = Math.PI; // Facing towards the doors, illuminated sign, ads, and windows
     this.pitch = 0;
     this.targetHeight = 1.65;
 
@@ -539,14 +659,14 @@ export class GameEngine {
     const monologueLines: DialogueLine[] =
       night === 1
         ? [
-            { speaker: 'Duck', text: 'Another night at this place… seriously?' },
-            { speaker: 'Duck', text: 'Minimum wage, creepy customers, and a whole shift ahead of me. Great.' },
-            { speaker: 'Duck', text: 'Whatever. Let\'s just get this over with.' },
+            { speaker: 'Duck', text: 'Another night at this place… standing out here in the cold mist.' },
+            { speaker: 'Duck', text: 'Minimum wage, dark woods, and a 6-hour shift. Let\'s head inside and clock in.' },
+            { speaker: 'Duck', text: 'Whatever. Time to get to work.' },
           ]
         : [
-            { speaker: 'Duck', text: 'Back again for Night 2… The air feels even colder tonight.' },
-            { speaker: 'Duck', text: 'Just focus on the checklist, get through the shift, and get out of here.' },
-            { speaker: 'Duck', text: 'Whatever. Let\'s clock in.' },
+            { speaker: 'Duck', text: 'Back for Night 2… The parking lot and forest feel unusually silent tonight.' },
+            { speaker: 'Duck', text: 'Head inside through the doors, finish the checklist, and survive until 6:00 AM.' },
+            { speaker: 'Duck', text: 'Let\'s get in.' },
           ];
 
     this.startDialogue(monologueLines, true);
@@ -559,8 +679,29 @@ export class GameEngine {
   }
 
   private notifyActiveObjective() {
-    const active = this.currentSteps[this.nightState.currentObjectiveIndex] || null;
-    this.callbacks.onActiveObjectiveUpdate(active);
+    if (this.isPreparingFood && this.activeCustomerOrder) {
+      const secLeft = Math.max(1, Math.ceil(this.prepCountdown));
+      this.callbacks.onActiveObjectiveUpdate({
+        id: 'prep_order',
+        title: 'PREPARING GUEST ORDER...',
+        description: `Cooking & brewing in kitchen (${secLeft}s remaining). Lights flickering!`,
+      });
+    } else if (this.orderPhase === 'preparing' && this.activeCustomerOrder) {
+      this.callbacks.onActiveObjectiveUpdate({
+        id: 'prep_order',
+        title: 'PREPARE GUEST FOOD',
+        description: `Go to kitchen, cook food & brew coffee for ${this.activeCustomerOrder.customerName} (wait 10 seconds).`,
+      });
+    } else if (this.orderPhase === 'ready_to_serve' && this.activeCustomerOrder) {
+      this.callbacks.onActiveObjectiveUpdate({
+        id: 'serve_order',
+        title: 'SERVE GUEST ORDER',
+        description: `Deliver the hot meal tray in hand to ${this.activeCustomerOrder.customerName} at the front counter.`,
+      });
+    } else {
+      const active = this.currentSteps[this.nightState.currentObjectiveIndex] || null;
+      this.callbacks.onActiveObjectiveUpdate(active);
+    }
     this.callbacks.onNightStateUpdate({ ...this.nightState });
   }
 
@@ -624,6 +765,58 @@ export class GameEngine {
     }
   }
 
+  /**
+   * Populates the exterior surroundings with procedurally generated forest assets,
+   * including varied conifers, twisted bare horror trees, and dense shrub foliage.
+   */
+  public populateExteriorForest() {
+    const forest = populateSurroundingForest((minX, maxX, minZ, maxZ) => {
+      this.world.collisionBoxes.push({ minX, maxX, minZ, maxZ });
+    });
+    this.scene.add(forest.group);
+  }
+
+  // --- MOBILE VIRTUAL CONTROLS API ---
+  public setMobileMove(x: number, y: number) {
+    this.mobileMoveInput.set(x, y);
+  }
+
+  public setMobileSprint(sprint: boolean) {
+    this.mobileSprint = sprint;
+  }
+
+  public rotateCameraDelta(deltaX: number, deltaY: number) {
+    const sens = (this.settings.touchSensitivity || 1.2) * 0.0035;
+    this.yaw -= deltaX * sens;
+    const invert = this.settings.invertY ? -1 : 1;
+    this.pitch -= deltaY * sens * invert;
+    this.pitch = Math.max(-Math.PI / 2.3, Math.min(Math.PI / 2.3, this.pitch));
+  }
+
+  public toggleFlashlight() {
+    this.stats.flashlightOn = !this.stats.flashlightOn;
+    soundEngine.playFlashlightClick(this.stats.flashlightOn);
+    this.callbacks.onPlayerStatsUpdate({ ...this.stats });
+  }
+
+  public toggleCrouch() {
+    this.stats.isCrouched = !this.stats.isCrouched;
+    this.targetHeight = this.stats.isCrouched ? 0.95 : 1.65;
+    this.callbacks.onPlayerStatsUpdate({ ...this.stats });
+  }
+
+  public interact() {
+    if (this.dialogueState.active) {
+      this.advanceDialogue();
+      return;
+    }
+    if (this.nearbyCustomer) {
+      this.startCustomerDialogue();
+      return;
+    }
+    this.triggerInteraction();
+  }
+
   // --- INTERACTION LOGIC (STRICT SEQUENTIAL ORDER) ---
 
   private triggerInteraction() {
@@ -634,6 +827,34 @@ export class GameEngine {
     if (item.id === 'seated_customer') {
       const arch = CUSTOMER_ARCHETYPES[2]; // Silas (Cryptic Regular)
       this.startDialogue(arch.dialogue, false, 'seated_customer');
+      return;
+    }
+
+    // Customer food preparation at kitchen counter (10-second cook method)
+    if (item.type === 'kitchen_prep_station') {
+      if (this.orderPhase === 'preparing' && this.activeCustomerOrder) {
+        if (!this.isPreparingFood) {
+          this.isPreparingFood = true;
+          this.prepCountdown = 10.0;
+          this.prepAudioTimer = 0;
+          this.flickerBuzzTimer = 0;
+          soundEngine.playFoodPreparation();
+          soundEngine.playCoffeeBrewSteam();
+          soundEngine.playFluorescentFlickerBuzz();
+          this.callbacks.onObjectiveCompletedNotice(`PREPARING GUEST ORDER... (10s remaining)`);
+          this.notifyActiveObjective();
+        } else {
+          const secLeft = Math.max(1, Math.ceil(this.prepCountdown));
+          this.callbacks.onObjectiveCompletedNotice(`Cooking in progress (${secLeft}s remaining)... Please wait!`);
+          window.setTimeout(() => this.callbacks.onObjectiveCompletedNotice(null), 2000);
+        }
+      } else if (this.orderPhase === 'ready_to_serve') {
+        this.callbacks.onObjectiveCompletedNotice('Meal is already in your hands! Deliver it to the guest at the counter.');
+        window.setTimeout(() => this.callbacks.onObjectiveCompletedNotice(null), 3000);
+      } else {
+        this.callbacks.onObjectiveCompletedNotice('No pending orders to cook right now. Wait for a guest to order at the counter.');
+        window.setTimeout(() => this.callbacks.onObjectiveCompletedNotice(null), 2500);
+      }
       return;
     }
 
@@ -709,16 +930,7 @@ export class GameEngine {
         return;
       }
 
-      // Step 5: Storage Inventory Log
-      if (currentStep.id === 'storage_log' && item.type === 'storage_clipboard') {
-        soundEngine.playCleaningWipe();
-        item.completed = true;
-        this.nightState.storageInspected = true;
-        this.advanceObjective();
-        return;
-      }
-
-      // Step 6: Security CCTV console
+      // Step 5: Security CCTV console
       if (currentStep.id === 'check_cctv' && item.type === 'cctv_monitor') {
         soundEngine.playCCTVSwitch();
         this.advanceObjective();
@@ -726,14 +938,16 @@ export class GameEngine {
         return;
       }
 
-      // Step 7: Finish Shift at 6:00 AM
+      // Step 6: Finish Shift STRICTLY at 6:00 AM (shift only ends when clock shows 6:00 AM)
       if (currentStep.id === 'finish_shift' && item.type === 'front_door_exit') {
-        if (this.nightState.timeHour >= 6 || this.nightState.timeTotalSeconds >= 180) {
+        if (this.nightState.timeHour >= 6) {
           soundEngine.playDoor(true);
           this.setScreen('night1_complete');
         } else {
-          this.callbacks.onObjectiveCompletedNotice('Shift ends at 6:00 AM. Please wait until dawn.');
-          window.setTimeout(() => this.callbacks.onObjectiveCompletedNotice(null), 3000);
+          const hr = this.nightState.timeHour === 0 ? 12 : this.nightState.timeHour;
+          const mn = this.nightState.timeMinute < 10 ? `0${this.nightState.timeMinute}` : this.nightState.timeMinute;
+          this.callbacks.onObjectiveCompletedNotice(`Shift ends strictly at 6:00 AM. Current time is ${hr}:${mn} AM. Please attend to customer orders until dawn.`);
+          window.setTimeout(() => this.callbacks.onObjectiveCompletedNotice(null), 3500);
         }
         return;
       }
@@ -756,16 +970,7 @@ export class GameEngine {
         return;
       }
 
-      // Step 2: Freezer temperature log
-      if (currentStep.id === 'n2_freezer' && item.type === 'freezer_temp_gauge') {
-        soundEngine.playCleaningWipe();
-        item.completed = true;
-        this.nightState.freezerLogged = true;
-        this.advanceObjective();
-        return;
-      }
-
-      // Step 3: Mop hallway spill
+      // Step 2: Mop hallway spill (walk-in freezer task deleted)
       if (currentStep.id === 'n2_mop_puddle' && item.type === 'hallway_spill') {
         soundEngine.playCleaningWipe();
         item.completed = true;
@@ -884,6 +1089,14 @@ export class GameEngine {
 
     if (this.currentScreen === 'playing' && !this.isPaused) {
       this.updateSimulation(dt);
+    } else if (this.currentScreen === 'menu') {
+      // Outside-of-the-door cinematic view: camera faces the illuminated front entrance, McDonald's sign, ads, windows, and roof
+      const t = now * 0.0004;
+      const cx = Math.sin(t) * 1.8;
+      const cz = 11.5 + Math.cos(t * 0.7) * 1.0;
+      const cy = 2.4 + Math.sin(t * 0.5) * 0.2;
+      this.camera.position.set(cx, cy, cz);
+      this.camera.lookAt(0, 2.4, 6.0);
     }
 
     // Always update customer traffic, automatic sliding doors, and rain
@@ -903,11 +1116,11 @@ export class GameEngine {
   }
 
   private updateSimulation(dt: number) {
-    // In-game Clock: 1 in-game minute per 0.8s
+    // In-game Clock: 6 in-game hours over 210s (1 hour per 35s). Shift only ends when clock shows 6:00 AM!
     this.nightState.timeTotalSeconds += dt;
-    const totalMinutes = Math.floor(this.nightState.timeTotalSeconds * 1.25);
-    const newHour = Math.floor(totalMinutes / 60);
-    const newMinute = totalMinutes % 60;
+    const totalMinutes = Math.floor(this.nightState.timeTotalSeconds * (60 / 35));
+    const newHour = Math.min(6, Math.floor(totalMinutes / 60));
+    const newMinute = newHour >= 6 ? 0 : totalMinutes % 60;
 
     if (newHour !== this.nightState.timeHour) {
       soundEngine.playHourBell();
@@ -921,10 +1134,55 @@ export class GameEngine {
     this.nightState.timeHour = newHour;
     this.nightState.timeMinute = newMinute;
 
-    // Smooth visual fade-in from black
+    // Smooth visual fade-in from black upon night start
     if (this.fadeAlpha > 0) {
       this.fadeAlpha = Math.max(0, this.fadeAlpha - dt / 1.8);
       this.callbacks.onFadeAlphaUpdate(this.fadeAlpha);
+    }
+    if (this.isPreparingFood) {
+      this.prepCountdown = Math.max(0, this.prepCountdown - dt);
+      this.prepAudioTimer += dt;
+      this.flickerBuzzTimer += dt;
+
+      // Periodic cooking sizzle and coffee machine steam
+      if (this.prepAudioTimer >= 2.4) {
+        this.prepAudioTimer = 0;
+        soundEngine.playFoodPreparation();
+        soundEngine.playCoffeeBrewSteam();
+      }
+
+      // Environmental horror flickering effect on kitchen light while food is being prepared!
+      // Erratically flickers between blackout (0.02 - 0.1) and violent bursts (1.8 - 2.5)
+      if (this.world && this.world.kitchenLight) {
+        if (Math.random() < 0.32) {
+          const isBlackout = Math.random() < 0.45;
+          this.world.kitchenLight.intensity = isBlackout ? 0.04 : 1.9 + Math.random() * 0.5;
+          if (isBlackout && this.flickerBuzzTimer >= 0.5) {
+            this.flickerBuzzTimer = 0;
+            soundEngine.playFluorescentFlickerBuzz();
+          }
+        } else {
+          this.world.kitchenLight.intensity = 0.85 + (Math.random() - 0.5) * 0.3;
+        }
+      }
+
+      // Refresh HUD objective description
+      this.notifyActiveObjective();
+
+      if (this.prepCountdown <= 0) {
+        this.isPreparingFood = false;
+        if (this.world && this.world.kitchenLight) {
+          this.world.kitchenLight.intensity = 0.85; // restore normal baseline
+        }
+        this.orderPhase = 'ready_to_serve';
+        this.stats.hasFoodInHand = true;
+        this.callbacks.onPlayerStatsUpdate({ ...this.stats });
+        soundEngine.playFoodPackaging();
+        soundEngine.playObjectiveComplete();
+        this.callbacks.onObjectiveCompletedNotice('ORDER READY! Delivered to your hands. Return to front counter.');
+        window.setTimeout(() => this.callbacks.onObjectiveCompletedNotice(null), 4000);
+        this.notifyActiveObjective();
+      }
     }
 
     // Positional / area-faded cricket ambience behind the restaurant
@@ -956,6 +1214,30 @@ export class GameEngine {
     this.updateInteractions();
   }
 
+  /**
+   * Surface acoustics detection based on player position:
+   * - Tile: lobby, cashier counter, kitchen, rear hallway
+   * - Carpet: dining booth seating areas, security office
+   * - Asphalt: outdoor parking lot, sidewalk, rear dumpster pad
+   * - Grass: surrounding forest edges
+   */
+  private getSurfaceAtPosition(x: number, z: number): 'tile' | 'carpet' | 'asphalt' | 'grass' {
+    if (z > 6.0 || z < -6.0) {
+      if (x < -22 || x > 22 || z > 28) return 'grass';
+      return 'asphalt';
+    }
+    // Carpeted dining booth seating bays
+    const inBoothLeft = x <= -3.8 && x >= -6.8 && z >= 0.8 && z <= 5.4;
+    const inBoothRight = x >= 3.8 && x <= 6.8 && z >= 0.8 && z <= 5.4;
+    // Security office floor mat
+    const inOffice = x <= -3.0 && x >= -6.8 && z >= -2.8 && z <= -0.5;
+    if (inBoothLeft || inBoothRight || inOffice) {
+      return 'carpet';
+    }
+    // Polished ceramic fast food tiles
+    return 'tile';
+  }
+
   private updatePlayerMovement(dt: number) {
     this.playerHeight = THREE.MathUtils.damp(this.playerHeight, this.targetHeight, 10, dt);
 
@@ -977,7 +1259,7 @@ export class GameEngine {
     }
 
     const wantsSprint =
-      (this.keys['ShiftLeft'] || this.keys['ShiftRight']) &&
+      (this.keys['ShiftLeft'] || this.keys['ShiftRight'] || this.mobileSprint) &&
       !this.stats.isCrouched &&
       this.stats.stamina > 5;
     this.stats.isSprinting = wantsSprint;
@@ -997,6 +1279,12 @@ export class GameEngine {
     if (this.keys['KeyA']) moveDir.sub(right);
     if (this.keys['KeyD']) moveDir.add(right);
 
+    // Apply mobile virtual joystick movement input
+    if (this.mobileMoveInput.lengthSq() > 0.001) {
+      moveDir.addScaledVector(right, this.mobileMoveInput.x);
+      moveDir.addScaledVector(forward, -this.mobileMoveInput.y);
+    }
+
     const isMoving = moveDir.lengthSq() > 0.001;
     if (isMoving) {
       moveDir.normalize();
@@ -1005,10 +1293,13 @@ export class GameEngine {
       this.playerVel.z = THREE.MathUtils.damp(this.playerVel.z, moveDir.z * speed, 14, dt);
 
       this.footstepTimer += dt;
-      const stepInterval = this.stats.isSprinting ? 0.3 : this.stats.isCrouched ? 0.6 : 0.45;
+      const stepInterval = this.stats.isSprinting ? 0.28 : this.stats.isCrouched ? 0.58 : 0.42;
       if (this.footstepTimer > stepInterval) {
         this.footstepTimer = 0;
-        soundEngine.playFootstep(this.stats.isSprinting, this.stats.isCrouched);
+        this.isLeftFoot = !this.isLeftFoot;
+        const pan = this.isLeftFoot ? -0.28 : 0.28;
+        const surface = this.getSurfaceAtPosition(this.playerPos.x, this.playerPos.z);
+        soundEngine.playFootstep(surface, this.stats.isSprinting, this.stats.isCrouched, pan);
       }
     } else {
       this.playerVel.x = THREE.MathUtils.damp(this.playerVel.x, 0, 16, dt);
@@ -1039,6 +1330,18 @@ export class GameEngine {
         )
       );
     this.camera.lookAt(lookTarget);
+
+    // Visible Held Item in Duck's Hands Viewmodel (Tray with Chicken Bucket, Coffee, Fries)
+    if (this.heldMealMesh) {
+      this.heldMealMesh.visible = !!this.stats.hasFoodInHand;
+      if (this.heldMealMesh.visible) {
+        const t = performance.now() * 0.003;
+        const bobAmount = isMoving ? (this.stats.isSprinting ? 0.025 : 0.015) : 0.003;
+        const bobSpeed = isMoving ? 14 : 2;
+        this.heldMealMesh.position.y = -0.22 + Math.sin(t * bobSpeed) * bobAmount;
+        this.heldMealMesh.position.x = 0.24 + Math.cos(t * bobSpeed * 0.5) * (bobAmount * 0.5);
+      }
+    }
 
     this.callbacks.onPlayerStatsUpdate({ ...this.stats });
   }
@@ -1232,8 +1535,44 @@ export class GameEngine {
         if (!this.dialogueState.active || this.dialogueState.npcId !== person.id) {
           person.walkProgress += dt;
         }
-        if (person.walkProgress >= 30) {
-          // Leaves restaurant
+        if (person.walkProgress >= 45 && this.orderPhase === 'none') {
+          person.state = 'leaving';
+          person.walkProgress = 0;
+        }
+      } else if (person.state === 'leaving') {
+        // Customer walks from counter back to front sliding doors [0, 0, 6.0], then to car
+        let targetX = 0;
+        let targetZ = 6.2;
+        const spotPos = this.activeCustomerCar
+          ? this.world.parkingSpots[this.activeCustomerCar.parkingSpotIndex]?.position
+          : null;
+
+        if (person.currentPos[2] >= 5.8 && spotPos) {
+          targetX = spotPos.x;
+          targetZ = spotPos.z;
+        }
+
+        const dx = targetX - person.currentPos[0];
+        const dz = targetZ - person.currentPos[2];
+        const dist = Math.sqrt(dx * dx + dz * dz);
+
+        if (dist > 0.25) {
+          person.currentPos[0] += (dx / dist) * person.speed * dt;
+          person.currentPos[2] += (dz / dist) * person.speed * dt;
+          person.meshGroup.position.set(person.currentPos[0], 0, person.currentPos[2]);
+          person.meshGroup.rotation.y = Math.atan2(dx, dz);
+
+          person.walkProgress += dt * 6.2;
+          if (limbs) {
+            const swing = Math.sin(person.walkProgress);
+            limbs.legL.rotation.x = swing * 0.52;
+            limbs.legR.rotation.x = -swing * 0.52;
+            limbs.armL.rotation.x = -swing * 0.42;
+            limbs.armR.rotation.x = swing * 0.42;
+            person.meshGroup.position.y = Math.abs(swing) * 0.035;
+          }
+        } else if (person.currentPos[2] >= 5.8) {
+          // Customer reached car outside in parking lot
           this.scene.remove(person.meshGroup);
           this.activeCustomerPerson = null;
           if (this.activeCustomerCar) {
@@ -1301,7 +1640,7 @@ export class GameEngine {
       return;
     }
 
-    // 1. Check Customer NPC conversation (High priority contextual prompt: "[E] Talk to Customer")
+    // 1. Check Customer NPC conversation / food order delivery
     if (this.activeCustomerPerson) {
       const p = this.activeCustomerPerson;
       if (p.state === 'inside_counter' || p.state === 'seated' || p.currentPos[2] < 5.8) {
@@ -1316,7 +1655,13 @@ export class GameEngine {
         if (distToCustomer <= 2.8 && dot > 0.4) {
           this.nearbyCustomer = p;
           this.activeItemNearby = null;
-          this.callbacks.onInteractionPrompt(`[E] Talk to ${p.archetypeName || 'Customer'}`);
+          if (this.orderPhase === 'ready_to_serve') {
+            this.callbacks.onInteractionPrompt(`[E] Deliver Hot Meal to ${p.archetypeName}`);
+          } else if (this.orderPhase === 'preparing') {
+            this.callbacks.onInteractionPrompt(`[E] Talk to ${p.archetypeName} (Awaiting Order)`);
+          } else {
+            this.callbacks.onInteractionPrompt(`[E] Take Order from ${p.archetypeName}`);
+          }
           return;
         }
       }
@@ -1338,6 +1683,28 @@ export class GameEngine {
         this.activeItemNearby = seatedItem;
         this.callbacks.onInteractionPrompt('[E] Talk to Silas (Regular Customer)');
         return;
+      }
+    }
+
+    // Special Kitchen Food Preparation Counter Check
+    if (this.orderPhase === 'preparing') {
+      const prepStation = this.world.interactiveItems.find((it) => it.id === 'kitchen_prep_station');
+      if (prepStation) {
+        const prepPos = new THREE.Vector3(...prepStation.position);
+        const d = this.playerPos.distanceTo(prepPos);
+        const camDir = new THREE.Vector3();
+        this.camera.getWorldDirection(camDir);
+        const toPrep = new THREE.Vector3().subVectors(prepPos, this.camera.position).normalize();
+        if (d <= prepStation.radius && camDir.dot(toPrep) > 0.3) {
+          this.activeItemNearby = prepStation;
+          if (this.isPreparingFood) {
+            const secLeft = Math.max(1, Math.ceil(this.prepCountdown));
+            this.callbacks.onInteractionPrompt(`⏳ Cooking Food in Kitchen (${secLeft}s remaining)...`);
+          } else {
+            this.callbacks.onInteractionPrompt(`[E] Cook Food in Kitchen & Brew Coffee (10s)`);
+          }
+          return;
+        }
       }
     }
 
@@ -1369,8 +1736,9 @@ export class GameEngine {
         if (this.stats.hasCardboardInHand && item.type !== 'outdoor_dumpster') continue;
         if (!this.stats.hasCardboardInHand && item.type !== 'cardboard_bundle') continue;
       }
+      // Front door exit shift completion: STRICTLY restricted until clock shows 6:00 AM!
       if (currentStep.id === 'finish_shift' && item.type === 'front_door_exit') {
-        if (this.nightState.timeHour < 6 && this.nightState.timeTotalSeconds < 180) {
+        if (this.nightState.timeHour < 6) {
           continue;
         }
       }

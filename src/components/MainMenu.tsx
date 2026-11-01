@@ -1,6 +1,7 @@
-import React, { useState } from 'react';
-import { Play, Settings as SettingsIcon, Info, HelpCircle, Lock, Moon, Sliders, Shield } from 'lucide-react';
+import React, { useState, useEffect, useRef } from 'react';
+import { Play, Settings as SettingsIcon, Info, HelpCircle, Lock, Moon, Sliders, Shield, Flame, Volume2, VolumeX, Music } from 'lucide-react';
 import { GameNight, GameSettings, GraphicsQuality } from '../types/game';
+import { McDonaldsLogo } from './McDonaldsLogo';
 
 interface MainMenuProps {
   onStartNight: (night: GameNight) => void;
@@ -16,43 +17,108 @@ export const MainMenu: React.FC<MainMenuProps> = ({
   night2Unlocked,
 }) => {
   const [modal, setModal] = useState<'none' | 'settings' | 'credits' | 'controls'>('none');
+  const [bgmMuted, setBgmMuted] = useState(false);
+  const audioRef = useRef<HTMLAudioElement | null>(null);
+
+  // Background Music playback for user's attached soundtrack
+  useEffect(() => {
+    const audio = new Audio('/assets/aistudio/cold_glass_passage_7ecca980.mp4');
+    audio.loop = true;
+    audio.volume = bgmMuted ? 0 : Math.max(0, Math.min(1, settings.masterVolume * 0.75));
+    audioRef.current = audio;
+
+    const playPromise = audio.play();
+    if (playPromise !== undefined) {
+      playPromise.catch(() => {
+        // Autoplay may be restricted until user interacts with document
+        const onFirstInteraction = () => {
+          if (audioRef.current && !bgmMuted) {
+            audioRef.current.play().catch(() => {});
+          }
+          window.removeEventListener('click', onFirstInteraction);
+          window.removeEventListener('keydown', onFirstInteraction);
+        };
+        window.addEventListener('click', onFirstInteraction);
+        window.addEventListener('keydown', onFirstInteraction);
+      });
+    }
+
+    return () => {
+      audio.pause();
+      audio.src = '';
+      audioRef.current = null;
+    };
+  }, []);
+
+  // Sync volume with settings
+  useEffect(() => {
+    if (audioRef.current) {
+      audioRef.current.volume = bgmMuted ? 0 : Math.max(0, Math.min(1, settings.masterVolume * 0.75));
+    }
+  }, [settings.masterVolume, bgmMuted]);
+
+  const handleStartNight = (night: GameNight) => {
+    if (audioRef.current) {
+      try {
+        audioRef.current.pause();
+      } catch (e) {}
+    }
+    onStartNight(night);
+  };
 
   return (
-    <div className="absolute inset-0 z-50 flex items-center justify-between p-8 md:p-16 font-mono select-none overflow-hidden bg-black/60">
-      <div className="absolute inset-0 bg-[radial-gradient(circle_at_25%_50%,rgba(15,8,8,0.7)_0%,rgba(0,0,0,0.96)_100%)] pointer-events-none" />
+    <div className="absolute inset-0 z-50 flex items-center justify-between p-4 md:p-12 font-mono select-none overflow-hidden bg-gradient-to-r from-black/85 via-black/50 to-transparent">
+      {/* Subtle vignette highlighting the outside store in 3D */}
+      <div className="absolute inset-0 bg-[radial-gradient(circle_at_75%_50%,transparent_30%,rgba(0,0,0,0.65)_100%)] pointer-events-none" />
 
-      {/* LEFT COLUMN: TITLE & ACTION BUTTONS */}
-      <div className="relative z-10 max-w-lg flex flex-col justify-between h-full py-4">
+      {/* LEFT COLUMN: TITLE & ACTION BUTTONS WITH FROSTED BACKDROP */}
+      <div className="relative z-10 max-w-md w-full flex flex-col justify-between h-full max-h-[92vh] py-4 px-6 rounded-2xl bg-black/60 backdrop-blur-md border border-neutral-800/90 shadow-2xl overflow-y-auto">
         <div>
-          <div className="flex items-center gap-3 mb-2">
-            <div className="w-9 h-9 rounded-full bg-red-800 border-2 border-amber-400 flex items-center justify-center shadow-[0_0_15px_rgba(251,191,36,0.5)]">
-              <span className="text-amber-400 text-xl font-black italic">M</span>
+          {/* Header with authentic McDonald's Logo */}
+          <div className="flex items-center gap-3.5 mb-3">
+            <McDonaldsLogo size="md" neon={true} />
+            <div>
+              <div className="text-red-500 font-black text-[11px] uppercase tracking-widest flex items-center gap-1.5">
+                <span>EST. 1955</span>
+                <span className="text-neutral-500">•</span>
+                <span className="text-amber-400">Night Shift</span>
+              </div>
+              <div className="text-[10px] text-neutral-400 font-semibold tracking-wider uppercase">
+                Survival Horror Experience
+              </div>
             </div>
-            <span className="text-red-500 font-bold text-xs uppercase tracking-widest">
-              Psychological Horror Experience
-            </span>
           </div>
 
-          <h1 className="text-4xl md:text-5xl font-black text-amber-400 tracking-tight leading-none drop-shadow-[0_4px_12px_rgba(0,0,0,0.9)]">
+          <h1 className="text-3xl md:text-4xl font-black text-amber-400 tracking-tight leading-none drop-shadow-[0_4px_12px_rgba(0,0,0,0.9)]">
             MCDONALD'S<br />
-            <span className="text-red-600 font-black tracking-widest text-3xl md:text-4xl">
+            <span className="text-red-600 font-black tracking-widest text-2xl md:text-3xl">
               NIGHTFALL
             </span>
           </h1>
 
-          <div className="mt-2.5 inline-block px-2.5 py-0.5 bg-neutral-900 border border-neutral-700 text-neutral-300 text-xs font-bold uppercase tracking-widest rounded">
-            2-NIGHT DEMO
+          <div className="mt-2 inline-flex items-center gap-2">
+            <span className="px-2 py-0.5 bg-neutral-900 border border-amber-500/40 text-amber-300 text-[10px] font-bold uppercase tracking-widest rounded">
+              Outside Clearing
+            </span>
+            <span className="text-[10px] text-emerald-400 font-mono">
+              ● Store Active
+            </span>
           </div>
 
-          <p className="mt-4 text-xs text-neutral-400 max-w-sm leading-relaxed">
-            Step into the shoes of Duck, an exhausted employee on the overnight shift at an eerie 24-hour fast-food restaurant. Complete routine duties, converse with late-night customers, and survive until dawn while a strange mascot observes from the shadows.
+          <p className="mt-3 text-[11px] text-neutral-300 max-w-sm leading-relaxed">
+            Step into the shoes of Duck on the midnight shift at a lonely McDonald's carved out of a dense horror forest. Prepare customer orders, survive until 6:00 AM, and maintain awareness of the shadows outside.
           </p>
+
+          <div className="mt-2.5 px-2.5 py-1.5 rounded bg-amber-500/10 border border-amber-500/30 text-[10px] text-amber-300 flex items-center gap-1.5">
+            <Flame className="w-3.5 h-3.5 text-red-400 shrink-0" />
+            <span><strong>Tip:</strong> Press <kbd className="px-1 py-0.5 rounded bg-neutral-900 border border-neutral-700 text-white font-bold">Shift</kbd> to run on PC, or tap <strong className="text-white">RUN</strong> on mobile!</span>
+          </div>
         </div>
 
         {/* Buttons List */}
         <div className="space-y-2.5 my-6">
           <button
-            onClick={() => onStartNight(1)}
+            onClick={() => handleStartNight(1)}
             className="w-full flex items-center justify-between px-6 py-3.5 bg-red-700 hover:bg-red-600 active:scale-98 text-white font-bold text-sm tracking-widest rounded border border-red-500 shadow-[0_0_20px_rgba(220,38,38,0.4)] cursor-pointer transition-all"
           >
             <span className="flex items-center gap-2">
@@ -63,7 +129,7 @@ export const MainMenu: React.FC<MainMenuProps> = ({
           </button>
 
           <button
-            onClick={() => onStartNight(2)}
+            onClick={() => handleStartNight(2)}
             disabled={!night2Unlocked}
             className={`w-full flex items-center justify-between px-6 py-3.5 rounded border text-sm font-bold tracking-widest transition-all ${
               night2Unlocked
@@ -87,6 +153,30 @@ export const MainMenu: React.FC<MainMenuProps> = ({
             <span className="text-[10px] text-red-500/80 uppercase font-black">
               FULL GAME TEASER
             </span>
+          </div>
+
+          {/* Soundtrack BGM status & toggle */}
+          <div className="flex items-center justify-between px-2.5 py-1.5 bg-neutral-950/80 border border-neutral-800 rounded text-[10px] text-neutral-400">
+            <span className="flex items-center gap-1.5 text-amber-300 font-semibold truncate">
+              <Music className="w-3.5 h-3.5 text-amber-400 animate-pulse shrink-0" />
+              <span className="truncate">BGM: Cold Glass Passage</span>
+            </span>
+            <button
+              onClick={() => setBgmMuted(!bgmMuted)}
+              className="flex items-center gap-1 px-2 py-0.5 bg-neutral-900 hover:bg-neutral-800 border border-neutral-700 rounded text-[10px] text-neutral-200 font-bold cursor-pointer shrink-0 transition-colors"
+            >
+              {bgmMuted ? (
+                <>
+                  <VolumeX className="w-3 h-3 text-red-400" />
+                  <span>UNMUTE</span>
+                </>
+              ) : (
+                <>
+                  <Volume2 className="w-3 h-3 text-emerald-400" />
+                  <span>MUSIC ON</span>
+                </>
+              )}
+            </button>
           </div>
 
           <div className="grid grid-cols-3 gap-2 pt-2">

@@ -37,6 +37,7 @@ export interface PlayerStats {
   flashlightOn: boolean;
   hasTrashInHand: boolean;
   hasCardboardInHand: boolean;
+  hasFoodInHand?: boolean;
 }
 
 export interface CustomerCar {
@@ -116,7 +117,8 @@ export interface InteractiveItem {
     | 'drive_thru_order_station'
     | 'cctv_monitor'
     | 'front_door_exit'
-    | 'seated_customer';
+    | 'seated_customer'
+    | 'kitchen_prep_station';
   name: string;
   actionText: string;
   position: [number, number, number];

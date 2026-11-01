@@ -1,6 +1,7 @@
 import React from 'react';
 import { Play, RotateCcw, Home, Volume2, Sliders } from 'lucide-react';
 import { GameSettings } from '../types/game';
+import { McDonaldsLogo } from './McDonaldsLogo';
 
 interface PauseMenuProps {
   onResume: () => void;
@@ -20,9 +21,12 @@ export const PauseMenu: React.FC<PauseMenuProps> = ({
   return (
     <div className="absolute inset-0 z-50 bg-black/85 flex items-center justify-center p-4 font-mono select-none">
       <div className="bg-neutral-950 border border-neutral-700 rounded-lg p-6 max-w-sm w-full shadow-2xl">
-        <h2 className="text-xl font-bold text-amber-400 tracking-wider text-center uppercase border-b border-neutral-800 pb-3 mb-5">
-          GAME PAUSED
-        </h2>
+        <div className="flex flex-col items-center mb-3">
+          <McDonaldsLogo size="sm" neon={true} className="mb-2" />
+          <h2 className="text-xl font-bold text-amber-400 tracking-wider text-center uppercase border-b border-neutral-800 pb-2 w-full">
+            GAME PAUSED
+          </h2>
+        </div>
 
         {/* Buttons */}
         <div className="space-y-3 mb-6">

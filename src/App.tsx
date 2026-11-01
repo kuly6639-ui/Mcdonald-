@@ -16,6 +16,8 @@ import { CCTVOverlay } from './components/CCTVOverlay';
 import { PauseMenu } from './components/PauseMenu';
 import { VictoryModal } from './components/VictoryModal';
 import { DialogueBox } from './components/DialogueBox';
+import { DuckChatBar } from './components/DuckChatBar';
+import { MobileControls } from './components/MobileControls';
 
 export default function App() {
   const canvasMountRef = useRef<HTMLDivElement>(null);
@@ -85,6 +87,41 @@ export default function App() {
     currentIndex: 0,
   });
   const [fadeAlpha, setFadeAlpha] = useState<number>(0);
+  const [showMobileControls, setShowMobileControls] = useState<boolean>(() => {
+    return 'ontouchstart' in window || navigator.maxTouchPoints > 0;
+  });
+
+  // Automatically hide mobile controls when physical keyboard or mouse input is detected
+  useEffect(() => {
+    const handleKeyDown = () => {
+      setShowMobileControls(false);
+    };
+
+    let mouseCount = 0;
+    const handleMouseMove = (e: MouseEvent) => {
+      if (Math.abs(e.movementX) > 2 || Math.abs(e.movementY) > 2) {
+        mouseCount++;
+        if (mouseCount > 2) {
+          setShowMobileControls(false);
+        }
+      }
+    };
+
+    const handleTouchStart = () => {
+      setShowMobileControls(true);
+      mouseCount = 0;
+    };
+
+    window.addEventListener('keydown', handleKeyDown);
+    window.addEventListener('mousemove', handleMouseMove);
+    window.addEventListener('touchstart', handleTouchStart, { passive: true });
+
+    return () => {
+      window.removeEventListener('keydown', handleKeyDown);
+      window.removeEventListener('mousemove', handleMouseMove);
+      window.removeEventListener('touchstart', handleTouchStart);
+    };
+  }, []);
 
   useEffect(() => {
     if (!canvasMountRef.current) return;
@@ -194,11 +231,32 @@ export default function App() {
         />
       )}
 
-      {/* Dialogue / Monologue Interface */}
-      {currentScreen === 'playing' && dialogue.active && !isPaused && (
+      {/* Duck's Monologue Chat Bar (Appears when game fades or during internal reflection) */}
+      {currentScreen === 'playing' && dialogue.active && dialogue.isMonologue && (
+        <DuckChatBar
+          text={dialogue.lines[dialogue.currentIndex]?.text || ''}
+          speaker={dialogue.lines[dialogue.currentIndex]?.speaker || 'Duck'}
+          onAdvance={() => engineRef.current?.advanceDialogue()}
+          isFadedOut={fadeAlpha > 0.05}
+        />
+      )}
+
+      {/* Compact Customer Dialogue HUD */}
+      {currentScreen === 'playing' && dialogue.active && !dialogue.isMonologue && !isPaused && (
         <DialogueBox
           dialogue={dialogue}
           onAdvance={() => engineRef.current?.advanceDialogue()}
+        />
+      )}
+
+      {/* Mobile Touch Controls & PC Mode Toggle */}
+      {currentScreen === 'playing' && !isPaused && (
+        <MobileControls
+          engine={engineRef.current}
+          stats={playerStats}
+          onPause={handleTogglePause}
+          showMobileControls={showMobileControls}
+          onToggleControls={() => setShowMobileControls((prev) => !prev)}
         />
       )}
 

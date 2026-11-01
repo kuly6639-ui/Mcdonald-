@@ -345,32 +345,351 @@ export class SoundEngine {
     oscThud.stop(now + 0.6);
   }
 
-  public playFootstep(isSprinting: boolean = false, isCrouched: boolean = false) {
+  /**
+   * Positional footstep audio trigger with distinctive surface characteristics:
+   * - Tile: Crisp, hard ceramic click and resonant slap
+   * - Carpet: Muffled, cushioned low-frequency thud with softened transient
+   * - Asphalt / Concrete: Gritty gravel crunch and solid pavement impact
+   * - Grass: Soft leafy rustle and organic soil compression
+   * With stereo / positional panning between left and right feet.
+   */
+  public playFootstep(
+    surface: 'tile' | 'carpet' | 'asphalt' | 'grass' = 'tile',
+    isSprinting: boolean = false,
+    isCrouched: boolean = false,
+    pan: number = 0
+  ) {
     if (!this.ctx || !this.masterGain) return;
     const now = this.ctx.currentTime;
 
-    const osc = this.ctx.createOscillator();
-    const gain = this.ctx.createGain();
+    // Create Stereo Panner if supported
+    let panner: StereoPannerNode | null = null;
+    try {
+      if (this.ctx.createStereoPanner) {
+        panner = this.ctx.createStereoPanner();
+        panner.pan.setValueAtTime(Math.max(-1, Math.min(1, pan)), now);
+      }
+    } catch (e) {
+      // Fallback
+    }
+
+    const footstepGain = this.ctx.createGain();
+    if (panner) {
+      footstepGain.connect(panner);
+      panner.connect(this.masterGain);
+    } else {
+      footstepGain.connect(this.masterGain);
+    }
+
+    if (surface === 'carpet') {
+      // CARPET: Muffled, padded thud. No high-frequency click.
+      const osc = this.ctx.createOscillator();
+      const filter = this.ctx.createBiquadFilter();
+      osc.type = 'sine';
+      const baseFreq = isCrouched ? 55 : isSprinting ? 80 : 68;
+      osc.frequency.setValueAtTime(baseFreq, now);
+      osc.frequency.exponentialRampToValueAtTime(24, now + 0.16);
+
+      filter.type = 'lowpass';
+      filter.frequency.setValueAtTime(140, now);
+
+      const vol = isCrouched ? 0.04 : isSprinting ? 0.16 : 0.08;
+      footstepGain.gain.setValueAtTime(0.001, now);
+      footstepGain.gain.linearRampToValueAtTime(vol, now + 0.015);
+      footstepGain.gain.exponentialRampToValueAtTime(0.001, now + 0.18);
+
+      osc.connect(filter);
+      filter.connect(footstepGain);
+      osc.start(now);
+      osc.stop(now + 0.2);
+    } else if (surface === 'tile') {
+      // TILE: Crisp hard linoleum tap + sharp high transient click
+      // 1. High transient click (shoe heel on linoleum)
+      const oscClick = this.ctx.createOscillator();
+      const clickGain = this.ctx.createGain();
+      const clickFilter = this.ctx.createBiquadFilter();
+
+      oscClick.type = 'triangle';
+      oscClick.frequency.setValueAtTime(isSprinting ? 1800 : 1450, now);
+      oscClick.frequency.exponentialRampToValueAtTime(280, now + 0.035);
+
+      clickFilter.type = 'bandpass';
+      clickFilter.frequency.value = 1600;
+      clickFilter.Q.value = 2.2;
+
+      const clickVol = isCrouched ? 0.025 : isSprinting ? 0.12 : 0.065;
+      clickGain.gain.setValueAtTime(clickVol, now);
+      clickGain.gain.exponentialRampToValueAtTime(0.0001, now + 0.045);
+
+      oscClick.connect(clickFilter);
+      clickFilter.connect(clickGain);
+      clickGain.connect(footstepGain);
+      oscClick.start(now);
+      oscClick.stop(now + 0.05);
+
+      // 2. Body heel thump
+      const oscThump = this.ctx.createOscillator();
+      const thumpGain = this.ctx.createGain();
+      oscThump.type = 'sine';
+      oscThump.frequency.setValueAtTime(isSprinting ? 110 : 92, now);
+      oscThump.frequency.exponentialRampToValueAtTime(32, now + 0.09);
+
+      const thumpVol = isCrouched ? 0.04 : isSprinting ? 0.18 : 0.09;
+      thumpGain.gain.setValueAtTime(thumpVol, now);
+      thumpGain.gain.exponentialRampToValueAtTime(0.0001, now + 0.11);
+
+      oscThump.connect(thumpGain);
+      thumpGain.connect(footstepGain);
+      oscThump.start(now);
+      oscThump.stop(now + 0.12);
+    } else if (surface === 'asphalt') {
+      // ASPHALT / CONCRETE: Gritty crunch of outdoor aggregate pavement
+      // Noise burst for grit
+      const bufferSize = Math.floor(this.ctx.sampleRate * 0.08);
+      const buffer = this.ctx.createBuffer(1, bufferSize, this.ctx.sampleRate);
+      const data = buffer.getChannelData(0);
+      for (let i = 0; i < bufferSize; i++) {
+        data[i] = (Math.random() * 2 - 1) * Math.exp(-i / (bufferSize * 0.25));
+      }
+      const noise = this.ctx.createBufferSource();
+      noise.buffer = buffer;
+
+      const noiseFilter = this.ctx.createBiquadFilter();
+      noiseFilter.type = 'bandpass';
+      noiseFilter.frequency.value = 750;
+      noiseFilter.Q.value = 1.4;
+
+      const noiseGain = this.ctx.createGain();
+      const gritVol = isCrouched ? 0.03 : isSprinting ? 0.14 : 0.075;
+      noiseGain.gain.setValueAtTime(gritVol, now);
+      noiseGain.gain.exponentialRampToValueAtTime(0.001, now + 0.075);
+
+      noise.connect(noiseFilter);
+      noiseFilter.connect(noiseGain);
+      noiseGain.connect(footstepGain);
+      noise.start(now);
+
+      // Pavement thud
+      const osc = this.ctx.createOscillator();
+      const thudGain = this.ctx.createGain();
+      osc.type = 'triangle';
+      osc.frequency.setValueAtTime(80, now);
+      osc.frequency.exponentialRampToValueAtTime(30, now + 0.1);
+      thudGain.gain.setValueAtTime(isSprinting ? 0.15 : 0.08, now);
+      thudGain.gain.exponentialRampToValueAtTime(0.001, now + 0.1);
+
+      osc.connect(thudGain);
+      thudGain.connect(footstepGain);
+      osc.start(now);
+      osc.stop(now + 0.11);
+    } else {
+      // GRASS: Soft leafy rustle & organic damp step
+      const bufferSize = Math.floor(this.ctx.sampleRate * 0.1);
+      const buffer = this.ctx.createBuffer(1, bufferSize, this.ctx.sampleRate);
+      const data = buffer.getChannelData(0);
+      for (let i = 0; i < bufferSize; i++) {
+        data[i] = (Math.random() * 2 - 1) * Math.exp(-i / (bufferSize * 0.35));
+      }
+      const noise = this.ctx.createBufferSource();
+      noise.buffer = buffer;
+
+      const filter = this.ctx.createBiquadFilter();
+      filter.type = 'lowpass';
+      filter.frequency.value = 600;
+
+      const gain = this.ctx.createGain();
+      gain.gain.setValueAtTime(isSprinting ? 0.12 : 0.06, now);
+      gain.gain.exponentialRampToValueAtTime(0.001, now + 0.09);
+
+      noise.connect(filter);
+      filter.connect(gain);
+      gain.connect(footstepGain);
+      noise.start(now);
+    }
+  }
+
+  /** Cooking fryers, grill sizzle, and food prep sound */
+  public playFoodPreparation() {
+    if (!this.ctx || !this.masterGain) return;
+    const now = this.ctx.currentTime;
+
+    // Sizzling noise
+    const duration = 1.2;
+    const bufferSize = Math.floor(this.ctx.sampleRate * duration);
+    const buffer = this.ctx.createBuffer(1, bufferSize, this.ctx.sampleRate);
+    const data = buffer.getChannelData(0);
+    for (let i = 0; i < bufferSize; i++) {
+      // Random sizzling amplitude
+      const sizzle = (Math.random() * 2 - 1) * (0.8 + 0.2 * Math.sin(i * 0.05));
+      data[i] = sizzle * (1 - i / bufferSize);
+    }
+    const noise = this.ctx.createBufferSource();
+    noise.buffer = buffer;
+
     const filter = this.ctx.createBiquadFilter();
+    filter.type = 'bandpass';
+    filter.frequency.setValueAtTime(2600, now);
+    filter.frequency.linearRampToValueAtTime(1800, now + duration);
+    filter.Q.value = 1.8;
 
-    osc.type = 'triangle';
-    const baseFreq = isCrouched ? 50 : isSprinting ? 75 : 65;
-    osc.frequency.setValueAtTime(baseFreq, now);
-    osc.frequency.exponentialRampToValueAtTime(25, now + 0.12);
+    const gain = this.ctx.createGain();
+    gain.gain.setValueAtTime(0.001, now);
+    gain.gain.linearRampToValueAtTime(0.22, now + 0.1);
+    gain.gain.exponentialRampToValueAtTime(0.001, now + duration);
 
-    filter.type = 'lowpass';
-    filter.frequency.value = isCrouched ? 120 : 220;
-
-    const volume = isCrouched ? 0.03 : isSprinting ? 0.14 : 0.07;
-    gain.gain.setValueAtTime(volume, now);
-    gain.gain.exponentialRampToValueAtTime(0.001, now + 0.14);
-
-    osc.connect(filter);
+    noise.connect(filter);
     filter.connect(gain);
     gain.connect(this.masterGain);
+    noise.start(now);
 
-    osc.start(now);
-    osc.stop(now + 0.15);
+    // Spatula stainless steel clink
+    const oscClink = this.ctx.createOscillator();
+    const clinkGain = this.ctx.createGain();
+    oscClink.type = 'sine';
+    oscClink.frequency.setValueAtTime(1920, now + 0.2);
+    oscClink.frequency.exponentialRampToValueAtTime(740, now + 0.35);
+    clinkGain.gain.setValueAtTime(0.18, now + 0.2);
+    clinkGain.gain.exponentialRampToValueAtTime(0.001, now + 0.45);
+
+    oscClink.connect(clinkGain);
+    clinkGain.connect(this.masterGain);
+    oscClink.start(now + 0.2);
+    oscClink.stop(now + 0.46);
+  }
+
+  /** Commercial Espresso & Drip Coffee machine brewing steam hiss & gurgle */
+  public playCoffeeBrewSteam() {
+    if (!this.ctx || !this.masterGain) return;
+    const now = this.ctx.currentTime;
+    const duration = 1.2;
+    const bufferSize = Math.floor(this.ctx.sampleRate * duration);
+    const buffer = this.ctx.createBuffer(1, bufferSize, this.ctx.sampleRate);
+    const data = buffer.getChannelData(0);
+    for (let i = 0; i < bufferSize; i++) {
+      data[i] = (Math.random() * 2 - 1) * 0.5;
+    }
+    const noise = this.ctx.createBufferSource();
+    noise.buffer = buffer;
+
+    const filter = this.ctx.createBiquadFilter();
+    filter.type = 'bandpass';
+    filter.frequency.setValueAtTime(3200, now);
+    filter.frequency.exponentialRampToValueAtTime(1400, now + duration);
+    filter.Q.value = 2.5;
+
+    const gain = this.ctx.createGain();
+    gain.gain.setValueAtTime(0.01, now);
+    gain.gain.linearRampToValueAtTime(0.18, now + 0.15);
+    gain.gain.exponentialRampToValueAtTime(0.001, now + duration);
+
+    noise.connect(filter);
+    filter.connect(gain);
+    gain.connect(this.masterGain);
+    noise.start(now);
+  }
+
+  /** Ominous electrical buzz and tube pop for violently flickering kitchen fluorescent tube */
+  public playFluorescentFlickerBuzz() {
+    if (!this.ctx || !this.masterGain) return;
+    const now = this.ctx.currentTime;
+
+    // 60Hz AC mains ballast buzz
+    const oscBuzz = this.ctx.createOscillator();
+    const gainBuzz = this.ctx.createGain();
+    oscBuzz.type = 'sawtooth';
+    oscBuzz.frequency.setValueAtTime(120, now);
+    oscBuzz.frequency.setValueAtTime(60, now + 0.08);
+
+    gainBuzz.gain.setValueAtTime(0.12, now);
+    gainBuzz.gain.exponentialRampToValueAtTime(0.001, now + 0.22);
+
+    oscBuzz.connect(gainBuzz);
+    gainBuzz.connect(this.masterGain);
+    oscBuzz.start(now);
+    oscBuzz.stop(now + 0.25);
+
+    // Static spark pop
+    const oscPop = this.ctx.createOscillator();
+    const gainPop = this.ctx.createGain();
+    oscPop.type = 'square';
+    oscPop.frequency.setValueAtTime(980, now);
+    gainPop.gain.setValueAtTime(0.08, now);
+    gainPop.gain.exponentialRampToValueAtTime(0.001, now + 0.04);
+    oscPop.connect(gainPop);
+    gainPop.connect(this.masterGain);
+    oscPop.start(now);
+    oscPop.stop(now + 0.05);
+  }
+
+  /** Paper food bag packaging rustle */
+  public playFoodPackaging() {
+    if (!this.ctx || !this.masterGain) return;
+    const now = this.ctx.currentTime;
+
+    const duration = 0.5;
+    const bufferSize = Math.floor(this.ctx.sampleRate * duration);
+    const buffer = this.ctx.createBuffer(1, bufferSize, this.ctx.sampleRate);
+    const data = buffer.getChannelData(0);
+    for (let i = 0; i < bufferSize; i++) {
+      data[i] = (Math.random() * 2 - 1) * (0.5 + 0.5 * Math.sin(i * 0.1));
+    }
+    const noise = this.ctx.createBufferSource();
+    noise.buffer = buffer;
+
+    const filter = this.ctx.createBiquadFilter();
+    filter.type = 'highpass';
+    filter.frequency.value = 1200;
+
+    const gain = this.ctx.createGain();
+    gain.gain.setValueAtTime(0.15, now);
+    gain.gain.exponentialRampToValueAtTime(0.001, now + duration);
+
+    noise.connect(filter);
+    filter.connect(gain);
+    gain.connect(this.masterGain);
+    noise.start(now);
+  }
+
+  /** Cash register sale completion chime & drawer clink */
+  public playCashRegisterSale() {
+    if (!this.ctx || !this.masterGain) return;
+    const now = this.ctx.currentTime;
+
+    // Dual bright bell "cha-ching"
+    const bell1 = this.ctx.createOscillator();
+    const bellGain1 = this.ctx.createGain();
+    bell1.type = 'sine';
+    bell1.frequency.setValueAtTime(1760, now); // A6
+    bellGain1.gain.setValueAtTime(0.25, now);
+    bellGain1.gain.exponentialRampToValueAtTime(0.001, now + 0.6);
+    bell1.connect(bellGain1);
+    bellGain1.connect(this.masterGain);
+    bell1.start(now);
+    bell1.stop(now + 0.65);
+
+    const bell2 = this.ctx.createOscillator();
+    const bellGain2 = this.ctx.createGain();
+    bell2.type = 'sine';
+    bell2.frequency.setValueAtTime(2640, now + 0.08); // E7
+    bellGain2.gain.setValueAtTime(0.3, now + 0.08);
+    bellGain2.gain.exponentialRampToValueAtTime(0.001, now + 0.75);
+    bell2.connect(bellGain2);
+    bellGain2.connect(this.masterGain);
+    bell2.start(now + 0.08);
+    bell2.stop(now + 0.8);
+
+    // Cash drawer slide thud
+    const oscDrawer = this.ctx.createOscillator();
+    const drawerGain = this.ctx.createGain();
+    oscDrawer.type = 'triangle';
+    oscDrawer.frequency.setValueAtTime(95, now + 0.12);
+    oscDrawer.frequency.exponentialRampToValueAtTime(35, now + 0.35);
+    drawerGain.gain.setValueAtTime(0.2, now + 0.12);
+    drawerGain.gain.exponentialRampToValueAtTime(0.001, now + 0.4);
+    oscDrawer.connect(drawerGain);
+    drawerGain.connect(this.masterGain);
+    oscDrawer.start(now + 0.12);
+    oscDrawer.stop(now + 0.42);
   }
 
   public playFlashlightClick(turnOn: boolean) {

@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { Play, RotateCcw, Home, Eye, Lock } from 'lucide-react';
 import { GameNight } from '../types/game';
+import { McDonaldsLogo } from './McDonaldsLogo';
 
 interface VictoryModalProps {
   night: GameNight;
@@ -43,6 +44,7 @@ export const VictoryModal: React.FC<VictoryModalProps> = ({
     return (
       <div className="absolute inset-0 z-50 bg-black/95 flex flex-col items-center justify-center p-6 font-mono select-none">
         <div className="max-w-md w-full bg-neutral-950 border border-neutral-700 rounded-lg p-8 text-center shadow-2xl">
+          <McDonaldsLogo size="sm" neon={true} className="mb-3 mx-auto" />
           <div className="text-emerald-500 font-bold text-xs uppercase tracking-widest mb-1">
             Overnight Shift 1 Finished
           </div>

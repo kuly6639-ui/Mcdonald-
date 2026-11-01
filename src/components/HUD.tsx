@@ -122,9 +122,11 @@ export const HUD: React.FC<HUDProps> = ({
         </div>
 
         {/* Center: Carried Inventory Item indicator */}
-        {(stats.hasTrashInHand || stats.hasCardboardInHand) && (
+        {(stats.hasTrashInHand || stats.hasCardboardInHand || stats.hasFoodInHand) && (
           <div className="bg-amber-950/90 border border-amber-500 text-amber-200 px-4 py-1.5 rounded text-xs font-bold tracking-wider uppercase animate-pulse">
-            {stats.hasTrashInHand
+            {stats.hasFoodInHand
+              ? '🍗 Carrying Prepared Meal Tray (Fried Chicken Bucket & Hot McCafé Coffee) — Deliver to Guest at Counter'
+              : stats.hasTrashInHand
               ? '📦 Carrying Dining Trash Bags (Take to rear dumpster)'
               : '📦 Carrying Cardboard Bundle (Take to rear dumpster)'}
           </div>

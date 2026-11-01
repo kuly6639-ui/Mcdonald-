@@ -1775,3 +1775,601 @@ export function createDriveThruOrderStation(): THREE.Group {
   return group;
 }
 
+/** 17. High-Detail Commercial Coffee & Espresso Machine (Placed on Kitchen Food Prep Table) */
+export function createCommercialCoffeeMachine(): THREE.Group {
+  const group = new THREE.Group();
+
+  // Materials
+  const steelMat = new THREE.MeshStandardMaterial({
+    color: 0x98a0a8,
+    metalness: 0.88,
+    roughness: 0.22,
+  });
+  const darkCaseMat = new THREE.MeshStandardMaterial({
+    color: 0x202224,
+    metalness: 0.5,
+    roughness: 0.5,
+  });
+  const blackPlasticMat = new THREE.MeshStandardMaterial({
+    color: 0x141416,
+    roughness: 0.7,
+  });
+  const chromeMat = new THREE.MeshStandardMaterial({
+    color: 0xd8d8d8,
+    metalness: 0.95,
+    roughness: 0.12,
+  });
+  const glassMat = new THREE.MeshPhysicalMaterial({
+    color: 0xffffff,
+    metalness: 0.05,
+    roughness: 0.08,
+    transmission: 0.85,
+    ior: 1.5,
+    transparent: true,
+    opacity: 0.6,
+  });
+  const beanMat = new THREE.MeshStandardMaterial({
+    color: 0x3b2219,
+    roughness: 0.85,
+  });
+  const coffeeLiquidMat = new THREE.MeshStandardMaterial({
+    color: 0x1a0f0a,
+    roughness: 0.2,
+  });
+  const cupMat = new THREE.MeshStandardMaterial({
+    color: 0xdfd4bc,
+    roughness: 0.6,
+  });
+  const cupLidMat = new THREE.MeshStandardMaterial({
+    color: 0x1a1a1a,
+    roughness: 0.5,
+  });
+  const ledAmber = new THREE.MeshBasicMaterial({ color: 0xff9900 });
+  const ledGreen = new THREE.MeshBasicMaterial({ color: 0x00ff66 });
+  const ledRed = new THREE.MeshBasicMaterial({ color: 0xff2222 });
+
+  // 1. Machine Main Chassis Body
+  const baseChassis = new THREE.Mesh(new THREE.BoxGeometry(0.72, 0.52, 0.44), steelMat);
+  baseChassis.position.set(0, 0.26, 0);
+  baseChassis.castShadow = true;
+  baseChassis.receiveShadow = true;
+  group.add(baseChassis);
+
+  // Side decorative dark panels
+  const sidePanelL = new THREE.Mesh(new THREE.BoxGeometry(0.02, 0.48, 0.42), darkCaseMat);
+  sidePanelL.position.set(-0.365, 0.26, 0);
+  const sidePanelR = new THREE.Mesh(new THREE.BoxGeometry(0.02, 0.48, 0.42), darkCaseMat);
+  sidePanelR.position.set(0.365, 0.26, 0);
+  group.add(sidePanelL, sidePanelR);
+
+  // 2. Drip Tray and Perforated Stainless Steel Grate
+  const dripTray = new THREE.Mesh(new THREE.BoxGeometry(0.68, 0.05, 0.22), steelMat);
+  dripTray.position.set(0, 0.025, 0.20);
+  const dripGrate = new THREE.Mesh(new THREE.BoxGeometry(0.65, 0.005, 0.19), darkCaseMat);
+  dripGrate.position.set(0, 0.052, 0.20);
+  group.add(dripTray, dripGrate);
+
+  // 3. Dual Group Heads with Portafilters & Handles
+  const groupHeadL = new THREE.Mesh(new THREE.CylinderGeometry(0.055, 0.055, 0.06, 12), chromeMat);
+  groupHeadL.position.set(-0.16, 0.32, 0.18);
+  const groupHeadR = new THREE.Mesh(new THREE.CylinderGeometry(0.055, 0.055, 0.06, 12), chromeMat);
+  groupHeadR.position.set(0.16, 0.32, 0.18);
+
+  // Portafilter handles extending outward
+  const handleL = new THREE.Mesh(new THREE.CylinderGeometry(0.015, 0.012, 0.14, 8), blackPlasticMat);
+  handleL.position.set(-0.16, 0.29, 0.26);
+  handleL.rotation.x = Math.PI / 2;
+  const handleR = new THREE.Mesh(new THREE.CylinderGeometry(0.015, 0.012, 0.14, 8), blackPlasticMat);
+  handleR.position.set(0.16, 0.29, 0.26);
+  handleR.rotation.x = Math.PI / 2;
+  group.add(groupHeadL, groupHeadR, handleL, handleR);
+
+  // 4. Dual Steam Wands
+  const steamWandL = new THREE.Mesh(new THREE.CylinderGeometry(0.006, 0.006, 0.16, 8), chromeMat);
+  steamWandL.position.set(-0.28, 0.22, 0.18);
+  steamWandL.rotation.z = -0.3;
+  const steamWandR = new THREE.Mesh(new THREE.CylinderGeometry(0.006, 0.006, 0.16, 8), chromeMat);
+  steamWandR.position.set(0.28, 0.22, 0.18);
+  steamWandR.rotation.z = 0.3;
+  group.add(steamWandL, steamWandR);
+
+  // 5. Front Control Panel: Digital Pressure Gauges & Espresso Dispense Buttons
+  const controlPanel = new THREE.Mesh(new THREE.BoxGeometry(0.68, 0.12, 0.02), darkCaseMat);
+  controlPanel.position.set(0, 0.42, 0.221);
+  group.add(controlPanel);
+
+  // Pressure Gauge Dials (Boiler Bar 0-16)
+  const gauge1 = new THREE.Mesh(new THREE.CylinderGeometry(0.035, 0.035, 0.01, 12), chromeMat);
+  gauge1.rotation.x = Math.PI / 2;
+  gauge1.position.set(-0.25, 0.42, 0.23);
+  const gaugeFace1 = new THREE.Mesh(new THREE.CircleGeometry(0.03, 12), ledAmber);
+  gaugeFace1.position.set(-0.25, 0.42, 0.236);
+  const gauge2 = new THREE.Mesh(new THREE.CylinderGeometry(0.035, 0.035, 0.01, 12), chromeMat);
+  gauge2.rotation.x = Math.PI / 2;
+  gauge2.position.set(-0.16, 0.42, 0.23);
+  const gaugeFace2 = new THREE.Mesh(new THREE.CircleGeometry(0.03, 12), ledGreen);
+  gaugeFace2.position.set(-0.16, 0.42, 0.236);
+  group.add(gauge1, gaugeFace1, gauge2, gaugeFace2);
+
+  // Push buttons for Single/Double espresso shots
+  for (let b = 0; b < 4; b++) {
+    const btn = new THREE.Mesh(new THREE.CylinderGeometry(0.012, 0.012, 0.01, 8), chromeMat);
+    btn.rotation.x = Math.PI / 2;
+    btn.position.set(0.02 + b * 0.065, 0.42, 0.23);
+    group.add(btn);
+  }
+
+  // 6. Overhead Heated Cup Warmer Rack with Stack of McCafé Cups
+  const cupRailing = new THREE.Mesh(new THREE.BoxGeometry(0.68, 0.04, 0.36), chromeMat);
+  cupRailing.position.set(0, 0.54, 0);
+  group.add(cupRailing);
+
+  // 4 McCafé paper cups warming on top
+  const cupPositions = [
+    [-0.22, 0.56, -0.06],
+    [-0.10, 0.56, -0.06],
+    [-0.22, 0.56, 0.08],
+    [-0.10, 0.56, 0.08],
+  ];
+  cupPositions.forEach(([cx, cy, cz]) => {
+    const paperCup = new THREE.Mesh(new THREE.CylinderGeometry(0.038, 0.028, 0.09, 10), cupMat);
+    paperCup.position.set(cx, cy + 0.045, cz);
+    const paperLid = new THREE.Mesh(new THREE.CylinderGeometry(0.04, 0.04, 0.01, 10), cupLidMat);
+    paperLid.position.set(cx, cy + 0.095, cz);
+    group.add(paperCup, paperLid);
+  });
+
+  // 7. Twin Clear Bean Hoppers on Top with Dark Roasted Coffee Beans
+  const hopperL = new THREE.Mesh(new THREE.CylinderGeometry(0.085, 0.05, 0.16, 12), glassMat);
+  hopperL.position.set(0.12, 0.62, -0.04);
+  const beansInsideL = new THREE.Mesh(new THREE.CylinderGeometry(0.075, 0.045, 0.13, 10), beanMat);
+  beansInsideL.position.set(0.12, 0.605, -0.04);
+  const hopperLidL = new THREE.Mesh(new THREE.CylinderGeometry(0.09, 0.09, 0.015, 12), blackPlasticMat);
+  hopperLidL.position.set(0.12, 0.705, -0.04);
+
+  const hopperR = new THREE.Mesh(new THREE.CylinderGeometry(0.085, 0.05, 0.16, 12), glassMat);
+  hopperR.position.set(0.26, 0.62, -0.04);
+  const beansInsideR = new THREE.Mesh(new THREE.CylinderGeometry(0.075, 0.045, 0.13, 10), beanMat);
+  beansInsideR.position.set(0.26, 0.605, -0.04);
+  const hopperLidR = new THREE.Mesh(new THREE.CylinderGeometry(0.09, 0.09, 0.015, 12), blackPlasticMat);
+  hopperLidR.position.set(0.26, 0.705, -0.04);
+
+  group.add(hopperL, beansInsideL, hopperLidL, hopperR, beansInsideR, hopperLidR);
+
+  // 8. Drip Coffee Glass Carafe Pot on Left Hot Plate
+  const carafeGroup = new THREE.Group();
+  carafeGroup.position.set(-0.16, 0.08, 0.20);
+  const potGlass = new THREE.Mesh(new THREE.CylinderGeometry(0.065, 0.07, 0.14, 12), glassMat);
+  potGlass.position.y = 0.07;
+  const potCoffee = new THREE.Mesh(new THREE.CylinderGeometry(0.06, 0.065, 0.09, 10), coffeeLiquidMat);
+  potCoffee.position.y = 0.05;
+  const potHandle = new THREE.Mesh(new THREE.TorusGeometry(0.05, 0.008, 6, 12, Math.PI), blackPlasticMat);
+  potHandle.position.set(0.065, 0.08, 0);
+  potHandle.rotation.z = -Math.PI / 2;
+  const potLid = new THREE.Mesh(new THREE.CylinderGeometry(0.068, 0.068, 0.015, 12), blackPlasticMat);
+  potLid.position.y = 0.145;
+  carafeGroup.add(potGlass, potCoffee, potHandle, potLid);
+  group.add(carafeGroup);
+
+  return group;
+}
+
+/** 18. Fried Chicken Bucket Model with Crispy Golden Drumsticks & Tenders */
+export function createFriedChickenBucket(): THREE.Group {
+  const group = new THREE.Group();
+
+  // Materials
+  const bucketMat = new THREE.MeshStandardMaterial({
+    color: 0xcc1111, // Fast food red
+    roughness: 0.4,
+  });
+  const yellowStripeMat = new THREE.MeshStandardMaterial({
+    color: 0xffbb00, // Golden yellow
+    roughness: 0.35,
+  });
+  const whiteRimMat = new THREE.MeshStandardMaterial({
+    color: 0xffffff,
+    roughness: 0.5,
+  });
+  const chickenMat = new THREE.MeshStandardMaterial({
+    color: 0xc47b1e, // Golden brown crispy fried crust
+    roughness: 0.75,
+    metalness: 0.1,
+  });
+  const boneMat = new THREE.MeshStandardMaterial({
+    color: 0xf5f0e1, // Chicken bone tip
+    roughness: 0.6,
+  });
+
+  // Tapered Bucket Body (tapered cylinder: rTop: 0.12, rBottom: 0.09, h: 0.20)
+  const bucketBody = new THREE.Mesh(new THREE.CylinderGeometry(0.12, 0.09, 0.20, 16), bucketMat);
+  bucketBody.position.y = 0.10;
+  bucketBody.castShadow = true;
+  group.add(bucketBody);
+
+  // Center golden yellow band
+  const yellowBand = new THREE.Mesh(new THREE.CylinderGeometry(0.116, 0.096, 0.07, 16), yellowStripeMat);
+  yellowBand.position.y = 0.10;
+  group.add(yellowBand);
+
+  // Top rolled rim
+  const rim = new THREE.Mesh(new THREE.TorusGeometry(0.12, 0.008, 8, 16), whiteRimMat);
+  rim.position.y = 0.20;
+  rim.rotation.x = Math.PI / 2;
+  group.add(rim);
+
+  // Golden Fried Chicken Drumsticks & Pieces filling bucket
+  const pieceConfigs = [
+    { x: -0.04, z: -0.03, rotX: 0.3, rotZ: -0.3, scale: 1.0 },
+    { x: 0.05, z: -0.02, rotX: -0.2, rotZ: 0.35, scale: 0.95 },
+    { x: 0.0, z: 0.05, rotX: 0.4, rotZ: 0.1, scale: 1.1 },
+    { x: -0.03, z: 0.03, rotX: -0.3, rotZ: -0.2, scale: 0.9 },
+    { x: 0.04, z: 0.03, rotX: 0.15, rotZ: 0.4, scale: 1.05 },
+  ];
+
+  pieceConfigs.forEach((cfg) => {
+    const piece = new THREE.Group();
+    piece.position.set(cfg.x, 0.18, cfg.z);
+    piece.rotation.set(cfg.rotX, 0, cfg.rotZ);
+    piece.scale.setScalar(cfg.scale);
+
+    // Crispy drumstick meat bulb
+    const meat = new THREE.Mesh(new THREE.SphereGeometry(0.042, 8, 8), chickenMat);
+    meat.scale.set(1.0, 1.45, 0.9);
+    meat.position.y = 0.035;
+
+    // Bone tip
+    const bone = new THREE.Mesh(new THREE.CylinderGeometry(0.009, 0.011, 0.06, 6), boneMat);
+    bone.position.y = -0.025;
+
+    piece.add(meat, bone);
+    group.add(piece);
+  });
+
+  return group;
+}
+
+/** 19. Commercial Fried Chicken Vending & Warming Showcase Machine with Pressure Fryer */
+export function createFriedChickenVendingMachine(): THREE.Group {
+  const group = new THREE.Group();
+
+  // Materials
+  const stainlessSteelMat = new THREE.MeshStandardMaterial({
+    color: 0x9098a0,
+    metalness: 0.88,
+    roughness: 0.25,
+  });
+  const darkSteelMat = new THREE.MeshStandardMaterial({
+    color: 0x25282c,
+    metalness: 0.7,
+    roughness: 0.4,
+  });
+  const warmGlassMat = new THREE.MeshPhysicalMaterial({
+    color: 0xffeedd,
+    metalness: 0.05,
+    roughness: 0.08,
+    transmission: 0.88,
+    ior: 1.5,
+    transparent: true,
+    opacity: 0.55,
+  });
+  const wireRackMat = new THREE.MeshStandardMaterial({
+    color: 0xcccccc,
+    metalness: 0.92,
+    roughness: 0.15,
+  });
+  const heatLampMat = new THREE.MeshBasicMaterial({
+    color: 0xff8800, // Glowing hot infrared amber heating lamp
+  });
+  const goldenSignMat = new THREE.MeshBasicMaterial({
+    color: 0xffbc0d, // Signature McDonald's Golden Yellow
+  });
+  const redBannerMat = new THREE.MeshStandardMaterial({
+    color: 0xbb1111,
+    roughness: 0.4,
+  });
+  const oilMat = new THREE.MeshStandardMaterial({
+    color: 0x5a3e10,
+    roughness: 0.15,
+    metalness: 0.3,
+  });
+  const chickenMat = new THREE.MeshStandardMaterial({
+    color: 0xc47b1e,
+    roughness: 0.7,
+    metalness: 0.1,
+  });
+  const handleRedMat = new THREE.MeshStandardMaterial({
+    color: 0xcc2222,
+    roughness: 0.6,
+  });
+
+  // --- LOWER SECTION: COMMERCIAL PRESSURE FRYER BASE (Height: 0 to 0.92) ---
+  const fryerBase = new THREE.Mesh(new THREE.BoxGeometry(0.95, 0.92, 0.85), stainlessSteelMat);
+  fryerBase.position.set(0, 0.46, 0);
+  fryerBase.castShadow = true;
+  fryerBase.receiveShadow = true;
+  group.add(fryerBase);
+
+  // Twin open oil vats
+  const vatL = new THREE.Mesh(new THREE.BoxGeometry(0.38, 0.04, 0.55), oilMat);
+  vatL.position.set(-0.22, 0.88, 0.05);
+  const vatR = new THREE.Mesh(new THREE.BoxGeometry(0.38, 0.04, 0.55), oilMat);
+  vatR.position.set(0.22, 0.88, 0.05);
+  group.add(vatL, vatR);
+
+  // Wire fryer baskets with red heat-resistant handles
+  const basketL = new THREE.Mesh(new THREE.BoxGeometry(0.34, 0.18, 0.48), wireRackMat);
+  basketL.position.set(-0.22, 0.98, 0.05);
+  const handleMeshL = new THREE.Mesh(new THREE.CylinderGeometry(0.016, 0.016, 0.28, 8), handleRedMat);
+  handleMeshL.rotation.x = Math.PI / 4;
+  handleMeshL.position.set(-0.22, 1.15, 0.36);
+
+  const basketR = new THREE.Mesh(new THREE.BoxGeometry(0.34, 0.18, 0.48), wireRackMat);
+  basketR.position.set(0.22, 0.98, 0.05);
+  const handleMeshR = new THREE.Mesh(new THREE.CylinderGeometry(0.016, 0.016, 0.28, 8), handleRedMat);
+  handleMeshR.rotation.x = Math.PI / 4;
+  handleMeshR.position.set(0.22, 1.15, 0.36);
+
+  group.add(basketL, handleMeshL, basketR, handleMeshR);
+
+  // Fryer control knobs and digital temperature display
+  const tempDisplay = new THREE.Mesh(new THREE.BoxGeometry(0.22, 0.08, 0.02), darkSteelMat);
+  tempDisplay.position.set(0, 0.75, 0.435);
+  const tempLed = new THREE.Mesh(new THREE.PlaneGeometry(0.18, 0.05), new THREE.MeshBasicMaterial({ color: 0x00ff66 }));
+  tempLed.position.set(0, 0.75, 0.447);
+  group.add(tempDisplay, tempLed);
+
+  for (let k = 0; k < 3; k++) {
+    const knob = new THREE.Mesh(new THREE.CylinderGeometry(0.022, 0.022, 0.02, 10), darkSteelMat);
+    knob.rotation.x = Math.PI / 2;
+    knob.position.set(-0.3 + k * 0.3, 0.62, 0.435);
+    group.add(knob);
+  }
+
+  // --- UPPER SECTION: HEATED FRIED CHICKEN DISPLAY WARMER SHOWCASE (Height: 0.92 to 1.78) ---
+  const warmerFrame = new THREE.Group();
+  warmerFrame.position.set(0, 0.92, -0.05);
+  group.add(warmerFrame);
+
+  // Glass showcase enclosure
+  const glassFront = new THREE.Mesh(new THREE.PlaneGeometry(0.88, 0.65), warmGlassMat);
+  glassFront.position.set(0, 0.36, 0.42);
+  const glassBack = new THREE.Mesh(new THREE.PlaneGeometry(0.88, 0.65), warmGlassMat);
+  glassBack.position.set(0, 0.36, -0.42);
+  glassBack.rotation.y = Math.PI;
+  const glassLeft = new THREE.Mesh(new THREE.PlaneGeometry(0.80, 0.65), warmGlassMat);
+  glassLeft.position.set(-0.44, 0.36, 0);
+  glassLeft.rotation.y = Math.PI / 2;
+  const glassRight = new THREE.Mesh(new THREE.PlaneGeometry(0.80, 0.65), warmGlassMat);
+  glassRight.position.set(0.44, 0.36, 0);
+  glassRight.rotation.y = -Math.PI / 2;
+
+  warmerFrame.add(glassFront, glassBack, glassLeft, glassRight);
+
+  // Four corner stainless steel frame posts
+  const postCorners = [
+    [-0.44, 0.36, 0.41],
+    [0.44, 0.36, 0.41],
+    [-0.44, 0.36, -0.41],
+    [0.44, 0.36, -0.41],
+  ];
+  postCorners.forEach(([px, py, pz]) => {
+    const post = new THREE.Mesh(new THREE.BoxGeometry(0.035, 0.72, 0.035), stainlessSteelMat);
+    post.position.set(px, py, pz);
+    warmerFrame.add(post);
+  });
+
+  // Two tiered stainless steel wire display racks inside warmer
+  const rack1 = new THREE.Mesh(new THREE.BoxGeometry(0.82, 0.02, 0.72), wireRackMat);
+  rack1.position.set(0, 0.20, 0);
+  const rack2 = new THREE.Mesh(new THREE.BoxGeometry(0.82, 0.02, 0.72), wireRackMat);
+  rack2.position.set(0, 0.46, 0);
+  warmerFrame.add(rack1, rack2);
+
+  // Golden fried chicken pieces arranged on racks
+  const chickenPositions = [
+    [-0.26, 0.24, -0.15],
+    [-0.10, 0.24, -0.12],
+    [0.08, 0.24, -0.16],
+    [0.24, 0.24, -0.14],
+    [-0.20, 0.24, 0.16],
+    [0.0, 0.24, 0.18],
+    [0.22, 0.24, 0.15],
+    [-0.18, 0.50, -0.08],
+    [0.02, 0.50, -0.06],
+    [0.20, 0.50, -0.10],
+  ];
+
+  chickenPositions.forEach(([cx, cy, cz]) => {
+    const chickenPiece = new THREE.Mesh(new THREE.SphereGeometry(0.045, 6, 6), chickenMat);
+    chickenPiece.scale.set(1.4, 0.9, 1.1);
+    chickenPiece.position.set(cx, cy, cz);
+    warmerFrame.add(chickenPiece);
+  });
+
+  // Fried Chicken Buckets inside display showcase
+  const bucket1 = createFriedChickenBucket();
+  bucket1.scale.setScalar(0.75);
+  bucket1.position.set(-0.25, 0.21, 0.12);
+  const bucket2 = createFriedChickenBucket();
+  bucket2.scale.setScalar(0.75);
+  bucket2.position.set(0.25, 0.21, 0.12);
+  warmerFrame.add(bucket1, bucket2);
+
+  // Overhead glowing amber/infrared heat lamps casting warm light on the chicken
+  const heatLamp1 = new THREE.Mesh(new THREE.CylinderGeometry(0.04, 0.04, 0.75, 8), heatLampMat);
+  heatLamp1.rotation.z = Math.PI / 2;
+  heatLamp1.position.set(0, 0.68, -0.18);
+  const heatLamp2 = new THREE.Mesh(new THREE.CylinderGeometry(0.04, 0.04, 0.75, 8), heatLampMat);
+  heatLamp2.rotation.z = Math.PI / 2;
+  heatLamp2.position.set(0, 0.68, 0.18);
+  warmerFrame.add(heatLamp1, heatLamp2);
+
+  // Top Lightbox Canopy Sign: "CRISPY FRIED CHICKEN"
+  const topCanopy = new THREE.Mesh(new THREE.BoxGeometry(0.95, 0.18, 0.86), redBannerMat);
+  topCanopy.position.set(0, 0.78, 0);
+  const signFaceFront = new THREE.Mesh(new THREE.PlaneGeometry(0.86, 0.12), goldenSignMat);
+  signFaceFront.position.set(0, 0.78, 0.435);
+  warmerFrame.add(topCanopy, signFaceFront);
+
+  return group;
+}
+
+/** 20. Food Preparation Area Table Items (Condiments, Burger Boxes, Tongs, Wraps, Cups) */
+export function createFoodPrepTableItems(): THREE.Group {
+  const group = new THREE.Group();
+
+  // Materials
+  const ketchupMat = new THREE.MeshStandardMaterial({ color: 0xcc1111, roughness: 0.35 });
+  const mustardMat = new THREE.MeshStandardMaterial({ color: 0xf5b800, roughness: 0.35 });
+  const mayoMat = new THREE.MeshStandardMaterial({ color: 0xfffaea, roughness: 0.35 });
+  const bottleCapMat = new THREE.MeshStandardMaterial({ color: 0xf0f0f0, roughness: 0.5 });
+  const boxCardMat = new THREE.MeshStandardMaterial({ color: 0xd45028, roughness: 0.7 });
+  const fryCartonMat = new THREE.MeshStandardMaterial({ color: 0xdd1111, roughness: 0.5 });
+  const fryGoldMat = new THREE.MeshStandardMaterial({ color: 0xf4bc20, roughness: 0.6 });
+  const tongsMat = new THREE.MeshStandardMaterial({ color: 0xd0d0d0, metalness: 0.9, roughness: 0.2 });
+  const paperWrapMat = new THREE.MeshStandardMaterial({ color: 0xffffff, roughness: 0.85 });
+
+  // 1. Condiment Squeeze Bottles (Ketchup, Mustard, Mayo)
+  const bottles = [
+    { mat: ketchupMat, x: -0.55, z: -0.15 },
+    { mat: mustardMat, x: -0.45, z: -0.15 },
+    { mat: mayoMat, x: -0.35, z: -0.15 },
+  ];
+  bottles.forEach((b) => {
+    const bottleBody = new THREE.Mesh(new THREE.CylinderGeometry(0.035, 0.035, 0.16, 12), b.mat);
+    bottleBody.position.set(b.x, 0.08, b.z);
+    const bottleNeck = new THREE.Mesh(new THREE.ConeGeometry(0.035, 0.05, 12), b.mat);
+    bottleNeck.position.set(b.x, 0.185, b.z);
+    const bottleTip = new THREE.Mesh(new THREE.CylinderGeometry(0.005, 0.008, 0.03, 8), bottleCapMat);
+    bottleTip.position.set(b.x, 0.22, b.z);
+    group.add(bottleBody, bottleNeck, bottleTip);
+  });
+
+  // 2. Stack of Burger Boxes
+  for (let s = 0; s < 4; s++) {
+    const box = new THREE.Mesh(new THREE.BoxGeometry(0.14, 0.045, 0.14), boxCardMat);
+    box.position.set(-0.15, 0.025 + s * 0.045, -0.12);
+    group.add(box);
+  }
+
+  // 3. Stack of French Fry Cartons with golden fries sticking out
+  const fryBox = new THREE.Mesh(new THREE.BoxGeometry(0.09, 0.11, 0.05), fryCartonMat);
+  fryBox.position.set(0.08, 0.055, -0.12);
+  const fries = new THREE.Mesh(new THREE.BoxGeometry(0.08, 0.06, 0.04), fryGoldMat);
+  fries.position.set(0.08, 0.12, -0.12);
+  group.add(fryBox, fries);
+
+  // 4. Stainless Steel Fast-Food Tongs
+  const tong1 = new THREE.Mesh(new THREE.BoxGeometry(0.02, 0.008, 0.22), tongsMat);
+  tong1.position.set(0.28, 0.006, -0.08);
+  tong1.rotation.y = 0.25;
+  group.add(tong1);
+
+  // 5. Stack of Fast-Food Wrapping Paper Sheets
+  const wrapStack = new THREE.Mesh(new THREE.BoxGeometry(0.26, 0.015, 0.26), paperWrapMat);
+  wrapStack.position.set(0.48, 0.008, -0.06);
+  group.add(wrapStack);
+
+  return group;
+}
+
+/** 21. First-Person Viewmodel: Held Meal in Duck's Hands (Tray with Fried Chicken Bucket, Coffee, Fries) */
+export function createFirstPersonHeldMeal(): THREE.Group {
+  const group = new THREE.Group();
+
+  // Materials
+  const trayMat = new THREE.MeshStandardMaterial({
+    color: 0x1f2124, // Fast food textured black serving tray
+    roughness: 0.55,
+    metalness: 0.1,
+  });
+  const trayLinerMat = new THREE.MeshStandardMaterial({
+    color: 0xdf382b, // Red paper tray liner
+    roughness: 0.8,
+  });
+  const cupMat = new THREE.MeshStandardMaterial({
+    color: 0x4a2a1a, // McCafé dark roasted coffee cup
+    roughness: 0.6,
+  });
+  const cupSleeveMat = new THREE.MeshStandardMaterial({
+    color: 0x8a633c, // Corrugated kraft paper heat sleeve
+    roughness: 0.85,
+  });
+  const cupLidMat = new THREE.MeshStandardMaterial({
+    color: 0xffffff, // White sipper lid
+    roughness: 0.4,
+  });
+  const fryCartonMat = new THREE.MeshStandardMaterial({
+    color: 0xcc1111,
+    roughness: 0.4,
+  });
+  const fryGoldMat = new THREE.MeshStandardMaterial({
+    color: 0xf5b800,
+    roughness: 0.6,
+  });
+  const duckFeatherMat = new THREE.MeshStandardMaterial({
+    color: 0xffffff, // Duck white feathered wings/hands holding tray
+    roughness: 0.75,
+  });
+  const duckWebMat = new THREE.MeshStandardMaterial({
+    color: 0xf09000, // Duck orange bill/foot webbing tone for fingertips
+    roughness: 0.6,
+  });
+
+  // Fast-Food Serving Tray
+  const tray = new THREE.Mesh(new THREE.BoxGeometry(0.38, 0.014, 0.28), trayMat);
+  tray.castShadow = true;
+  group.add(tray);
+
+  // Paper Liner
+  const liner = new THREE.Mesh(new THREE.PlaneGeometry(0.34, 0.24), trayLinerMat);
+  liner.rotation.x = -Math.PI / 2;
+  liner.position.y = 0.008;
+  group.add(liner);
+
+  // 1. Fried Chicken Bucket (Left side of tray)
+  const bucket = createFriedChickenBucket();
+  bucket.scale.setScalar(0.72);
+  bucket.position.set(-0.08, 0.007, 0.01);
+  group.add(bucket);
+
+  // 2. McCafé Hot Coffee Cup (Right rear of tray)
+  const cupGroup = new THREE.Group();
+  cupGroup.position.set(0.10, 0.007, -0.05);
+
+  const cup = new THREE.Mesh(new THREE.CylinderGeometry(0.038, 0.028, 0.11, 12), cupMat);
+  cup.position.y = 0.055;
+  const sleeve = new THREE.Mesh(new THREE.CylinderGeometry(0.036, 0.032, 0.045, 12), cupSleeveMat);
+  sleeve.position.y = 0.055;
+  const lid = new THREE.Mesh(new THREE.CylinderGeometry(0.04, 0.04, 0.012, 12), cupLidMat);
+  lid.position.y = 0.115;
+  cupGroup.add(cup, sleeve, lid);
+  group.add(cupGroup);
+
+  // 3. World Famous French Fries (Right front of tray)
+  const fryGroup = new THREE.Group();
+  fryGroup.position.set(0.10, 0.007, 0.06);
+
+  const carton = new THREE.Mesh(new THREE.BoxGeometry(0.075, 0.08, 0.04), fryCartonMat);
+  carton.position.y = 0.04;
+  const fryPile = new THREE.Mesh(new THREE.BoxGeometry(0.068, 0.05, 0.032), fryGoldMat);
+  fryPile.position.y = 0.085;
+  fryGroup.add(carton, fryPile);
+  group.add(fryGroup);
+
+  // 4. Duck's Hands / Wing Fingertips gripping the sides of the serving tray
+  const handL = new THREE.Mesh(new THREE.BoxGeometry(0.035, 0.025, 0.11), duckFeatherMat);
+  handL.position.set(-0.20, 0.008, 0);
+  const fingerTipsL = new THREE.Mesh(new THREE.BoxGeometry(0.018, 0.016, 0.09), duckWebMat);
+  fingerTipsL.position.set(-0.185, 0.015, 0);
+
+  const handR = new THREE.Mesh(new THREE.BoxGeometry(0.035, 0.025, 0.11), duckFeatherMat);
+  handR.position.set(0.20, 0.008, 0);
+  const fingerTipsR = new THREE.Mesh(new THREE.BoxGeometry(0.018, 0.016, 0.09), duckWebMat);
+  fingerTipsR.position.set(0.185, 0.015, 0);
+
+  group.add(handL, fingerTipsL, handR, fingerTipsR);
+
+  return group;
+}

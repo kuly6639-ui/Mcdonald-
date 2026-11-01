@@ -603,3 +603,316 @@ export function createComputerCCTVScreenTexture(): THREE.CanvasTexture {
   return finalizeTexture(canvas, true);
 }
 
+/** Illuminated McDonald's Entrance Signboard above the front door */
+export function createMcDonaldsEntranceSignTexture(): THREE.CanvasTexture {
+  const width = 1024;
+  const height = 256;
+  const canvas = document.createElement('canvas');
+  canvas.width = width;
+  canvas.height = height;
+  const ctx = canvas.getContext('2d')!;
+
+  // Deep McDonald's red background
+  ctx.fillStyle = '#b31e1c';
+  ctx.fillRect(0, 0, width, height);
+
+  // Outer bevel border
+  ctx.lineWidth = 10;
+  ctx.strokeStyle = '#4a0c0a';
+  ctx.strokeRect(5, 5, width - 10, height - 10);
+  ctx.lineWidth = 4;
+  ctx.strokeStyle = '#f5b800';
+  ctx.strokeRect(14, 14, width - 28, height - 28);
+
+  // Glowing Golden Arches on the left
+  ctx.lineWidth = 20;
+  ctx.strokeStyle = '#ffc72c';
+  ctx.lineCap = 'round';
+
+  ctx.beginPath();
+  ctx.arc(120, 150, 48, Math.PI, 0, false);
+  ctx.stroke();
+
+  ctx.beginPath();
+  ctx.arc(205, 150, 48, Math.PI, 0, false);
+  ctx.stroke();
+
+  ctx.fillStyle = '#ffc72c';
+  ctx.fillRect(66, 150, 20, 52);
+  ctx.fillRect(152, 150, 20, 52);
+  ctx.fillRect(243, 150, 20, 52);
+
+  // Bold "McDonald's" wordmark
+  ctx.fillStyle = '#ffffff';
+  ctx.font = '900 84px "Impact", "Arial Black", sans-serif';
+  ctx.textAlign = 'left';
+  ctx.textBaseline = 'middle';
+  ctx.fillText("McDonald's", 295, 115);
+
+  // Subtitle banner: "OPEN 24 HOURS  ★  DRIVE-THRU"
+  ctx.fillStyle = '#ffc72c';
+  ctx.font = '700 24px monospace';
+  ctx.fillText('★  OPEN 24 HOURS  •  DRIVE-THRU & LOBBY  ★', 300, 185);
+
+  // Subtle weathered horror grunge
+  ctx.fillStyle = 'rgba(20, 5, 5, 0.25)';
+  for (let i = 0; i < 40; i++) {
+    const rx = Math.random() * width;
+    const ry = Math.random() * height;
+    ctx.fillRect(rx, ry, 3 + Math.random() * 8, 2 + Math.random() * 4);
+  }
+
+  return finalizeTexture(canvas, true);
+}
+
+/** Authentic outdoor promotional advertisement posters for McDonald's entrance */
+export function createMcDonaldsAdPosterTexture(variant: 'bigmac' | 'fries' | 'grimace' = 'bigmac'): THREE.CanvasTexture {
+  const width = 512;
+  const height = 768;
+  const canvas = document.createElement('canvas');
+  canvas.width = width;
+  canvas.height = height;
+  const ctx = canvas.getContext('2d')!;
+
+  if (variant === 'bigmac') {
+    // Big Mac promo poster
+    ctx.fillStyle = '#1e1b18';
+    ctx.fillRect(0, 0, width, height);
+
+    // Red header band
+    ctx.fillStyle = '#b31e1c';
+    ctx.fillRect(0, 0, width, 140);
+
+    // Mini Arches
+    ctx.strokeStyle = '#ffc72c';
+    ctx.lineWidth = 8;
+    ctx.beginPath();
+    ctx.arc(60, 70, 22, Math.PI, 0, false);
+    ctx.stroke();
+    ctx.beginPath();
+    ctx.arc(100, 70, 22, Math.PI, 0, false);
+    ctx.stroke();
+
+    ctx.fillStyle = '#ffffff';
+    ctx.font = '900 42px "Arial Black", sans-serif';
+    ctx.textAlign = 'left';
+    ctx.fillText('BIG MAC®', 135, 75);
+
+    // Middle banner
+    ctx.fillStyle = '#f59e0b';
+    ctx.font = '700 24px monospace';
+    ctx.fillText('LATE NIGHT CRAVING?', 40, 180);
+
+    // Big Burger Graphic
+    const cy = 370;
+    // Top Bun
+    ctx.fillStyle = '#d97706';
+    ctx.beginPath();
+    ctx.arc(256, cy - 80, 140, Math.PI, 0);
+    ctx.fill();
+    // Sesame seeds
+    ctx.fillStyle = '#fef08a';
+    for (let s = 0; s < 30; s++) {
+      const sx = 160 + Math.random() * 190;
+      const sy = cy - 130 + Math.random() * 45;
+      ctx.fillRect(sx, sy, 5, 3);
+    }
+    // Lettuce & Special Sauce
+    ctx.fillStyle = '#84cc16';
+    ctx.fillRect(110, cy - 80, 292, 16);
+    // Beef Patty 1
+    ctx.fillStyle = '#451a03';
+    ctx.fillRect(116, cy - 64, 280, 24);
+    // Melted American Cheese
+    ctx.fillStyle = '#fbbf24';
+    ctx.beginPath();
+    ctx.moveTo(110, cy - 40);
+    ctx.lineTo(402, cy - 40);
+    ctx.lineTo(390, cy - 24);
+    ctx.lineTo(256, cy - 16);
+    ctx.lineTo(120, cy - 24);
+    ctx.fill();
+    // Middle Bun
+    ctx.fillStyle = '#d97706';
+    ctx.fillRect(125, cy - 40, 262, 18);
+    // Beef Patty 2
+    ctx.fillStyle = '#451a03';
+    ctx.fillRect(116, cy - 20, 280, 24);
+    // Pickles & Onions
+    ctx.fillStyle = '#4d7c0f';
+    ctx.fillRect(130, cy + 4, 252, 12);
+    // Bottom Bun
+    ctx.fillStyle = '#b45309';
+    ctx.fillRect(125, cy + 16, 262, 32);
+
+    // Price Splash Tag
+    ctx.fillStyle = '#dc2626';
+    ctx.beginPath();
+    ctx.arc(390, 520, 70, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.strokeStyle = '#fef08a';
+    ctx.lineWidth = 6;
+    ctx.stroke();
+
+    ctx.fillStyle = '#ffffff';
+    ctx.font = '900 18px monospace';
+    ctx.textAlign = 'center';
+    ctx.fillText('ONLY', 390, 495);
+    ctx.font = '900 38px "Arial Black", sans-serif';
+    ctx.fillText('$5.99', 390, 535);
+
+    // Bottom Copy
+    ctx.fillStyle = '#e2e8f0';
+    ctx.font = '700 22px monospace';
+    ctx.textAlign = 'center';
+    ctx.fillText('100% FRESH BEEF • TWO PATTIES', 256, 620);
+    ctx.fillStyle = '#94a3b8';
+    ctx.font = '16px monospace';
+    ctx.fillText('SERVED HOT AT ALL PARTICIPATING STORES', 256, 655);
+
+    ctx.fillStyle = '#ffc72c';
+    ctx.font = '900 28px "Arial Black", sans-serif';
+    ctx.fillText("i'm lovin' it®", 256, 715);
+  } else if (variant === 'fries') {
+    // World Famous Fries
+    ctx.fillStyle = '#b31e1c';
+    ctx.fillRect(0, 0, width, height);
+
+    ctx.fillStyle = '#ffffff';
+    ctx.font = '900 40px "Arial Black", sans-serif';
+    ctx.textAlign = 'center';
+    ctx.fillText('WORLD FAMOUS', 256, 80);
+    ctx.fillStyle = '#ffc72c';
+    ctx.font = '900 52px "Arial Black", sans-serif';
+    ctx.fillText('FRIES', 256, 140);
+
+    // Red Fry Box with Golden Arches
+    const bx = 166;
+    const by = 340;
+    // Golden shoestring fries sticking out
+    ctx.fillStyle = '#facc15';
+    for (let f = 0; f < 36; f++) {
+      const fx = 180 + (f % 12) * 14 + (Math.random() * 6 - 3);
+      const fh = 140 + Math.random() * 80;
+      const angle = (f - 18) * 0.035;
+      ctx.save();
+      ctx.translate(fx, by);
+      ctx.rotate(angle);
+      ctx.fillStyle = f % 2 === 0 ? '#facc15' : '#eab308';
+      ctx.fillRect(-6, -fh, 12, fh);
+      ctx.restore();
+    }
+
+    // Front Red Box
+    ctx.fillStyle = '#991b1b';
+    ctx.beginPath();
+    ctx.moveTo(bx, by);
+    ctx.lineTo(bx + 180, by);
+    ctx.lineTo(bx + 160, by + 190);
+    ctx.lineTo(bx + 20, by + 190);
+    ctx.closePath();
+    ctx.fill();
+
+    // Box scoop curve
+    ctx.fillStyle = '#b31e1c';
+    ctx.beginPath();
+    ctx.arc(256, by, 75, 0, Math.PI);
+    ctx.fill();
+
+    // Golden Arches on box
+    ctx.strokeStyle = '#ffc72c';
+    ctx.lineWidth = 10;
+    ctx.beginPath();
+    ctx.arc(236, by + 90, 24, Math.PI, 0, false);
+    ctx.stroke();
+    ctx.beginPath();
+    ctx.arc(276, by + 90, 24, Math.PI, 0, false);
+    ctx.stroke();
+
+    ctx.fillStyle = '#fef08a';
+    ctx.font = '700 26px monospace';
+    ctx.textAlign = 'center';
+    ctx.fillText('CRISPY • SALTED • GOLDEN', 256, 610);
+    ctx.fillStyle = '#ffffff';
+    ctx.font = '700 20px monospace';
+    ctx.fillText('PERFECT WITH EVERY MEAL', 256, 650);
+
+    ctx.fillStyle = '#ffc72c';
+    ctx.font = '900 28px "Arial Black", sans-serif';
+    ctx.fillText("i'm lovin' it®", 256, 715);
+  } else {
+    // Grimace Birthday Shake / McCafé Promo
+    ctx.fillStyle = '#3b0764'; // Purple
+    ctx.fillRect(0, 0, width, height);
+
+    ctx.fillStyle = '#c084fc';
+    ctx.font = '900 36px "Arial Black", sans-serif';
+    ctx.textAlign = 'center';
+    ctx.fillText('LIMITED EDITION', 256, 75);
+    ctx.fillStyle = '#f472b6';
+    ctx.font = '900 46px "Arial Black", sans-serif';
+    ctx.fillText('GRIMACE SHAKE', 256, 135);
+
+    // Shake Cup Graphic
+    const cx = 256;
+    const cy = 380;
+    // Cup body
+    ctx.fillStyle = '#a855f7';
+    ctx.beginPath();
+    ctx.moveTo(cx - 75, cy - 110);
+    ctx.lineTo(cx + 75, cy - 110);
+    ctx.lineTo(cx + 55, cy + 130);
+    ctx.lineTo(cx - 55, cy + 130);
+    ctx.closePath();
+    ctx.fill();
+
+    // Whipped cream top
+    ctx.fillStyle = '#f8fafc';
+    ctx.beginPath();
+    ctx.arc(cx, cy - 120, 65, Math.PI, 0);
+    ctx.fill();
+    ctx.beginPath();
+    ctx.arc(cx - 30, cy - 115, 35, 0, Math.PI * 2);
+    ctx.arc(cx + 30, cy - 115, 35, 0, Math.PI * 2);
+    ctx.fill();
+
+    // Red Straw
+    ctx.fillStyle = '#dc2626';
+    ctx.save();
+    ctx.translate(cx + 15, cy - 190);
+    ctx.rotate(0.2);
+    ctx.fillRect(-6, 0, 12, 100);
+    ctx.restore();
+
+    // Logo on Cup
+    ctx.strokeStyle = '#ffc72c';
+    ctx.lineWidth = 6;
+    ctx.beginPath();
+    ctx.arc(cx - 15, cy + 10, 16, Math.PI, 0, false);
+    ctx.stroke();
+    ctx.beginPath();
+    ctx.arc(cx + 15, cy + 10, 16, Math.PI, 0, false);
+    ctx.stroke();
+
+    ctx.fillStyle = '#fef08a';
+    ctx.font = '700 24px monospace';
+    ctx.textAlign = 'center';
+    ctx.fillText('BERRY FLAVORED BLISS', 256, 580);
+    ctx.fillStyle = '#e9d5ff';
+    ctx.font = '18px monospace';
+    ctx.fillText('GET YOURS BEFORE IT DISAPPEARS', 256, 620);
+
+    ctx.fillStyle = '#ffc72c';
+    ctx.font = '900 28px "Arial Black", sans-serif';
+    ctx.fillText("i'm lovin' it®", 256, 715);
+  }
+
+  // Border frame
+  ctx.strokeStyle = '#27272a';
+  ctx.lineWidth = 12;
+  ctx.strokeRect(6, 6, width - 12, height - 12);
+
+  return finalizeTexture(canvas, true);
+}
+
+
