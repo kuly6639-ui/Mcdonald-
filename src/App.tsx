@@ -30,19 +30,23 @@ export default function App() {
   });
 
   const [settings, setSettings] = useState<GameSettings>(() => {
-    try {
-      const saved = localStorage.getItem('mcd_nightfall_settings');
-      if (saved) return JSON.parse(saved);
-    } catch (e) {
-      // Ignore
-    }
-    return {
+    const defaults: GameSettings = {
       masterVolume: 0.8,
       mouseSensitivity: 1.2,
       invertY: false,
       crtFilter: true,
       graphicsQuality: 'high',
+      language: 'en',
     };
+    try {
+      const saved = localStorage.getItem('mcd_nightfall_settings');
+      if (saved) {
+        return { ...defaults, ...JSON.parse(saved) };
+      }
+    } catch (e) {
+      // Ignore
+    }
+    return defaults;
   });
 
   const [playerStats, setPlayerStats] = useState<PlayerStats>({
@@ -198,7 +202,10 @@ export default function App() {
 
       {/* Horror Loading Screen */}
       {currentScreen === 'loading' && (
-        <LoadingScreen onComplete={() => setCurrentScreen('menu')} />
+        <LoadingScreen
+          onComplete={() => setCurrentScreen('menu')}
+          language={settings.language}
+        />
       )}
 
       {/* Main Menu */}
@@ -228,6 +235,7 @@ export default function App() {
           objectiveCompletedNotice={objectiveCompletedNotice}
           interactionPrompt={interactionPrompt}
           onPauseClick={handleTogglePause}
+          language={settings.language}
         />
       )}
 
@@ -238,6 +246,7 @@ export default function App() {
           speaker={dialogue.lines[dialogue.currentIndex]?.speaker || 'Duck'}
           onAdvance={() => engineRef.current?.advanceDialogue()}
           isFadedOut={fadeAlpha > 0.05}
+          language={settings.language}
         />
       )}
 
@@ -246,6 +255,7 @@ export default function App() {
         <DialogueBox
           dialogue={dialogue}
           onAdvance={() => engineRef.current?.advanceDialogue()}
+          language={settings.language}
         />
       )}
 
@@ -257,6 +267,7 @@ export default function App() {
           onPause={handleTogglePause}
           showMobileControls={showMobileControls}
           onToggleControls={() => setShowMobileControls((prev) => !prev)}
+          language={settings.language}
         />
       )}
 
@@ -266,6 +277,7 @@ export default function App() {
           nightState={nightState}
           onSwitchCam={(camId) => engineRef.current?.switchCCTV(camId)}
           onExit={() => engineRef.current?.exitCCTV()}
+          language={settings.language}
         />
       )}
 
@@ -287,6 +299,7 @@ export default function App() {
           onProceedToNight2={() => handleStartNight(2)}
           onPlayAgain={() => handleStartNight(1)}
           onMainMenu={handleMainMenu}
+          language={settings.language}
         />
       )}
     </div>

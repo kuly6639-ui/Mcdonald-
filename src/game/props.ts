@@ -2373,3 +2373,556 @@ export function createFirstPersonHeldMeal(): THREE.Group {
 
   return group;
 }
+
+/** Outgoing McDonald's Crew Employee: John (Shift Handover NPC) */
+export function createEmployeeJohn(): THREE.Group {
+  const group = new THREE.Group();
+
+  // Materials
+  const skinMat = new THREE.MeshStandardMaterial({ color: 0xe2b794, roughness: 0.65 });
+  const shirtMat = new THREE.MeshStandardMaterial({ color: 0x262930, roughness: 0.72 });
+  const shirtTrimMat = new THREE.MeshStandardMaterial({ color: 0xc8102e, roughness: 0.55 });
+  const goldMat = new THREE.MeshStandardMaterial({ color: 0xffc72c, roughness: 0.35, metalness: 0.25 });
+  const apronMat = new THREE.MeshStandardMaterial({ color: 0x15171c, roughness: 0.85 });
+  const pantsMat = new THREE.MeshStandardMaterial({ color: 0x1a1c22, roughness: 0.8 });
+  const shoeMat = new THREE.MeshStandardMaterial({ color: 0x111111, roughness: 0.55 });
+  const rubberMat = new THREE.MeshStandardMaterial({ color: 0x222222, roughness: 0.45 });
+  const hairMat = new THREE.MeshStandardMaterial({ color: 0x3b2618, roughness: 0.85 });
+  const whiteMat = new THREE.MeshStandardMaterial({ color: 0xf4f4f4, roughness: 0.4 });
+  const pupilMat = new THREE.MeshBasicMaterial({ color: 0x111111 });
+  const metalMat = new THREE.MeshStandardMaterial({ color: 0xc0c4c9, metalness: 0.85, roughness: 0.25 });
+
+  // 1. Pelvis & Belt
+  const pelvis = new THREE.Mesh(new THREE.BoxGeometry(0.34, 0.16, 0.22), pantsMat);
+  pelvis.position.set(0, 0.86, 0);
+  pelvis.castShadow = true;
+  const belt = new THREE.Mesh(new THREE.BoxGeometry(0.35, 0.04, 0.23), rubberMat);
+  belt.position.set(0, 0.94, 0);
+  const buckle = new THREE.Mesh(new THREE.BoxGeometry(0.06, 0.05, 0.02), metalMat);
+  buckle.position.set(0, 0.94, 0.12);
+  group.add(pelvis, belt, buckle);
+
+  // 2. Torso & McDonald's Uniform Details
+  const torsoGroup = new THREE.Group();
+  torsoGroup.position.set(0, 0.96, 0);
+  group.add(torsoGroup);
+
+  const abdomen = new THREE.Mesh(new THREE.BoxGeometry(0.35, 0.22, 0.24), shirtMat);
+  abdomen.position.set(0, 0.11, 0);
+  abdomen.castShadow = true;
+  const chest = new THREE.Mesh(new THREE.BoxGeometry(0.41, 0.34, 0.27), shirtMat);
+  chest.position.set(0, 0.36, 0);
+  chest.castShadow = true;
+
+  // Red polo shoulder stripes & collar
+  const collar = new THREE.Mesh(new THREE.BoxGeometry(0.2, 0.06, 0.2), shirtTrimMat);
+  collar.position.set(0, 0.53, 0.01);
+  const stripeL = new THREE.Mesh(new THREE.BoxGeometry(0.08, 0.03, 0.28), shirtTrimMat);
+  stripeL.position.set(-0.15, 0.52, 0);
+  const stripeR = new THREE.Mesh(new THREE.BoxGeometry(0.08, 0.03, 0.28), shirtTrimMat);
+  stripeR.position.set(0.15, 0.52, 0);
+
+  // Crew Apron (front)
+  const apron = new THREE.Mesh(new THREE.BoxGeometry(0.32, 0.38, 0.02), apronMat);
+  apron.position.set(0, 0.08, 0.135);
+
+  // Golden Nameplate & Embroidered Golden M Badge
+  const nameBadge = new THREE.Mesh(new THREE.BoxGeometry(0.085, 0.032, 0.014), goldMat);
+  nameBadge.position.set(0.1, 0.42, 0.145);
+  const crest = new THREE.Mesh(new THREE.BoxGeometry(0.045, 0.04, 0.014), goldMat);
+  crest.position.set(-0.1, 0.42, 0.145);
+
+  torsoGroup.add(abdomen, chest, collar, stripeL, stripeR, apron, nameBadge, crest);
+
+  // 3. Neck, Head & McDonald's Crew Cap
+  const headGroup = new THREE.Group();
+  headGroup.position.set(0, 1.52, 0);
+  group.add(headGroup);
+
+  const neck = new THREE.Mesh(new THREE.CylinderGeometry(0.07, 0.08, 0.12, 10), skinMat);
+  neck.position.set(0, -0.02, 0);
+  const cranium = new THREE.Mesh(new THREE.BoxGeometry(0.24, 0.22, 0.24), skinMat);
+  cranium.position.set(0, 0.12, 0);
+  cranium.castShadow = true;
+  const jaw = new THREE.Mesh(new THREE.BoxGeometry(0.19, 0.11, 0.18), skinMat);
+  jaw.position.set(0, 0.01, 0.03);
+  const nose = new THREE.Mesh(new THREE.BoxGeometry(0.038, 0.055, 0.048), skinMat);
+  nose.position.set(0, 0.08, 0.14);
+
+  const eyeGeo = new THREE.PlaneGeometry(0.045, 0.028);
+  const pupilGeo = new THREE.PlaneGeometry(0.022, 0.022);
+  const eyeL = new THREE.Mesh(eyeGeo, whiteMat);
+  eyeL.position.set(-0.06, 0.11, 0.122);
+  const eyeR = new THREE.Mesh(eyeGeo, whiteMat);
+  eyeR.position.set(0.06, 0.11, 0.122);
+  const pupilL = new THREE.Mesh(pupilGeo, pupilMat);
+  pupilL.position.set(-0.06, 0.11, 0.124);
+  const pupilR = new THREE.Mesh(pupilGeo, pupilMat);
+  pupilR.position.set(0.06, 0.11, 0.124);
+
+  const browL = new THREE.Mesh(new THREE.BoxGeometry(0.06, 0.018, 0.02), hairMat);
+  browL.position.set(-0.06, 0.145, 0.13);
+  const browR = new THREE.Mesh(new THREE.BoxGeometry(0.06, 0.018, 0.02), hairMat);
+  browR.position.set(0.06, 0.145, 0.13);
+
+  const earGeo = new THREE.BoxGeometry(0.03, 0.07, 0.05);
+  const earL = new THREE.Mesh(earGeo, skinMat);
+  earL.position.set(-0.13, 0.1, 0);
+  const earR = new THREE.Mesh(earGeo, skinMat);
+  earR.position.set(0.13, 0.1, 0);
+
+  // Side hair & McDonald's Crew Cap
+  const sideHair = new THREE.Mesh(new THREE.BoxGeometry(0.25, 0.09, 0.25), hairMat);
+  sideHair.position.set(0, 0.15, -0.02);
+
+  const capCrown = new THREE.Mesh(new THREE.BoxGeometry(0.255, 0.1, 0.26), shirtTrimMat);
+  capCrown.position.set(0, 0.22, 0);
+  const capVisor = new THREE.Mesh(new THREE.BoxGeometry(0.19, 0.02, 0.13), apronMat);
+  capVisor.position.set(0, 0.175, 0.16);
+  capVisor.rotation.x = 0.12;
+  const capEmblem = new THREE.Mesh(new THREE.BoxGeometry(0.065, 0.04, 0.012), goldMat);
+  capEmblem.position.set(0, 0.215, 0.132);
+
+  headGroup.add(
+    neck,
+    cranium,
+    jaw,
+    nose,
+    eyeL,
+    eyeR,
+    pupilL,
+    pupilR,
+    browL,
+    browR,
+    earL,
+    earR,
+    sideHair,
+    capCrown,
+    capVisor,
+    capEmblem
+  );
+
+  // 4. Arms & Hands
+  const armL = new THREE.Group();
+  armL.position.set(-0.25, 1.4, 0);
+  const sleeveL = new THREE.Mesh(new THREE.CylinderGeometry(0.068, 0.062, 0.22, 8), shirtMat);
+  sleeveL.position.set(0, -0.11, 0);
+  sleeveL.castShadow = true;
+  const forearmL = new THREE.Mesh(new THREE.CylinderGeometry(0.05, 0.046, 0.28, 8), skinMat);
+  forearmL.position.set(0, -0.34, 0.02);
+  const handL = new THREE.Mesh(new THREE.BoxGeometry(0.08, 0.1, 0.04), skinMat);
+  handL.position.set(0, -0.5, 0.02);
+  armL.add(sleeveL, forearmL, handL);
+  group.add(armL);
+
+  const armR = new THREE.Group();
+  armR.position.set(0.25, 1.4, 0);
+  const sleeveR = new THREE.Mesh(new THREE.CylinderGeometry(0.068, 0.062, 0.22, 8), shirtMat);
+  sleeveR.position.set(0, -0.11, 0);
+  sleeveR.castShadow = true;
+  const forearmR = new THREE.Mesh(new THREE.CylinderGeometry(0.05, 0.046, 0.28, 8), skinMat);
+  forearmR.position.set(0, -0.34, 0.02);
+  const handR = new THREE.Mesh(new THREE.BoxGeometry(0.08, 0.1, 0.04), skinMat);
+  handR.position.set(0, -0.5, 0.02);
+  armR.add(sleeveR, forearmR, handR);
+  group.add(armR);
+
+  // 5. Legs & Work Shoes
+  const legL = new THREE.Group();
+  legL.position.set(-0.11, 0.84, 0);
+  const thighL = new THREE.Mesh(new THREE.CylinderGeometry(0.08, 0.07, 0.4, 8), pantsMat);
+  thighL.position.set(0, -0.2, 0);
+  thighL.castShadow = true;
+  const calfL = new THREE.Mesh(new THREE.CylinderGeometry(0.068, 0.062, 0.38, 8), pantsMat);
+  calfL.position.set(0, -0.56, 0);
+  calfL.castShadow = true;
+  const footL = new THREE.Mesh(new THREE.BoxGeometry(0.12, 0.1, 0.26), shoeMat);
+  footL.position.set(0, -0.78, 0.05);
+  footL.castShadow = true;
+  const soleL = new THREE.Mesh(new THREE.BoxGeometry(0.13, 0.03, 0.28), rubberMat);
+  soleL.position.set(0, -0.83, 0.05);
+  legL.add(thighL, calfL, footL, soleL);
+  group.add(legL);
+
+  const legR = new THREE.Group();
+  legR.position.set(0.11, 0.84, 0);
+  const thighR = new THREE.Mesh(new THREE.CylinderGeometry(0.08, 0.07, 0.4, 8), pantsMat);
+  thighR.position.set(0, -0.2, 0);
+  thighR.castShadow = true;
+  const calfR = new THREE.Mesh(new THREE.CylinderGeometry(0.068, 0.062, 0.38, 8), pantsMat);
+  calfR.position.set(0, -0.56, 0);
+  calfR.castShadow = true;
+  const footR = new THREE.Mesh(new THREE.BoxGeometry(0.12, 0.1, 0.26), shoeMat);
+  footR.position.set(0, -0.78, 0.05);
+  footR.castShadow = true;
+  const soleR = new THREE.Mesh(new THREE.BoxGeometry(0.13, 0.03, 0.28), rubberMat);
+  soleR.position.set(0, -0.83, 0.05);
+  legR.add(thighR, calfR, footR, soleR);
+  group.add(legR);
+
+  group.userData.limbs = {
+    head: headGroup,
+    torso: torsoGroup,
+    armL,
+    armR,
+    legL,
+    legR,
+  };
+
+  return group;
+}
+
+/** Exterior Main Electrical Circuit Breaker Box (Mounted behind the store) */
+export function createElectricalBox(): {
+  group: THREE.Group;
+  lever: THREE.Group;
+  statusLedMat: THREE.MeshBasicMaterial;
+  beaconLight: THREE.PointLight;
+} {
+  const group = new THREE.Group();
+
+  const cabinetMat = new THREE.MeshStandardMaterial({
+    color: 0x4b535b,
+    metalness: 0.78,
+    roughness: 0.38,
+  });
+  const doorMat = new THREE.MeshStandardMaterial({
+    color: 0x5c656e,
+    metalness: 0.7,
+    roughness: 0.35,
+  });
+  const conduitMat = new THREE.MeshStandardMaterial({
+    color: 0x7e8790,
+    metalness: 0.9,
+    roughness: 0.22,
+  });
+  const darkTrimMat = new THREE.MeshStandardMaterial({
+    color: 0x1b1e22,
+    metalness: 0.3,
+    roughness: 0.75,
+  });
+  const leverHandleMat = new THREE.MeshStandardMaterial({
+    color: 0xd92626,
+    metalness: 0.25,
+    roughness: 0.42,
+  });
+  const hazardMat = new THREE.MeshStandardMaterial({
+    map: createWarningSignTexture(),
+    roughness: 0.6,
+  });
+
+  // Grounded conduit junction plinth at Y = 0
+  const floorBoot = new THREE.Mesh(new THREE.BoxGeometry(0.24, 0.14, 0.18), darkTrimMat);
+  floorBoot.position.set(0, 0.07, 0.04);
+  floorBoot.castShadow = true;
+  floorBoot.receiveShadow = true;
+  group.add(floorBoot);
+
+  // Twin vertical galvanized steel conduit pipes up into the box
+  const conduitL = new THREE.Mesh(new THREE.CylinderGeometry(0.028, 0.028, 1.12, 10), conduitMat);
+  conduitL.position.set(-0.14, 0.56, 0.03);
+  conduitL.castShadow = true;
+  const conduitR = new THREE.Mesh(new THREE.CylinderGeometry(0.028, 0.028, 1.12, 10), conduitMat);
+  conduitR.position.set(0.14, 0.56, 0.03);
+  conduitR.castShadow = true;
+  // Upper weatherhead conduit exiting top
+  const upperConduit = new THREE.Mesh(new THREE.CylinderGeometry(0.034, 0.034, 1.05, 10), conduitMat);
+  upperConduit.position.set(0, 2.25, 0.03);
+  group.add(conduitL, conduitR, upperConduit);
+
+  // Main NEMA Steel Enclosure Box
+  const cabinet = new THREE.Mesh(new THREE.BoxGeometry(0.56, 0.72, 0.24), cabinetMat);
+  cabinet.position.set(0, 1.38, 0.08);
+  cabinet.castShadow = true;
+  cabinet.receiveShadow = true;
+  group.add(cabinet);
+
+  // Hinged Front Access Door Panel
+  const frontDoor = new THREE.Mesh(new THREE.BoxGeometry(0.5, 0.64, 0.035), doorMat);
+  frontDoor.position.set(0, 1.38, 0.21);
+  frontDoor.castShadow = true;
+  group.add(frontDoor);
+
+  // Latch & Hinge Blocks
+  const latch = new THREE.Mesh(new THREE.BoxGeometry(0.04, 0.09, 0.03), darkTrimMat);
+  latch.position.set(-0.21, 1.38, 0.23);
+  const hingeTop = new THREE.Mesh(new THREE.BoxGeometry(0.03, 0.07, 0.03), darkTrimMat);
+  hingeTop.position.set(0.24, 1.58, 0.21);
+  const hingeBot = new THREE.Mesh(new THREE.BoxGeometry(0.03, 0.07, 0.03), darkTrimMat);
+  hingeBot.position.set(0.24, 1.18, 0.21);
+  group.add(latch, hingeTop, hingeBot);
+
+  // High-Voltage Warning Sign on Front Door
+  const warnSticker = new THREE.Mesh(new THREE.PlaneGeometry(0.26, 0.18), hazardMat);
+  warnSticker.position.set(0, 1.48, 0.229);
+  group.add(warnSticker);
+
+  // Status Indicator LED & Bezel
+  const ledBezel = new THREE.Mesh(new THREE.CylinderGeometry(0.025, 0.025, 0.02, 10), darkTrimMat);
+  ledBezel.rotation.x = Math.PI / 2;
+  ledBezel.position.set(0.15, 1.62, 0.225);
+  const statusLedMat = new THREE.MeshBasicMaterial({ color: 0x22ee55 });
+  const statusLed = new THREE.Mesh(new THREE.SphereGeometry(0.017, 8, 8), statusLedMat);
+  statusLed.position.set(0.15, 1.62, 0.237);
+  group.add(ledBezel, statusLed);
+
+  // Pivoted Heavy-Duty Side Breaker Throw Lever (ON = tilted up, TRIPPED = tilted down)
+  const lever = new THREE.Group();
+  lever.position.set(0.29, 1.44, 0.08);
+  const leverHub = new THREE.Mesh(new THREE.CylinderGeometry(0.032, 0.032, 0.04, 10), darkTrimMat);
+  leverHub.rotation.z = Math.PI / 2;
+  const leverArm = new THREE.Mesh(new THREE.CylinderGeometry(0.014, 0.014, 0.18, 8), conduitMat);
+  leverArm.position.set(0.03, 0.09, 0);
+  const leverGrip = new THREE.Mesh(new THREE.CylinderGeometry(0.024, 0.024, 0.09, 10), leverHandleMat);
+  leverGrip.rotation.z = Math.PI / 2;
+  leverGrip.position.set(0.06, 0.18, 0);
+  lever.add(leverHub, leverArm, leverGrip);
+  lever.rotation.x = 0.55; // Default ON position (pulled up)
+  group.add(lever);
+
+  // Subtle beacon light so tripped red LED is visible in the dark rear yard
+  const beaconLight = new THREE.PointLight(0xff2222, 0.0, 2.8);
+  beaconLight.position.set(0.15, 1.62, 0.35);
+  group.add(beaconLight);
+
+  return { group, lever, statusLedMat, beaconLight };
+}
+
+/** Fiberglass Waving Clown Mascot Statue (Placed near cash register in welcoming pose) */
+export function createWelcomingClownStatue(): THREE.Group {
+  const group = new THREE.Group();
+
+  // Materials (painted fiberglass sheen contrasted with matte pedestal & shoes)
+  const plinthRedMat = new THREE.MeshStandardMaterial({ color: 0x991b1b, roughness: 0.55, metalness: 0.15 });
+  const goldTrimMat = new THREE.MeshStandardMaterial({ color: 0xfacc15, roughness: 0.3, metalness: 0.55 });
+  const suitYellowMat = new THREE.MeshStandardMaterial({ color: 0xf5b800, roughness: 0.28, metalness: 0.05 });
+  const redStripeMat = new THREE.MeshStandardMaterial({ color: 0xc8102e, roughness: 0.32, metalness: 0.05 });
+  const whitePaintMat = new THREE.MeshStandardMaterial({ color: 0xf6f6f2, roughness: 0.24, metalness: 0.05 });
+  const blackMat = new THREE.MeshStandardMaterial({ color: 0x151518, roughness: 0.65 });
+  const smileMat = new THREE.MeshBasicMaterial({ color: 0xb91c1c });
+  const eyeMat = new THREE.MeshBasicMaterial({ color: 0x111111 });
+
+  // 1. Stepped McDonald's Display Pedestal Base (Bottom grounded at Y = 0)
+  const baseLower = new THREE.Mesh(new THREE.CylinderGeometry(0.42, 0.45, 0.14, 18), plinthRedMat);
+  baseLower.position.y = 0.07;
+  baseLower.castShadow = true;
+  baseLower.receiveShadow = true;
+
+  const goldRing = new THREE.Mesh(new THREE.CylinderGeometry(0.425, 0.425, 0.03, 18), goldTrimMat);
+  goldRing.position.y = 0.155;
+
+  const baseUpper = new THREE.Mesh(new THREE.CylinderGeometry(0.36, 0.39, 0.05, 18), whitePaintMat);
+  baseUpper.position.y = 0.195;
+  baseUpper.receiveShadow = true;
+  group.add(baseLower, goldRing, baseUpper);
+
+  // Statue body anchor perched cleanly at pedestal top (Y = 0.22)
+  const statue = new THREE.Group();
+  statue.position.y = 0.22;
+  group.add(statue);
+
+  // 2. Oversized Clown Shoes & Striped Legs
+  const shoeGeo = new THREE.BoxGeometry(0.16, 0.11, 0.36);
+  const shoeL = new THREE.Mesh(shoeGeo, redStripeMat);
+  shoeL.position.set(-0.14, 0.055, 0.07);
+  shoeL.rotation.y = 0.12;
+  shoeL.castShadow = true;
+
+  const shoeR = new THREE.Mesh(shoeGeo, redStripeMat);
+  shoeR.position.set(0.14, 0.055, 0.07);
+  shoeR.rotation.y = -0.12;
+  shoeR.castShadow = true;
+
+  const legL = new THREE.Mesh(new THREE.CylinderGeometry(0.085, 0.075, 0.68, 12), suitYellowMat);
+  legL.position.set(-0.13, 0.44, 0);
+  legL.castShadow = true;
+  const legR = new THREE.Mesh(new THREE.CylinderGeometry(0.085, 0.075, 0.68, 12), suitYellowMat);
+  legR.position.set(0.13, 0.44, 0);
+  legR.castShadow = true;
+  statue.add(shoeL, shoeR, legL, legR);
+
+  // Red striped socks/cuffs at ankles
+  const cuffL = new THREE.Mesh(new THREE.CylinderGeometry(0.082, 0.082, 0.09, 12), redStripeMat);
+  cuffL.position.set(-0.13, 0.15, 0);
+  const cuffR = new THREE.Mesh(new THREE.CylinderGeometry(0.082, 0.082, 0.09, 12), redStripeMat);
+  cuffR.position.set(0.13, 0.15, 0);
+  statue.add(cuffL, cuffR);
+
+  // 3. Jumpsuit Torso & Red Vest/Buttons
+  const pelvis = new THREE.Mesh(new THREE.BoxGeometry(0.38, 0.2, 0.24), suitYellowMat);
+  pelvis.position.set(0, 0.84, 0);
+  pelvis.castShadow = true;
+
+  const chest = new THREE.Mesh(new THREE.BoxGeometry(0.44, 0.48, 0.28), suitYellowMat);
+  chest.position.set(0, 1.15, 0);
+  chest.castShadow = true;
+
+  // Front Red Vertical Bib & Big Pom-Pom Buttons
+  const bib = new THREE.Mesh(new THREE.BoxGeometry(0.18, 0.44, 0.03), redStripeMat);
+  bib.position.set(0, 1.16, 0.142);
+
+  for (let b = 0; b < 3; b++) {
+    const pom = new THREE.Mesh(new THREE.SphereGeometry(0.032, 10, 10), suitYellowMat);
+    pom.position.set(0, 1.03 + b * 0.12, 0.165);
+    statue.add(pom);
+  }
+
+  // Ruffled Clown Neck Collar
+  const ruffCollar = new THREE.Mesh(new THREE.TorusGeometry(0.13, 0.045, 8, 16), whitePaintMat);
+  ruffCollar.rotation.x = Math.PI / 2;
+  ruffCollar.position.set(0, 1.41, 0);
+
+  statue.add(pelvis, chest, bib, ruffCollar);
+
+  // 4. Painted Head, Red Wig Tufts & Welcoming Grin
+  const headGroup = new THREE.Group();
+  headGroup.position.set(0, 1.56, 0.02);
+  headGroup.rotation.z = -0.05; // Friendly welcoming head tilt
+  statue.add(headGroup);
+
+  const head = new THREE.Mesh(new THREE.SphereGeometry(0.16, 16, 16), whitePaintMat);
+  head.scale.set(0.95, 1.1, 0.98);
+  head.castShadow = true;
+  headGroup.add(head);
+
+  // Bulbous Red Clown Nose
+  const nose = new THREE.Mesh(new THREE.SphereGeometry(0.042, 12, 12), redStripeMat);
+  nose.position.set(0, 0.0, 0.165);
+  headGroup.add(nose);
+
+  // Wide Painted Smile + Arched Eyebrows + Eyes
+  const smile = new THREE.Mesh(new THREE.TorusGeometry(0.072, 0.016, 8, 14, Math.PI), smileMat);
+  smile.rotation.z = Math.PI;
+  smile.position.set(0, -0.035, 0.142);
+  headGroup.add(smile);
+
+  const eyeL = new THREE.Mesh(new THREE.SphereGeometry(0.018, 8, 8), eyeMat);
+  eyeL.position.set(-0.055, 0.055, 0.14);
+  const eyeR = new THREE.Mesh(new THREE.SphereGeometry(0.018, 8, 8), eyeMat);
+  eyeR.position.set(0.055, 0.055, 0.14);
+  const browL = new THREE.Mesh(new THREE.BoxGeometry(0.05, 0.012, 0.012), redStripeMat);
+  browL.position.set(-0.055, 0.092, 0.142);
+  browL.rotation.z = 0.18;
+  const browR = new THREE.Mesh(new THREE.BoxGeometry(0.05, 0.012, 0.012), redStripeMat);
+  browR.position.set(0.055, 0.092, 0.142);
+  browR.rotation.z = -0.18;
+  headGroup.add(eyeL, eyeR, browL, browR);
+
+  // Fluffy Bright Red Hair Tufts (Left, Right, Back Crown)
+  const hairL = new THREE.Mesh(new THREE.SphereGeometry(0.095, 12, 12), redStripeMat);
+  hairL.position.set(-0.15, 0.06, -0.02);
+  const hairR = new THREE.Mesh(new THREE.SphereGeometry(0.095, 12, 12), redStripeMat);
+  hairR.position.set(0.15, 0.06, -0.02);
+  const hairTop = new THREE.Mesh(new THREE.SphereGeometry(0.105, 12, 12), redStripeMat);
+  hairTop.position.set(0, 0.13, -0.06);
+  headGroup.add(hairL, hairR, hairTop);
+
+  // Yellow Clown Bowler Hat tilted jauntily
+  const hatBrim = new THREE.Mesh(new THREE.CylinderGeometry(0.12, 0.12, 0.015, 14), blackMat);
+  hatBrim.position.set(0, 0.175, 0);
+  const hatCrown = new THREE.Mesh(new THREE.CylinderGeometry(0.075, 0.085, 0.07, 14), suitYellowMat);
+  hatCrown.position.set(0, 0.215, 0);
+  headGroup.add(hatBrim, hatCrown);
+
+  // 5. Left Arm (Relaxed welcoming gesture at side with white glove)
+  const armL = new THREE.Group();
+  armL.position.set(-0.26, 1.32, 0);
+  armL.rotation.z = 0.22;
+  armL.rotation.x = -0.18;
+  const sleeveL = new THREE.Mesh(new THREE.CylinderGeometry(0.065, 0.055, 0.28, 10), redStripeMat);
+  sleeveL.position.y = -0.14;
+  const forearmL = new THREE.Mesh(new THREE.CylinderGeometry(0.052, 0.045, 0.24, 10), suitYellowMat);
+  forearmL.position.set(0, -0.36, 0.05);
+  forearmL.rotation.x = -0.35;
+  const gloveL = new THREE.Mesh(new THREE.SphereGeometry(0.065, 10, 10), whitePaintMat);
+  gloveL.position.set(0, -0.46, 0.12);
+  armL.add(sleeveL, forearmL, gloveL);
+  statue.add(armL);
+
+  // 6. Right Arm RAISED HIGH IN WELCOMING WAVING POSE
+  const armR = new THREE.Group();
+  armR.position.set(0.26, 1.34, 0.02);
+  // Raise upper arm out and up
+  armR.rotation.z = 2.15;
+  armR.rotation.x = -0.22;
+
+  const upperArmR = new THREE.Mesh(new THREE.CylinderGeometry(0.065, 0.055, 0.26, 10), redStripeMat);
+  upperArmR.position.y = -0.13;
+  upperArmR.castShadow = true;
+  armR.add(upperArmR);
+
+  // Elbow bend pointing hand upward in friendly wave
+  const elbowR = new THREE.Group();
+  elbowR.position.set(0, -0.26, 0);
+  elbowR.rotation.z = -0.58;
+  armR.add(elbowR);
+
+  const forearmR = new THREE.Mesh(new THREE.CylinderGeometry(0.052, 0.045, 0.24, 10), suitYellowMat);
+  forearmR.position.y = -0.12;
+  elbowR.add(forearmR);
+
+  // Open White-Gloved Waving Palm & Fingers
+  const palmR = new THREE.Mesh(new THREE.BoxGeometry(0.11, 0.12, 0.045), whitePaintMat);
+  palmR.position.set(0, -0.28, 0);
+  const thumbR = new THREE.Mesh(new THREE.BoxGeometry(0.035, 0.065, 0.035), whitePaintMat);
+  thumbR.position.set(-0.068, -0.26, 0);
+  thumbR.rotation.z = 0.4;
+  elbowR.add(palmR, thumbR);
+
+  statue.add(armR);
+
+  return group;
+}
+
+/** Back-of-House Warehouse Storage Shelving Rack with Stacked Supply Crates */
+export function createWarehouseSupplyRack(): THREE.Group {
+  const group = new THREE.Group();
+
+  const steelMat = new THREE.MeshStandardMaterial({ color: 0x5c636a, metalness: 0.85, roughness: 0.3 });
+  const boxMat = new THREE.MeshStandardMaterial({ color: 0x9b7247, roughness: 0.88 });
+  const labelMat = new THREE.MeshStandardMaterial({ color: 0xdc2626, roughness: 0.65 });
+  const jugMat = new THREE.MeshStandardMaterial({ color: 0xeab308, roughness: 0.35 });
+
+  // 4 Vertical Steel Posts
+  const postCoords = [
+    [-0.75, -0.24],
+    [0.75, -0.24],
+    [-0.75, 0.24],
+    [0.75, 0.24],
+  ];
+  postCoords.forEach(([px, pz]) => {
+    const post = new THREE.Mesh(new THREE.BoxGeometry(0.04, 1.9, 0.04), steelMat);
+    post.position.set(px, 0.95, pz);
+    post.castShadow = true;
+    group.add(post);
+  });
+
+  // 3 Wire/Steel Shelves
+  [0.18, 0.88, 1.56].forEach((sy) => {
+    const shelf = new THREE.Mesh(new THREE.BoxGeometry(1.54, 0.035, 0.52), steelMat);
+    shelf.position.set(0, sy, 0);
+    shelf.receiveShadow = true;
+    group.add(shelf);
+  });
+
+  // Stacked Inventory Supply Boxes on Shelves
+  const box1 = new THREE.Mesh(new THREE.BoxGeometry(0.55, 0.42, 0.42), boxMat);
+  box1.position.set(-0.4, 0.41, 0);
+  const box2 = new THREE.Mesh(new THREE.BoxGeometry(0.58, 0.38, 0.42), boxMat);
+  box2.position.set(0.32, 0.39, 0);
+  const box3 = new THREE.Mesh(new THREE.BoxGeometry(0.62, 0.36, 0.42), boxMat);
+  box3.position.set(-0.32, 1.08, 0);
+  const redStripe = new THREE.Mesh(new THREE.BoxGeometry(0.63, 0.06, 0.43), labelMat);
+  redStripe.position.set(-0.32, 1.12, 0);
+  const jug1 = new THREE.Mesh(new THREE.BoxGeometry(0.2, 0.32, 0.22), jugMat);
+  jug1.position.set(0.32, 1.06, 0);
+  const jug2 = new THREE.Mesh(new THREE.BoxGeometry(0.2, 0.32, 0.22), jugMat);
+  jug2.position.set(0.55, 1.06, 0);
+  const boxTop = new THREE.Mesh(new THREE.BoxGeometry(0.75, 0.3, 0.42), boxMat);
+  boxTop.position.set(0.1, 1.73, 0);
+
+  group.add(box1, box2, box3, redStripe, jug1, jug2, boxTop);
+  return group;
+}
+
+

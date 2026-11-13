@@ -33,6 +33,10 @@ import {
   createMopAndBucket,
   createDriveThruOrderStation,
   createSeatedCustomerInBooth,
+  createEmployeeJohn,
+  createElectricalBox,
+  createWelcomingClownStatue,
+  createWarehouseSupplyRack,
 } from './props';
 import { InteractiveItem } from '../types/game';
 
@@ -49,6 +53,16 @@ export interface FlickeringLight {
   flickerRate: number;
 }
 
+export interface StoreLightEntry {
+  light: THREE.PointLight;
+  baseIntensity: number;
+}
+
+export interface StoreSignMaterialEntry {
+  mat: THREE.MeshBasicMaterial;
+  onColor: number;
+}
+
 export interface ParkingSpot {
   index: number;
   position: THREE.Vector3;
@@ -62,6 +76,15 @@ export interface RestaurantWorld {
   interactiveItems: InteractiveItem[];
   interactiveMeshes: Map<string, THREE.Object3D>;
   flickeringLights: FlickeringLight[];
+  storeLights: StoreLightEntry[];
+  storeSignMaterials: StoreSignMaterialEntry[];
+  hemiLight: THREE.HemisphereLight;
+  electricalBox: {
+    group: THREE.Group;
+    lever: THREE.Group;
+    statusLedMat: THREE.MeshBasicMaterial;
+    beaconLight: THREE.PointLight;
+  };
   cctvCameras: { id: number; name: string; position: THREE.Vector3; lookAt: THREE.Vector3 }[];
   cameraScreens: THREE.Mesh[];
   rainSystem: THREE.Points;
@@ -76,6 +99,7 @@ export interface RestaurantWorld {
     doorLeaf: THREE.Mesh;
   };
   kitchenLight: THREE.PointLight;
+  employeeJohn: THREE.Group;
 }
 
 export function buildCompactRestaurantWorld(): RestaurantWorld {
@@ -84,6 +108,8 @@ export function buildCompactRestaurantWorld(): RestaurantWorld {
   const interactiveItems: InteractiveItem[] = [];
   const interactiveMeshes = new Map<string, THREE.Object3D>();
   const flickeringLights: FlickeringLight[] = [];
+  const storeLights: StoreLightEntry[] = [];
+  const storeSignMaterials: StoreSignMaterialEntry[] = [];
   const cameraScreens: THREE.Mesh[] = [];
 
   const addCollision = (minX: number, maxX: number, minZ: number, maxZ: number) => {
@@ -259,6 +285,7 @@ export function buildCompactRestaurantWorld(): RestaurantWorld {
   const signMat = new THREE.MeshBasicMaterial({
     map: createMcDonaldsEntranceSignTexture(),
   });
+  storeSignMaterials.push({ mat: signMat, onColor: 0xffffff });
   const entranceSign = new THREE.Mesh(new THREE.BoxGeometry(7.6, 1.35, 0.18), signMat);
   entranceSign.position.set(0, 3.75, 6.42);
   root.add(entranceSign);
@@ -268,12 +295,14 @@ export function buildCompactRestaurantWorld(): RestaurantWorld {
   entranceSignLight.position.set(0, 3.3, 7.2);
   root.add(entranceSignLight);
   flickeringLights.push({ light: entranceSignLight, baseIntensity: 2.2, flickerRate: 0.05 });
+  storeLights.push({ light: entranceSignLight, baseIntensity: 2.2 });
 
   // --- OUTDOOR McDONALD'S ADVERTISEMENTS FLANKING THE FRONT DOORS ---
   // 1. Big Mac Promotional Lightbox Poster (Left of front doors)
   const adBigMacMat = new THREE.MeshBasicMaterial({
     map: createMcDonaldsAdPosterTexture('bigmac'),
   });
+  storeSignMaterials.push({ mat: adBigMacMat, onColor: 0xffffff });
   const adBigMacFrame = new THREE.Mesh(
     new THREE.BoxGeometry(1.25, 1.85, 0.08),
     new THREE.MeshStandardMaterial({ color: 0x18181b, metalness: 0.7, roughness: 0.3 })
@@ -286,11 +315,13 @@ export function buildCompactRestaurantWorld(): RestaurantWorld {
   const adLightL = new THREE.PointLight(0xfff5e0, 0.85, 4.5);
   adLightL.position.set(-2.8, 2.5, 6.55);
   root.add(adLightL);
+  storeLights.push({ light: adLightL, baseIntensity: 0.85 });
 
   // 2. World Famous Fries Promotional Lightbox Poster (Right of front doors)
   const adFriesMat = new THREE.MeshBasicMaterial({
     map: createMcDonaldsAdPosterTexture('fries'),
   });
+  storeSignMaterials.push({ mat: adFriesMat, onColor: 0xffffff });
   const adFriesFrame = new THREE.Mesh(
     new THREE.BoxGeometry(1.25, 1.85, 0.08),
     new THREE.MeshStandardMaterial({ color: 0x18181b, metalness: 0.7, roughness: 0.3 })
@@ -303,6 +334,7 @@ export function buildCompactRestaurantWorld(): RestaurantWorld {
   const adLightR = new THREE.PointLight(0xfff5e0, 0.85, 4.5);
   adLightR.position.set(2.8, 2.5, 6.55);
   root.add(adLightR);
+  storeLights.push({ light: adLightR, baseIntensity: 0.85 });
 
   // 3. Freestanding Promotional Sidewalk A-Frame Sign (Grimace Shake Promo)
   const aFrameGroup = new THREE.Group();
@@ -311,6 +343,7 @@ export function buildCompactRestaurantWorld(): RestaurantWorld {
   const adGrimaceMat = new THREE.MeshBasicMaterial({
     map: createMcDonaldsAdPosterTexture('grimace'),
   });
+  storeSignMaterials.push({ mat: adGrimaceMat, onColor: 0xffffff });
   const aFrameBoard1 = new THREE.Mesh(new THREE.BoxGeometry(0.75, 1.1, 0.04), adGrimaceMat);
   aFrameBoard1.position.set(0, 0.58, 0.12);
   aFrameBoard1.rotation.x = -0.18;
@@ -430,10 +463,27 @@ export function buildCompactRestaurantWorld(): RestaurantWorld {
   rearPadMesh.receiveShadow = true;
   root.add(rearPadMesh);
 
-  // Rear boundary wall/fence
+  // Rear boundary wall/fence (leave dark back-west corner service gap at Z: -11.4 to -14 for clown escape)
   createWall(16, 2.8, 0.3, 0, 1.4, -14);
-  createWall(0.3, 2.8, 8, -8, 1.4, -10);
+  createWall(0.3, 2.8, 5.4, -8, 1.4, -8.7);
+  addCollision(-8.35, -7.65, -14.2, -11.2); // Invisible boundary keeping player in yard while clown can bolt through gap
   createWall(0.3, 2.8, 8, 8, 1.4, -10);
+
+  // Exterior Main Electrical Circuit Breaker Box (mounted on back wall behind the shop)
+  const electricalBox = createElectricalBox();
+  electricalBox.group.position.set(1.6, 0, -6.16);
+  electricalBox.group.rotation.y = Math.PI;
+  root.add(electricalBox.group);
+  addCollision(1.1, 2.1, -6.5, -6.0);
+
+  interactiveItems.push({
+    id: 'electrical_box',
+    type: 'electrical_box',
+    name: 'Exterior Electrical Breaker Box',
+    actionText: 'Inspect Electrical Box & Restore Power',
+    position: [1.6, 1.35, -6.4],
+    radius: 2.3,
+  });
 
   // Outdoor Heavy Green Dumpster at X = 4, Z = -9.5
   const dumpster = createOutdoorDumpster();
@@ -454,6 +504,7 @@ export function buildCompactRestaurantWorld(): RestaurantWorld {
   const rearFloodlight = new THREE.PointLight(0xffeedd, 1.2, 12);
   rearFloodlight.position.set(4, 2.8, -6.6);
   root.add(rearFloodlight);
+  storeLights.push({ light: rearFloodlight, baseIntensity: 1.2 });
 
   // Bundled Cardboard Recycling Box by back wall
   const cardboardBundle = createCardboardBundle();
@@ -537,15 +588,18 @@ export function buildCompactRestaurantWorld(): RestaurantWorld {
   signPole.position.set(-14, 4, 18);
   root.add(signPole);
 
+  const totemBoardMat = new THREE.MeshBasicMaterial({ map: createMcDonaldsSignTexture() });
+  storeSignMaterials.push({ mat: totemBoardMat, onColor: 0xffffff });
   const signBoard = new THREE.Mesh(
     new THREE.BoxGeometry(3.2, 2.5, 0.4),
-    new THREE.MeshBasicMaterial({ map: createMcDonaldsSignTexture() })
+    totemBoardMat
   );
   signBoard.position.set(-14, 7.5, 18);
   root.add(signBoard);
 
   // 3D Glowing Golden Arches ("M") atop the roadside totem
   const archMat = new THREE.MeshBasicMaterial({ color: 0xffba00 });
+  storeSignMaterials.push({ mat: archMat, onColor: 0xffba00 });
   const leftArch = new THREE.Mesh(new THREE.TorusGeometry(0.55, 0.08, 8, 20, Math.PI), archMat);
   leftArch.position.set(-14.48, 8.8, 18);
   leftArch.rotation.y = 0;
@@ -560,6 +614,7 @@ export function buildCompactRestaurantWorld(): RestaurantWorld {
   signLight.position.set(-14, 7.5, 16.5);
   root.add(signLight);
   flickeringLights.push({ light: signLight, baseIntensity: 2.0, flickerRate: 0.08 });
+  storeLights.push({ light: signLight, baseIntensity: 2.0 });
 
   // Streetlamps along road
   const streetLight1 = new THREE.PointLight(0xffa834, 1.3, 22);
@@ -593,6 +648,13 @@ export function buildCompactRestaurantWorld(): RestaurantWorld {
   cashierCounter.position.set(3.4, 0, 0.5);
   root.add(cashierCounter);
   addCollision(1.6, 5.2, 0.1, 0.9);
+
+  // --- WAVING CLOWN MASCOT STATUE NEAR CASH REGISTER (Welcoming Pose) ---
+  const clownStatue = createWelcomingClownStatue();
+  clownStatue.position.set(1.15, 0, 1.15);
+  clownStatue.rotation.y = 0.28;
+  root.add(clownStatue);
+  addCollision(0.75, 1.55, 0.75, 1.55);
 
   // --- DRIVE-THRU ORDER STATION (Relocated to right corner of cashier counter) ---
   const driveThruStation = createDriveThruOrderStation();
@@ -735,6 +797,12 @@ export function buildCompactRestaurantWorld(): RestaurantWorld {
   root.add(fryer);
   addCollision(6.2, 7.4, -4.1, -2.9);
 
+  // Back-of-House Warehouse Supply Shelving Rack beside rear door corridor
+  const warehouseRack = createWarehouseSupplyRack();
+  warehouseRack.position.set(0.2, 0, -5.2);
+  root.add(warehouseRack);
+  addCollision(-0.65, 1.05, -5.6, -4.8);
+
   // Fryer & Grill power switch
   const switchBox = new THREE.Mesh(
     new THREE.BoxGeometry(0.25, 0.35, 0.08),
@@ -825,6 +893,22 @@ export function buildCompactRestaurantWorld(): RestaurantWorld {
     radius: 1.8,
   });
 
+  // --- OUTGOING NIGHT SHIFT EMPLOYEE: JOHN (Lobby Handover NPC) ---
+  const employeeJohn = createEmployeeJohn();
+  employeeJohn.position.set(0.8, 0, 2.8);
+  employeeJohn.rotation.y = -0.25;
+  root.add(employeeJohn);
+  interactiveMeshes.set('employee_john', employeeJohn);
+
+  interactiveItems.push({
+    id: 'employee_john',
+    type: 'employee_john',
+    name: 'John (Outgoing Employee)',
+    actionText: 'Talk to John (Take Over Shift)',
+    position: [0.8, 1.35, 2.8],
+    radius: 2.8,
+  });
+
   // --- LIGHTING ---
   const hemiLight = new THREE.HemisphereLight(0x223040, 0x0a0f16, 0.35);
   root.add(hemiLight);
@@ -834,29 +918,34 @@ export function buildCompactRestaurantWorld(): RestaurantWorld {
   diningLight1.position.set(-3.5, 2.9, 3.5);
   root.add(diningLight1);
   flickeringLights.push({ light: diningLight1, baseIntensity: 0.95, flickerRate: 0.04 });
+  storeLights.push({ light: diningLight1, baseIntensity: 0.95 });
 
   const diningLight2 = new THREE.PointLight(0xfff3d6, 0.9, 11);
   diningLight2.position.set(3.5, 2.9, 3.5);
   root.add(diningLight2);
   flickeringLights.push({ light: diningLight2, baseIntensity: 0.9, flickerRate: 0.06 });
+  storeLights.push({ light: diningLight2, baseIntensity: 0.9 });
 
   // Kitchen light
   const kitchenLight = new THREE.PointLight(0xe8f0f5, 0.85, 10);
   kitchenLight.position.set(3.5, 2.9, -3.0);
   root.add(kitchenLight);
   flickeringLights.push({ light: kitchenLight, baseIntensity: 0.85, flickerRate: 0.05 });
+  storeLights.push({ light: kitchenLight, baseIntensity: 0.85 });
 
   // Office light
   const officeLight = new THREE.PointLight(0xffd59e, 0.8, 8);
   officeLight.position.set(-4.5, 2.9, -1.5);
   root.add(officeLight);
   flickeringLights.push({ light: officeLight, baseIntensity: 0.8, flickerRate: 0.02 });
+  storeLights.push({ light: officeLight, baseIntensity: 0.8 });
 
   // Freezer light
   const freezerLight = new THREE.PointLight(0x99ddff, 0.65, 8);
   freezerLight.position.set(-4.5, 2.9, -4.5);
   root.add(freezerLight);
   flickeringLights.push({ light: freezerLight, baseIntensity: 0.65, flickerRate: 0.02 });
+  storeLights.push({ light: freezerLight, baseIntensity: 0.65 });
 
   // --- RAIN PARTICLE SYSTEM ---
   const rainCount = 1000;
@@ -917,6 +1006,10 @@ export function buildCompactRestaurantWorld(): RestaurantWorld {
     interactiveItems,
     interactiveMeshes,
     flickeringLights,
+    storeLights,
+    storeSignMaterials,
+    hemiLight,
+    electricalBox,
     cctvCameras,
     cameraScreens,
     rainSystem,
@@ -924,5 +1017,6 @@ export function buildCompactRestaurantWorld(): RestaurantWorld {
     slidingDoors,
     rearDoor,
     kitchenLight,
+    employeeJohn,
   };
 }

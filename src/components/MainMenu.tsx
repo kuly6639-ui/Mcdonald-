@@ -1,7 +1,20 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { Play, Settings as SettingsIcon, Info, HelpCircle, Lock, Moon, Sliders, Shield, Flame, Volume2, VolumeX, Music } from 'lucide-react';
+import {
+  Play,
+  Settings as SettingsIcon,
+  Info,
+  HelpCircle,
+  Lock,
+  Moon,
+  Flame,
+  Volume2,
+  VolumeX,
+  Music,
+  Globe,
+} from 'lucide-react';
 import { GameNight, GameSettings, GraphicsQuality } from '../types/game';
 import { McDonaldsLogo } from './McDonaldsLogo';
+import { getTranslations, LANGUAGE_OPTIONS } from '../i18n/translations';
 
 interface MainMenuProps {
   onStartNight: (night: GameNight) => void;
@@ -20,6 +33,9 @@ export const MainMenu: React.FC<MainMenuProps> = ({
   const [bgmMuted, setBgmMuted] = useState(false);
   const audioRef = useRef<HTMLAudioElement | null>(null);
 
+  const bundle = getTranslations(settings.language);
+  const t = bundle.menu;
+
   // Background Music playback for user's attached soundtrack
   useEffect(() => {
     const audio = new Audio('/assets/aistudio/cold_glass_passage_7ecca980.mp4');
@@ -30,7 +46,6 @@ export const MainMenu: React.FC<MainMenuProps> = ({
     const playPromise = audio.play();
     if (playPromise !== undefined) {
       playPromise.catch(() => {
-        // Autoplay may be restricted until user interacts with document
         const onFirstInteraction = () => {
           if (audioRef.current && !bgmMuted) {
             audioRef.current.play().catch(() => {});
@@ -71,20 +86,47 @@ export const MainMenu: React.FC<MainMenuProps> = ({
       {/* Subtle vignette highlighting the outside store in 3D */}
       <div className="absolute inset-0 bg-[radial-gradient(circle_at_75%_50%,transparent_30%,rgba(0,0,0,0.65)_100%)] pointer-events-none" />
 
-      {/* LEFT COLUMN: TITLE & ACTION BUTTONS WITH FROSTED BACKDROP */}
-      <div className="relative z-10 max-w-md w-full flex flex-col justify-between h-full max-h-[92vh] py-4 px-6 rounded-2xl bg-black/60 backdrop-blur-md border border-neutral-800/90 shadow-2xl overflow-y-auto">
+      {/* LEFT COLUMN: TITLE & ACTION BUTTONS */}
+      <div className="relative z-10 max-w-md w-full flex flex-col justify-between h-full max-h-[94vh] py-4 px-6 rounded-2xl bg-black/75 border border-neutral-800/90 shadow-2xl overflow-y-auto">
         <div>
+          {/* Language Quick Switcher */}
+          <div className="flex items-center justify-between gap-2 pb-2.5 mb-3 border-b border-neutral-800/90">
+            <span className="flex items-center gap-1.5 text-[10px] text-neutral-400 uppercase tracking-wider font-bold">
+              <Globe className="w-3.5 h-3.5 text-amber-400" />
+              {bundle.languageLabel}
+            </span>
+            <div className="flex items-center gap-1">
+              {LANGUAGE_OPTIONS.map((opt) => {
+                const active = (settings.language || 'en') === opt.code;
+                return (
+                  <button
+                    key={opt.code}
+                    onClick={() => onUpdateSettings({ language: opt.code })}
+                    title={opt.label}
+                    className={`px-2 py-0.5 rounded text-[10px] font-bold border cursor-pointer transition-colors ${
+                      active
+                        ? 'bg-amber-600 text-white border-amber-400'
+                        : 'bg-neutral-900 text-neutral-400 border-neutral-700 hover:bg-neutral-800 hover:text-neutral-200'
+                    }`}
+                  >
+                    {opt.short}
+                  </button>
+                );
+              })}
+            </div>
+          </div>
+
           {/* Header with authentic McDonald's Logo */}
           <div className="flex items-center gap-3.5 mb-3">
             <McDonaldsLogo size="md" neon={true} />
             <div>
               <div className="text-red-500 font-black text-[11px] uppercase tracking-widest flex items-center gap-1.5">
-                <span>EST. 1955</span>
+                <span>{t.est}</span>
                 <span className="text-neutral-500">•</span>
-                <span className="text-amber-400">Night Shift</span>
+                <span className="text-amber-400">{t.nightShift}</span>
               </div>
               <div className="text-[10px] text-neutral-400 font-semibold tracking-wider uppercase">
-                Survival Horror Experience
+                {t.survivalHorror}
               </div>
             </div>
           </div>
@@ -98,34 +140,40 @@ export const MainMenu: React.FC<MainMenuProps> = ({
 
           <div className="mt-2 inline-flex items-center gap-2">
             <span className="px-2 py-0.5 bg-neutral-900 border border-amber-500/40 text-amber-300 text-[10px] font-bold uppercase tracking-widest rounded">
-              Outside Clearing
+              {t.outsideClearing}
             </span>
             <span className="text-[10px] text-emerald-400 font-mono">
-              ● Store Active
+              {t.storeActive}
             </span>
           </div>
 
           <p className="mt-3 text-[11px] text-neutral-300 max-w-sm leading-relaxed">
-            Step into the shoes of Duck on the midnight shift at a lonely McDonald's carved out of a dense horror forest. Prepare customer orders, survive until 6:00 AM, and maintain awareness of the shadows outside.
+            {t.description}
           </p>
 
           <div className="mt-2.5 px-2.5 py-1.5 rounded bg-amber-500/10 border border-amber-500/30 text-[10px] text-amber-300 flex items-center gap-1.5">
             <Flame className="w-3.5 h-3.5 text-red-400 shrink-0" />
-            <span><strong>Tip:</strong> Press <kbd className="px-1 py-0.5 rounded bg-neutral-900 border border-neutral-700 text-white font-bold">Shift</kbd> to run on PC, or tap <strong className="text-white">RUN</strong> on mobile!</span>
+            <span>
+              <strong>{t.tipBefore}</strong>{' '}
+              <kbd className="px-1 py-0.5 rounded bg-neutral-900 border border-neutral-700 text-white font-bold">
+                Shift
+              </kbd>{' '}
+              {t.tipRun} <strong className="text-white">{bundle.mobile.run}</strong> {t.tipMobile}
+            </span>
           </div>
         </div>
 
         {/* Buttons List */}
-        <div className="space-y-2.5 my-6">
+        <div className="space-y-2.5 my-5">
           <button
             onClick={() => handleStartNight(1)}
             className="w-full flex items-center justify-between px-6 py-3.5 bg-red-700 hover:bg-red-600 active:scale-98 text-white font-bold text-sm tracking-widest rounded border border-red-500 shadow-[0_0_20px_rgba(220,38,38,0.4)] cursor-pointer transition-all"
           >
             <span className="flex items-center gap-2">
               <Play className="w-4 h-4 fill-white" />
-              PLAY NIGHT 1
+              {t.playNight1}
             </span>
-            <span className="text-xs text-amber-300">The First Shift</span>
+            <span className="text-xs text-amber-300">{t.firstShift}</span>
           </button>
 
           <button
@@ -139,19 +187,19 @@ export const MainMenu: React.FC<MainMenuProps> = ({
           >
             <span className="flex items-center gap-2">
               <Moon className="w-4 h-4" />
-              PLAY NIGHT 2 {night2Unlocked ? '' : '(LOCKED)'}
+              {t.playNight2} {night2Unlocked ? '' : t.locked}
             </span>
-            <span className="text-xs text-neutral-500">Something is Wrong</span>
+            <span className="text-xs text-neutral-500">{t.somethingWrong}</span>
           </button>
 
           {/* Locked Night 3 Teaser Button */}
           <div className="w-full flex items-center justify-between px-6 py-3 rounded border border-neutral-800 bg-neutral-950/50 text-neutral-600 text-xs font-bold tracking-widest opacity-80 cursor-not-allowed">
             <span className="flex items-center gap-2">
               <Lock className="w-3.5 h-3.5" />
-              NIGHT 3: THE HUNT
+              {t.night3Hunt}
             </span>
             <span className="text-[10px] text-red-500/80 uppercase font-black">
-              FULL GAME TEASER
+              {t.fullGameTeaser}
             </span>
           </div>
 
@@ -159,7 +207,7 @@ export const MainMenu: React.FC<MainMenuProps> = ({
           <div className="flex items-center justify-between px-2.5 py-1.5 bg-neutral-950/80 border border-neutral-800 rounded text-[10px] text-neutral-400">
             <span className="flex items-center gap-1.5 text-amber-300 font-semibold truncate">
               <Music className="w-3.5 h-3.5 text-amber-400 animate-pulse shrink-0" />
-              <span className="truncate">BGM: Cold Glass Passage</span>
+              <span className="truncate">{t.bgmLabel}</span>
             </span>
             <button
               onClick={() => setBgmMuted(!bgmMuted)}
@@ -168,12 +216,12 @@ export const MainMenu: React.FC<MainMenuProps> = ({
               {bgmMuted ? (
                 <>
                   <VolumeX className="w-3 h-3 text-red-400" />
-                  <span>UNMUTE</span>
+                  <span>{t.unmute}</span>
                 </>
               ) : (
                 <>
                   <Volume2 className="w-3 h-3 text-emerald-400" />
-                  <span>MUSIC ON</span>
+                  <span>{t.musicOn}</span>
                 </>
               )}
             </button>
@@ -185,7 +233,7 @@ export const MainMenu: React.FC<MainMenuProps> = ({
               className="flex items-center justify-center gap-1.5 px-3 py-2 bg-neutral-900 hover:bg-neutral-800 border border-neutral-700 rounded text-xs text-neutral-300 font-bold cursor-pointer transition-colors"
             >
               <HelpCircle className="w-3.5 h-3.5" />
-              Controls
+              {t.controls}
             </button>
 
             <button
@@ -193,7 +241,7 @@ export const MainMenu: React.FC<MainMenuProps> = ({
               className="flex items-center justify-center gap-1.5 px-3 py-2 bg-neutral-900 hover:bg-neutral-800 border border-neutral-700 rounded text-xs text-neutral-300 font-bold cursor-pointer transition-colors"
             >
               <SettingsIcon className="w-3.5 h-3.5" />
-              Settings
+              {t.settings}
             </button>
 
             <button
@@ -201,45 +249,69 @@ export const MainMenu: React.FC<MainMenuProps> = ({
               className="flex items-center justify-center gap-1.5 px-3 py-2 bg-neutral-900 hover:bg-neutral-800 border border-neutral-700 rounded text-xs text-neutral-300 font-bold cursor-pointer transition-colors"
             >
               <Info className="w-3.5 h-3.5" />
-              Credits
+              {t.credits}
             </button>
           </div>
         </div>
 
         {/* Story Directive Badge */}
         <div className="bg-neutral-950/90 border border-neutral-800 rounded p-2.5 text-[11px] text-neutral-400 leading-snug">
-          <strong className="text-amber-400">Story Rule:</strong> During Nights 1 & 2, the mascot is observing and not hunting. Experience the calm before the storm.
+          <strong className="text-amber-400">{t.storyRuleLabel}</strong> {t.storyRule}
         </div>
       </div>
 
       {/* RIGHT COLUMN: SHIFT OVERVIEW */}
       <div className="hidden lg:flex flex-col gap-4 max-w-sm relative z-10">
-        <div className="bg-neutral-950/85 border border-neutral-800 rounded-lg p-5 shadow-2xl">
-          <div className="text-xs text-amber-400 font-bold uppercase tracking-wider mb-2">Shift Memo</div>
-          <h3 className="text-sm font-bold text-neutral-200 mb-2">Employee Routine</h3>
+        <div className="bg-neutral-950/90 border border-neutral-800 rounded-lg p-5 shadow-2xl">
+          <div className="text-xs text-amber-400 font-bold uppercase tracking-wider mb-2">{t.shiftMemo}</div>
+          <h3 className="text-sm font-bold text-neutral-200 mb-2">{t.employeeRoutine}</h3>
           <ul className="text-xs text-neutral-400 space-y-2 list-disc list-inside">
-            <li>Night 1: Clean dining tables, collect trash, shutdown kitchen fryers, sign inventory.</li>
-            <li>Night 2: Record freezer temperature log, mop hallway, check drive-thru window and CCTV.</li>
-            <li>Flashlight has unlimited power; maintain situational awareness.</li>
-            <li>If you notice the mascot looking at you, continue your tasks calmly.</li>
+            {t.memoItems.map((item, idx) => (
+              <li key={idx}>{item}</li>
+            ))}
           </ul>
         </div>
       </div>
 
-      {/* MODAL: SETTINGS (with Low/Medium/High graphics quality) */}
+      {/* MODAL: SETTINGS */}
       {modal === 'settings' && (
         <div className="absolute inset-0 z-50 bg-black/85 flex items-center justify-center p-4">
           <div className="bg-neutral-950 border border-neutral-700 rounded-lg p-6 max-w-md w-full shadow-2xl">
             <h2 className="text-lg font-bold text-amber-400 uppercase tracking-wider mb-4 border-b border-neutral-800 pb-2">
-              Game Settings
+              {t.settingsTitle}
             </h2>
 
             <div className="space-y-4 text-xs text-neutral-300">
+              {/* Language Selector */}
+              <div>
+                <div className="flex justify-between mb-1.5">
+                  <span>{bundle.languageLabel}</span>
+                  <span className="font-bold text-amber-400">{bundle.languageName}</span>
+                </div>
+                <div className="grid grid-cols-2 gap-2">
+                  {LANGUAGE_OPTIONS.map((opt) => (
+                    <button
+                      key={opt.code}
+                      onClick={() => onUpdateSettings({ language: opt.code })}
+                      className={`py-1.5 px-2 rounded font-bold text-xs border cursor-pointer transition-colors ${
+                        (settings.language || 'en') === opt.code
+                          ? 'bg-amber-600 text-white border-amber-400'
+                          : 'bg-neutral-900 text-neutral-400 border-neutral-700 hover:bg-neutral-800'
+                      }`}
+                    >
+                      {opt.label}
+                    </button>
+                  ))}
+                </div>
+              </div>
+
               {/* Graphics Quality */}
               <div>
                 <div className="flex justify-between mb-1.5">
-                  <span>Graphics Quality</span>
-                  <span className="font-bold text-amber-400 uppercase">{settings.graphicsQuality}</span>
+                  <span>{t.graphicsQuality}</span>
+                  <span className="font-bold text-amber-400 uppercase">
+                    {t.qualityLevels[settings.graphicsQuality]}
+                  </span>
                 </div>
                 <div className="grid grid-cols-3 gap-2">
                   {(['low', 'medium', 'high'] as GraphicsQuality[]).map((q) => (
@@ -252,7 +324,7 @@ export const MainMenu: React.FC<MainMenuProps> = ({
                           : 'bg-neutral-900 text-neutral-400 border-neutral-700 hover:bg-neutral-800'
                       }`}
                     >
-                      {q}
+                      {t.qualityLevels[q]}
                     </button>
                   ))}
                 </div>
@@ -261,7 +333,7 @@ export const MainMenu: React.FC<MainMenuProps> = ({
               {/* Volume */}
               <div>
                 <div className="flex justify-between mb-1">
-                  <span>Audio Volume</span>
+                  <span>{t.audioVolume}</span>
                   <span className="tabular-nums">{Math.round(settings.masterVolume * 100)}%</span>
                 </div>
                 <input
@@ -278,7 +350,7 @@ export const MainMenu: React.FC<MainMenuProps> = ({
               {/* Mouse Sensitivity */}
               <div>
                 <div className="flex justify-between mb-1">
-                  <span>Mouse Sensitivity</span>
+                  <span>{t.mouseSensitivity}</span>
                   <span className="tabular-nums">{settings.mouseSensitivity.toFixed(1)}x</span>
                 </div>
                 <input
@@ -294,7 +366,7 @@ export const MainMenu: React.FC<MainMenuProps> = ({
 
               {/* Invert Look */}
               <div className="flex items-center justify-between pt-2">
-                <span>Invert Look (Y-Axis)</span>
+                <span>{t.invertLook}</span>
                 <button
                   onClick={() => onUpdateSettings({ invertY: !settings.invertY })}
                   className={`px-3 py-1 rounded text-xs font-bold cursor-pointer border ${
@@ -303,13 +375,13 @@ export const MainMenu: React.FC<MainMenuProps> = ({
                       : 'bg-neutral-800 text-neutral-400 border-neutral-700'
                   }`}
                 >
-                  {settings.invertY ? 'ENABLED' : 'DISABLED'}
+                  {settings.invertY ? t.enabled : t.disabled}
                 </button>
               </div>
 
               {/* CRT Scanline */}
               <div className="flex items-center justify-between pt-2">
-                <span>Retro CRT Filter</span>
+                <span>{t.crtFilter}</span>
                 <button
                   onClick={() => onUpdateSettings({ crtFilter: !settings.crtFilter })}
                   className={`px-3 py-1 rounded text-xs font-bold cursor-pointer border ${
@@ -318,7 +390,7 @@ export const MainMenu: React.FC<MainMenuProps> = ({
                       : 'bg-neutral-800 text-neutral-400 border-neutral-700'
                   }`}
                 >
-                  {settings.crtFilter ? 'ENABLED' : 'DISABLED'}
+                  {settings.crtFilter ? t.enabled : t.disabled}
                 </button>
               </div>
             </div>
@@ -327,7 +399,7 @@ export const MainMenu: React.FC<MainMenuProps> = ({
               onClick={() => setModal('none')}
               className="mt-6 w-full py-2.5 bg-neutral-800 hover:bg-neutral-700 text-white font-bold text-xs uppercase tracking-wider rounded border border-neutral-600 cursor-pointer"
             >
-              Apply & Close
+              {t.applyClose}
             </button>
           </div>
         </div>
@@ -338,45 +410,23 @@ export const MainMenu: React.FC<MainMenuProps> = ({
         <div className="absolute inset-0 z-50 bg-black/85 flex items-center justify-center p-4">
           <div className="bg-neutral-950 border border-neutral-700 rounded-lg p-6 max-w-md w-full shadow-2xl">
             <h2 className="text-lg font-bold text-amber-400 uppercase tracking-wider mb-4 border-b border-neutral-800 pb-2">
-              Controls
+              {t.controlsTitle}
             </h2>
 
             <div className="space-y-3 text-xs text-neutral-300">
-              <div className="flex justify-between border-b border-neutral-800 pb-1">
-                <span className="text-amber-400 font-bold">W, A, S, D</span>
-                <span>Walk / Move</span>
-              </div>
-              <div className="flex justify-between border-b border-neutral-800 pb-1">
-                <span className="text-amber-400 font-bold">Mouse Look</span>
-                <span>Aim & Pan Camera</span>
-              </div>
-              <div className="flex justify-between border-b border-neutral-800 pb-1">
-                <span className="text-amber-400 font-bold">Shift</span>
-                <span>Sprint (Consumes stamina)</span>
-              </div>
-              <div className="flex justify-between border-b border-neutral-800 pb-1">
-                <span className="text-amber-400 font-bold">C</span>
-                <span>Crouch</span>
-              </div>
-              <div className="flex justify-between border-b border-neutral-800 pb-1">
-                <span className="text-amber-400 font-bold">F</span>
-                <span>Toggle Flashlight (Unlimited)</span>
-              </div>
-              <div className="flex justify-between border-b border-neutral-800 pb-1">
-                <span className="text-amber-400 font-bold">E</span>
-                <span>Talk to Customers / Complete Tasks</span>
-              </div>
-              <div className="flex justify-between border-b border-neutral-800 pb-1">
-                <span className="text-amber-400 font-bold">ESC</span>
-                <span>Pause Menu / Return from CCTV</span>
-              </div>
+              {t.controlsList.map((row, idx) => (
+                <div key={idx} className="flex justify-between gap-4 border-b border-neutral-800 pb-1">
+                  <span className="text-amber-400 font-bold shrink-0">{row.key}</span>
+                  <span className="text-right">{row.desc}</span>
+                </div>
+              ))}
             </div>
 
             <button
               onClick={() => setModal('none')}
               className="mt-6 w-full py-2.5 bg-neutral-800 hover:bg-neutral-700 text-white font-bold text-xs uppercase tracking-wider rounded border border-neutral-600 cursor-pointer"
             >
-              Understood
+              {t.understood}
             </button>
           </div>
         </div>
@@ -387,18 +437,17 @@ export const MainMenu: React.FC<MainMenuProps> = ({
         <div className="absolute inset-0 z-50 bg-black/85 flex items-center justify-center p-4">
           <div className="bg-neutral-950 border border-neutral-700 rounded-lg p-6 max-w-md w-full shadow-2xl">
             <h2 className="text-lg font-bold text-amber-400 uppercase tracking-wider mb-4 border-b border-neutral-800 pb-2">
-              Credits & Lore
+              {t.creditsTitle}
             </h2>
 
             <div className="space-y-3 text-xs text-neutral-300 leading-relaxed">
-              <p>
-                <strong>McDonald's Nightfall — DEMO</strong> is a 2-night slow-burn mascot horror prologue.
-              </p>
+              <p>{t.creditsIntro}</p>
               <div className="border-t border-neutral-800 pt-2 space-y-1">
-                <div><strong>Theme:</strong> Late-night fast-food observation & psychological dread</div>
-                <div><strong>Format:</strong> 2 Playable Nights + Night 3 Teaser Ending</div>
-                <div><strong>Engine:</strong> Three.js 3D WebGL & Web Audio API</div>
-                <div><strong>Story Direction:</strong> The mascot watches and creeps, preparing for Night 3.</div>
+                {t.creditsDetails.map((d, idx) => (
+                  <div key={idx}>
+                    <strong>{d.label}:</strong> {d.value}
+                  </div>
+                ))}
               </div>
             </div>
 
@@ -406,7 +455,7 @@ export const MainMenu: React.FC<MainMenuProps> = ({
               onClick={() => setModal('none')}
               className="mt-6 w-full py-2.5 bg-neutral-800 hover:bg-neutral-700 text-white font-bold text-xs uppercase tracking-wider rounded border border-neutral-600 cursor-pointer"
             >
-              Return to Menu
+              {t.returnMenu}
             </button>
           </div>
         </div>

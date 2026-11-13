@@ -1,18 +1,21 @@
 import React, { useEffect, useState, useRef, useCallback } from 'react';
-import { DialogueState } from '../types/game';
+import { DialogueState, Language } from '../types/game';
 import { MessageSquare, User, CornerDownLeft, FastForward } from 'lucide-react';
 import { soundEngine } from '../audio/SoundEngine';
+import { getTranslations } from '../i18n/translations';
 
 interface DialogueBoxProps {
   dialogue: DialogueState;
   onAdvance: () => void;
+  language: Language;
 }
 
-export const DialogueBox: React.FC<DialogueBoxProps> = ({ dialogue, onAdvance }) => {
+export const DialogueBox: React.FC<DialogueBoxProps> = ({ dialogue, onAdvance, language }) => {
   if (!dialogue.active || !dialogue.lines || dialogue.lines.length === 0) {
     return null;
   }
 
+  const t = getTranslations(language).dialogue;
   const currentLine = dialogue.lines[dialogue.currentIndex] || dialogue.lines[0];
   const isDuck = currentLine.speaker.toUpperCase().includes('DUCK');
   const isLastLine = dialogue.currentIndex >= dialogue.lines.length - 1;
@@ -40,7 +43,6 @@ export const DialogueBox: React.FC<DialogueBoxProps> = ({ dialogue, onAdvance })
     }
 
     const nextChar = fullText[displayedLength];
-    // Natural slight pause on punctuation
     let charDelay = 28;
     if (nextChar === '.' || nextChar === '!' || nextChar === '?') {
       charDelay = 140;
@@ -53,7 +55,6 @@ export const DialogueBox: React.FC<DialogueBoxProps> = ({ dialogue, onAdvance })
         const nextLen = prev + 1;
         const char = fullText[prev];
 
-        // Play low-pitched electronic beeping sound for non-whitespace characters, throttled ~45ms
         if (char && char.trim() !== '') {
           const now = performance.now();
           if (now - lastBeepTimeRef.current >= 42) {
@@ -79,13 +80,11 @@ export const DialogueBox: React.FC<DialogueBoxProps> = ({ dialogue, onAdvance })
   // Handle interaction: skip typing if in progress, or advance line if complete
   const handleUserAction = useCallback(() => {
     if (isTyping) {
-      // Immediately complete scrolling text
       if (timerRef.current) clearTimeout(timerRef.current);
       setDisplayedLength(fullText.length);
       setIsTyping(false);
       soundEngine.playDialogueTypewriterBeep(isDuck);
     } else {
-      // Advance to next line
       onAdvance();
     }
   }, [isTyping, fullText.length, isDuck, onAdvance]);
@@ -110,7 +109,7 @@ export const DialogueBox: React.FC<DialogueBoxProps> = ({ dialogue, onAdvance })
       className="absolute bottom-20 left-1/2 -translate-x-1/2 z-40 max-w-md w-[88%] md:w-[420px] pointer-events-auto cursor-pointer select-none animate-in fade-in zoom-in-95 duration-200"
     >
       <div
-        className={`relative p-3.5 rounded-xl border shadow-xl backdrop-blur-md transition-colors ${
+        className={`relative p-3.5 rounded-xl border shadow-xl transition-colors ${
           isDuck
             ? 'bg-neutral-950/95 border-amber-500/70 shadow-[0_0_20px_rgba(245,158,11,0.18)]'
             : 'bg-neutral-950/95 border-sky-500/70 shadow-[0_0_20px_rgba(14,165,233,0.18)]'
@@ -134,7 +133,7 @@ export const DialogueBox: React.FC<DialogueBoxProps> = ({ dialogue, onAdvance })
               {currentLine.speaker}
               {dialogue.isMonologue && (
                 <span className="ml-1.5 text-[9px] font-normal text-neutral-400 normal-case tracking-normal">
-                  (Internal)
+                  {t.internal}
                 </span>
               )}
             </span>
@@ -150,28 +149,31 @@ export const DialogueBox: React.FC<DialogueBoxProps> = ({ dialogue, onAdvance })
           <p className="text-xs md:text-[13px] font-mono text-neutral-100 leading-snug tracking-wide">
             “{visibleText}
             {isTyping && (
-              <span className={`inline-block w-1.5 h-3.5 ml-0.5 align-middle animate-pulse ${
-                isDuck ? 'bg-amber-400' : 'bg-sky-400'
-              }`} />
-            )}”
+              <span
+                className={`inline-block w-1.5 h-3.5 ml-0.5 align-middle animate-pulse ${
+                  isDuck ? 'bg-amber-400' : 'bg-sky-400'
+                }`}
+              />
+            )}
+            ”
           </p>
         </div>
 
         {/* Footer Hint */}
         <div className="mt-2 pt-1 border-t border-neutral-900 flex items-center justify-between text-[10px] font-mono text-neutral-400">
           <span className="text-[9px] text-neutral-500">
-            {isTyping ? 'Transmitting...' : 'Received'}
+            {isTyping ? t.transmitting : t.received}
           </span>
 
           <span className="flex items-center gap-1 text-amber-300 font-semibold">
             {isTyping ? (
               <span className="flex items-center gap-0.5 text-neutral-400 hover:text-amber-300 transition-colors">
-                <span>[E] Skip</span>
+                <span>{t.skip}</span>
                 <FastForward className="w-3 h-3 inline text-amber-400" />
               </span>
             ) : (
               <span className="animate-pulse flex items-center gap-0.5 text-amber-300">
-                <span>{isLastLine ? '[E] Close' : '[E] Next'}</span>
+                <span>{isLastLine ? t.close : t.next}</span>
                 <CornerDownLeft className="w-3 h-3 inline" />
               </span>
             )}

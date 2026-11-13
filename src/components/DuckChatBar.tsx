@@ -1,12 +1,15 @@
 import React, { useEffect, useState, useRef, useCallback } from 'react';
 import { soundEngine } from '../audio/SoundEngine';
 import { CornerDownLeft, FastForward, MessageSquareQuote } from 'lucide-react';
+import { Language } from '../types/game';
+import { getTranslations } from '../i18n/translations';
 
 interface DuckChatBarProps {
   text: string;
   speaker?: string;
   onAdvance?: () => void;
   isFadedOut?: boolean;
+  language: Language;
 }
 
 export const DuckChatBar: React.FC<DuckChatBarProps> = ({
@@ -14,7 +17,9 @@ export const DuckChatBar: React.FC<DuckChatBarProps> = ({
   speaker = 'Duck (Night Shift)',
   onAdvance,
   isFadedOut = true,
+  language,
 }) => {
+  const t = getTranslations(language).dialogue;
   const [displayedLength, setDisplayedLength] = useState<number>(0);
   const [isTyping, setIsTyping] = useState<boolean>(true);
   const lastBeepRef = useRef<number>(0);
@@ -75,6 +80,18 @@ export const DuckChatBar: React.FC<DuckChatBarProps> = ({
     }
   }, [isTyping, text.length, onAdvance]);
 
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.code === 'KeyE' || e.code === 'Space' || e.code === 'Enter') {
+        e.preventDefault();
+        e.stopPropagation();
+        handleAction();
+      }
+    };
+    window.addEventListener('keydown', handleKeyDown, true);
+    return () => window.removeEventListener('keydown', handleKeyDown, true);
+  }, [handleAction]);
+
   const visibleText = text.slice(0, displayedLength);
 
   return (
@@ -84,7 +101,7 @@ export const DuckChatBar: React.FC<DuckChatBarProps> = ({
         isFadedOut ? 'pointer-events-auto' : 'pointer-events-auto'
       }`}
     >
-      <div className="relative p-3.5 md:p-4 rounded-xl border border-amber-500/80 bg-neutral-950/95 shadow-[0_0_35px_rgba(245,158,11,0.25)] backdrop-blur-md">
+      <div className="relative p-3.5 md:p-4 rounded-xl border border-amber-500/80 bg-neutral-950/95 shadow-[0_0_35px_rgba(245,158,11,0.25)]">
         {/* Header: Duck Avatar & Name */}
         <div className="flex items-center justify-between pb-2 mb-2 border-b border-amber-500/30">
           <div className="flex items-center gap-2.5">
@@ -99,7 +116,7 @@ export const DuckChatBar: React.FC<DuckChatBarProps> = ({
               <div className="text-xs font-black text-amber-400 tracking-wider uppercase flex items-center gap-1.5">
                 <span>{speaker}</span>
                 <span className="text-[10px] px-1.5 py-0.2 rounded bg-amber-950/80 border border-amber-600/40 text-amber-300 font-semibold normal-case">
-                  Internal Thoughts
+                  {t.internalThoughts}
                 </span>
               </div>
             </div>
@@ -121,18 +138,18 @@ export const DuckChatBar: React.FC<DuckChatBarProps> = ({
         {/* Action Prompt */}
         <div className="mt-2.5 pt-2 border-t border-neutral-800 flex items-center justify-between text-[10px] text-neutral-400">
           <span className="text-neutral-500">
-            {isTyping ? 'Scrambled transmission...' : 'Press [E], Space, or Click'}
+            {isTyping ? t.scrambled : t.pressHint}
           </span>
 
           <span className="flex items-center gap-1 text-amber-400 font-bold">
             {isTyping ? (
               <span className="flex items-center gap-1 hover:text-amber-300 transition-colors">
-                <span>Skip</span>
+                <span>{t.skipBtn}</span>
                 <FastForward className="w-3 h-3 text-amber-400" />
               </span>
             ) : (
               <span className="flex items-center gap-1 animate-pulse">
-                <span>Continue</span>
+                <span>{t.continueBtn}</span>
                 <CornerDownLeft className="w-3 h-3" />
               </span>
             )}

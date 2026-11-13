@@ -1,33 +1,27 @@
 import React, { useState, useEffect } from 'react';
-import { Radio, ShieldCheck, Sparkles } from 'lucide-react';
+import { Radio } from 'lucide-react';
 import { soundEngine } from '../audio/SoundEngine';
+import { Language } from '../types/game';
+import { getTranslations } from '../i18n/translations';
 
 interface LoadingScreenProps {
   onComplete: () => void;
+  language: Language;
 }
 
-export const LoadingScreen: React.FC<LoadingScreenProps> = ({ onComplete }) => {
+export const LoadingScreen: React.FC<LoadingScreenProps> = ({ onComplete, language }) => {
   const [progress, setProgress] = useState(0);
   const [messageIndex, setMessageIndex] = useState(0);
   const [isFadingOut, setIsFadingOut] = useState(false);
   const [flicker, setFlicker] = useState(false);
 
-  const messages = [
-    'Connecting to restaurant power grid…',
-    'Calibrating automatic sliding doors & motion sensors…',
-    'Checking security systems & CCTV camera matrix…',
-    'Initializing walk-in freezer temperature logs…',
-    'Preparing your overnight shift…',
-    'Opening the restaurant…',
-  ];
+  const t = getTranslations(language).loading;
 
   useEffect(() => {
-    // Rotating loading messages every 1.0s
     const msgInterval = setInterval(() => {
-      setMessageIndex((prev) => (prev + 1) % messages.length);
+      setMessageIndex((prev) => (prev + 1) % t.messages.length);
     }, 1050);
 
-    // Subtle fluorescent light flicker tick
     const flickerInterval = setInterval(() => {
       if (Math.random() < 0.28) {
         setFlicker(true);
@@ -35,8 +29,6 @@ export const LoadingScreen: React.FC<LoadingScreenProps> = ({ onComplete }) => {
       }
     }, 450);
 
-    // Smooth progress bar targeted for approximately 5.2 seconds
-    // (5200ms / 50ms interval = 104 ticks -> ~0.95% per tick)
     const startTime = performance.now();
     const targetDurationMs = 5200;
 
@@ -50,7 +42,6 @@ export const LoadingScreen: React.FC<LoadingScreenProps> = ({ onComplete }) => {
         clearInterval(msgInterval);
         clearInterval(flickerInterval);
 
-        // Smooth fade-out before transitioning
         setIsFadingOut(true);
         setTimeout(() => {
           soundEngine.init();
@@ -64,7 +55,7 @@ export const LoadingScreen: React.FC<LoadingScreenProps> = ({ onComplete }) => {
       clearInterval(flickerInterval);
       clearInterval(progInterval);
     };
-  }, [onComplete]);
+  }, [onComplete, t.messages.length]);
 
   return (
     <div
@@ -83,12 +74,11 @@ export const LoadingScreen: React.FC<LoadingScreenProps> = ({ onComplete }) => {
       {/* TOP BADGE */}
       <div className="relative z-10 flex items-center gap-2 px-4 py-1.5 rounded-full bg-neutral-900/90 border border-neutral-700/60 text-xs text-neutral-400 shadow-xl">
         <Radio className="w-3.5 h-3.5 text-amber-500 animate-pulse" />
-        <span className="tracking-widest uppercase">System Initialization Protocol</span>
+        <span className="tracking-widest uppercase">{t.badge}</span>
       </div>
 
       {/* CENTER TITLE & BRANDING */}
       <div className="relative z-10 flex flex-col items-center text-center max-w-lg">
-        {/* Glowing Golden Arches Emblem with Fluorescent Flicker */}
         <div
           className={`w-16 h-16 rounded-full bg-red-900/90 border-2 border-amber-400 flex items-center justify-center mb-5 transition-all duration-75 ${
             flicker
@@ -107,16 +97,16 @@ export const LoadingScreen: React.FC<LoadingScreenProps> = ({ onComplete }) => {
         </div>
 
         <div className="text-xs text-neutral-400 tracking-wider uppercase mb-8">
-          2-Night Psychological Horror Demo
+          {t.subtitle}
         </div>
 
         {/* PROGRESS BAR & ROTATING MESSAGE */}
         <div className="w-full max-w-sm space-y-3 bg-black/60 p-4 rounded-xl border border-neutral-800/80 shadow-2xl">
-          <div className="flex items-center justify-between text-xs">
-            <span className="text-neutral-300 font-medium tracking-wide transition-all duration-200">
-              {messages[messageIndex]}
+          <div className="flex items-center justify-between text-xs gap-3">
+            <span className="text-neutral-300 font-medium tracking-wide transition-all duration-200 text-left">
+              {t.messages[messageIndex]}
             </span>
-            <span className="tabular-nums font-bold text-amber-400 text-sm">{progress}%</span>
+            <span className="tabular-nums font-bold text-amber-400 text-sm shrink-0">{progress}%</span>
           </div>
 
           <div className="w-full bg-neutral-900 border border-neutral-700/80 h-3 rounded-full overflow-hidden p-0.5 shadow-inner">
@@ -130,11 +120,11 @@ export const LoadingScreen: React.FC<LoadingScreenProps> = ({ onComplete }) => {
 
       {/* FOOTER HINTS */}
       <div className="relative z-10 text-[11px] text-neutral-500 tracking-wider uppercase flex items-center gap-3">
-        <span>Automatic Sliding Doors</span>
+        <span>{t.footerHints[0]}</span>
         <span>·</span>
-        <span>Customer Arrival AI</span>
+        <span>{t.footerHints[1]}</span>
         <span>·</span>
-        <span>Atmospheric Sound</span>
+        <span>{t.footerHints[2]}</span>
       </div>
     </div>
   );

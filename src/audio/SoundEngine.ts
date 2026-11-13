@@ -975,6 +975,128 @@ export class SoundEngine {
     oscSub.stop(now + 2.3);
   }
 
+  public playPowerOutage() {
+    if (!this.ctx || !this.masterGain) return;
+    const now = this.ctx.currentTime;
+
+    // 1. Heavy main breaker trip clunk
+    const noiseLen = Math.floor(this.ctx.sampleRate * 0.14);
+    const noiseBuf = this.ctx.createBuffer(1, noiseLen, this.ctx.sampleRate);
+    const data = noiseBuf.getChannelData(0);
+    for (let i = 0; i < noiseLen; i++) {
+      data[i] = (Math.random() * 2 - 1) * Math.exp(-i / (noiseLen * 0.28));
+    }
+    const clunk = this.ctx.createBufferSource();
+    clunk.buffer = noiseBuf;
+    const clunkFilter = this.ctx.createBiquadFilter();
+    clunkFilter.type = 'lowpass';
+    clunkFilter.frequency.value = 340;
+    const clunkGain = this.ctx.createGain();
+    clunkGain.gain.setValueAtTime(0.45, now);
+    clunkGain.gain.exponentialRampToValueAtTime(0.001, now + 0.16);
+    clunk.connect(clunkFilter);
+    clunkFilter.connect(clunkGain);
+    clunkGain.connect(this.masterGain);
+    clunk.start(now);
+
+    // 2. Downward power-down electrical transformer whine
+    const osc = this.ctx.createOscillator();
+    const oscGain = this.ctx.createGain();
+    osc.type = 'sawtooth';
+    osc.frequency.setValueAtTime(240, now + 0.02);
+    osc.frequency.exponentialRampToValueAtTime(32, now + 1.35);
+
+    const lp = this.ctx.createBiquadFilter();
+    lp.type = 'lowpass';
+    lp.frequency.setValueAtTime(600, now);
+    lp.frequency.exponentialRampToValueAtTime(90, now + 1.35);
+
+    oscGain.gain.setValueAtTime(0.24, now + 0.02);
+    oscGain.gain.exponentialRampToValueAtTime(0.001, now + 1.4);
+
+    osc.connect(lp);
+    lp.connect(oscGain);
+    oscGain.connect(this.masterGain);
+    osc.start(now + 0.02);
+    osc.stop(now + 1.45);
+  }
+
+  public playPowerRestore() {
+    if (!this.ctx || !this.masterGain) return;
+    const now = this.ctx.currentTime;
+
+    // 1. Metallic breaker throw snap
+    const snap = this.ctx.createOscillator();
+    const snapGain = this.ctx.createGain();
+    snap.type = 'square';
+    snap.frequency.setValueAtTime(380, now);
+    snap.frequency.exponentialRampToValueAtTime(140, now + 0.08);
+    snapGain.gain.setValueAtTime(0.26, now);
+    snapGain.gain.exponentialRampToValueAtTime(0.001, now + 0.09);
+    snap.connect(snapGain);
+    snapGain.connect(this.masterGain);
+    snap.start(now);
+    snap.stop(now + 0.1);
+
+    // 2. Ascending electrical grid hum / ballast startup
+    const osc = this.ctx.createOscillator();
+    const gain = this.ctx.createGain();
+    osc.type = 'triangle';
+    osc.frequency.setValueAtTime(60, now + 0.06);
+    osc.frequency.exponentialRampToValueAtTime(125, now + 0.55);
+    gain.gain.setValueAtTime(0.02, now + 0.06);
+    gain.gain.linearRampToValueAtTime(0.22, now + 0.25);
+    gain.gain.exponentialRampToValueAtTime(0.001, now + 0.95);
+
+    osc.connect(gain);
+    gain.connect(this.masterGain);
+    osc.start(now + 0.06);
+    osc.stop(now + 1.0);
+  }
+
+  public playClownSpottedScare() {
+    if (!this.ctx || !this.masterGain) return;
+    const now = this.ctx.currentTime;
+
+    // Dissonant psychological sting when locking eyes with the clown
+    const freqs = [311.13, 329.63, 622.25];
+    freqs.forEach((f) => {
+      if (!this.ctx || !this.masterGain) return;
+      const osc = this.ctx.createOscillator();
+      const gain = this.ctx.createGain();
+      osc.type = 'sawtooth';
+      osc.frequency.setValueAtTime(f, now);
+      osc.frequency.exponentialRampToValueAtTime(f * 0.72, now + 0.75);
+
+      const bp = this.ctx.createBiquadFilter();
+      bp.type = 'bandpass';
+      bp.frequency.setValueAtTime(900, now);
+      bp.Q.value = 1.6;
+
+      gain.gain.setValueAtTime(0.14, now);
+      gain.gain.exponentialRampToValueAtTime(0.0008, now + 0.85);
+
+      osc.connect(bp);
+      bp.connect(gain);
+      gain.connect(this.masterGain);
+      osc.start(now);
+      osc.stop(now + 0.9);
+    });
+
+    // Low bass thump
+    const sub = this.ctx.createOscillator();
+    const subGain = this.ctx.createGain();
+    sub.type = 'sine';
+    sub.frequency.setValueAtTime(95, now);
+    sub.frequency.exponentialRampToValueAtTime(28, now + 0.55);
+    subGain.gain.setValueAtTime(0.38, now);
+    subGain.gain.exponentialRampToValueAtTime(0.001, now + 0.6);
+    sub.connect(subGain);
+    subGain.connect(this.masterGain);
+    sub.start(now);
+    sub.stop(now + 0.65);
+  }
+
   public dispose() {
     if (this.ctx) {
       try {

@@ -1,6 +1,6 @@
 import React, { useRef, useState, useEffect, useCallback } from 'react';
 import { GameEngine } from '../game/GameEngine';
-import { PlayerStats } from '../types/game';
+import { Language, PlayerStats } from '../types/game';
 import {
   Flashlight,
   Pause,
@@ -9,6 +9,7 @@ import {
   ChevronUp,
   Flame,
 } from 'lucide-react';
+import { getTranslations } from '../i18n/translations';
 
 interface MobileControlsProps {
   engine: GameEngine | null;
@@ -16,6 +17,7 @@ interface MobileControlsProps {
   onPause: () => void;
   showMobileControls: boolean;
   onToggleControls: () => void;
+  language: Language;
 }
 
 export const MobileControls: React.FC<MobileControlsProps> = ({
@@ -24,7 +26,10 @@ export const MobileControls: React.FC<MobileControlsProps> = ({
   onPause,
   showMobileControls,
   onToggleControls,
+  language,
 }) => {
+  const t = getTranslations(language).mobile;
+
   const joystickBaseRef = useRef<HTMLDivElement>(null);
   const joystickKnobRef = useRef<HTMLDivElement>(null);
 
@@ -35,11 +40,9 @@ export const MobileControls: React.FC<MobileControlsProps> = ({
   const touchIdRef = useRef<number | null>(null);
   const baseCenterRef = useRef<{ x: number; y: number }>({ x: 0, y: 0 });
 
-  // Camera look touch tracking
   const lookTouchIdRef = useRef<number | null>(null);
   const lastLookPosRef = useRef<{ x: number; y: number }>({ x: 0, y: 0 });
 
-  // Reset joystick when touch controls become hidden
   useEffect(() => {
     if (!showMobileControls && engine) {
       engine.setMobileMove(0, 0);
@@ -50,7 +53,6 @@ export const MobileControls: React.FC<MobileControlsProps> = ({
     }
   }, [showMobileControls, engine]);
 
-  // Handle Joystick Touch Start
   const handleJoystickTouchStart = (e: React.TouchEvent) => {
     e.stopPropagation();
     if (touchIdRef.current !== null) return;
@@ -70,22 +72,21 @@ export const MobileControls: React.FC<MobileControlsProps> = ({
     handleJoystickTouchMove(e);
   };
 
-  // Handle Joystick Touch Move
   const handleJoystickTouchMove = useCallback(
     (e: React.TouchEvent | TouchEvent) => {
       if (touchIdRef.current === null) return;
 
       let currentTouch: { clientX: number; clientY: number; identifier: number } | null = null;
       for (let i = 0; i < e.changedTouches.length; i++) {
-        const t = e.changedTouches[i];
-        if (t.identifier === touchIdRef.current) {
-          currentTouch = { clientX: t.clientX, clientY: t.clientY, identifier: t.identifier };
+        const touch = e.changedTouches[i];
+        if (touch.identifier === touchIdRef.current) {
+          currentTouch = { clientX: touch.clientX, clientY: touch.clientY, identifier: touch.identifier };
           break;
         }
       }
       if (!currentTouch) return;
 
-      const maxRadius = 48; // Max thumbstick movement distance in pixels
+      const maxRadius = 48;
       const dx = currentTouch.clientX - baseCenterRef.current.x;
       const dy = currentTouch.clientY - baseCenterRef.current.y;
       const dist = Math.sqrt(dx * dx + dy * dy);
@@ -99,7 +100,6 @@ export const MobileControls: React.FC<MobileControlsProps> = ({
 
       setKnobPos({ x: clampedX, y: clampedY });
 
-      // Normalized values between -1 and 1
       const normX = clampedX / maxRadius;
       const normY = clampedY / maxRadius;
 
@@ -110,7 +110,6 @@ export const MobileControls: React.FC<MobileControlsProps> = ({
     [engine]
   );
 
-  // Handle Joystick Touch End
   const handleJoystickTouchEnd = useCallback(
     (e: React.TouchEvent | TouchEvent) => {
       if (touchIdRef.current === null) return;
@@ -130,7 +129,6 @@ export const MobileControls: React.FC<MobileControlsProps> = ({
     [engine]
   );
 
-  // Handle Look Zone Touch Start
   const handleLookTouchStart = (e: React.TouchEvent) => {
     if (lookTouchIdRef.current !== null) return;
     const touch = e.changedTouches[0];
@@ -138,15 +136,14 @@ export const MobileControls: React.FC<MobileControlsProps> = ({
     lastLookPosRef.current = { x: touch.clientX, y: touch.clientY };
   };
 
-  // Handle Look Zone Touch Move
   const handleLookTouchMove = (e: React.TouchEvent) => {
     if (lookTouchIdRef.current === null || !engine) return;
 
     let touch: { clientX: number; clientY: number; identifier: number } | null = null;
     for (let i = 0; i < e.changedTouches.length; i++) {
-      const t = e.changedTouches[i];
-      if (t.identifier === lookTouchIdRef.current) {
-        touch = { clientX: t.clientX, clientY: t.clientY, identifier: t.identifier };
+      const item = e.changedTouches[i];
+      if (item.identifier === lookTouchIdRef.current) {
+        touch = { clientX: item.clientX, clientY: item.clientY, identifier: item.identifier };
         break;
       }
     }
@@ -159,7 +156,6 @@ export const MobileControls: React.FC<MobileControlsProps> = ({
     engine.rotateCameraDelta(dx, dy);
   };
 
-  // Handle Look Zone Touch End
   const handleLookTouchEnd = (e: React.TouchEvent) => {
     if (lookTouchIdRef.current === null) return;
     for (let i = 0; i < e.changedTouches.length; i++) {
@@ -170,7 +166,6 @@ export const MobileControls: React.FC<MobileControlsProps> = ({
     }
   };
 
-  // Toggle Sprint Mobile
   const handleToggleSprint = () => {
     setIsSprintingMobile((prev) => {
       const next = !prev;
@@ -186,11 +181,10 @@ export const MobileControls: React.FC<MobileControlsProps> = ({
       {/* PERSISTENT FLOATING CONTROLS TOGGLE BUTTON (TOP RIGHT) */}
       <button
         onClick={onToggleControls}
-        className="fixed top-4 right-28 z-50 pointer-events-auto flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-neutral-900/90 hover:bg-neutral-800 border border-neutral-700/80 text-neutral-300 text-[11px] font-mono font-bold shadow-xl backdrop-blur-sm cursor-pointer transition-all active:scale-95"
-        title="Toggle between Mobile Touch and Keyboard/Mouse Controls"
+        className="fixed top-4 right-28 z-50 pointer-events-auto flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-neutral-900/90 hover:bg-neutral-800 border border-neutral-700/80 text-neutral-300 text-[11px] font-mono font-bold shadow-xl cursor-pointer transition-all active:scale-95"
       >
         <span className={showMobileControls ? 'text-amber-400' : 'text-neutral-500'}>
-          {showMobileControls ? '🎮 TOUCH ON' : '⌨️ PC CONTROLS'}
+          {showMobileControls ? t.touchOn : t.pcControls}
         </span>
       </button>
 
@@ -220,11 +214,9 @@ export const MobileControls: React.FC<MobileControlsProps> = ({
                   : 'border-white/20 bg-neutral-950/40'
               }`}
             >
-              {/* Center Crosshair Guides */}
               <div className="absolute inset-x-4 top-1/2 h-px bg-white/10 pointer-events-none" />
               <div className="absolute inset-y-4 left-1/2 w-px bg-white/10 pointer-events-none" />
 
-              {/* Thumb Knob */}
               <div
                 ref={joystickKnobRef}
                 style={{
@@ -236,16 +228,14 @@ export const MobileControls: React.FC<MobileControlsProps> = ({
                     : 'border-white/50 bg-white/30 text-white/70'
                 }`}
               >
-                <span className="text-[10px] font-mono tracking-tighter uppercase">MOVE</span>
+                <span className="text-[10px] font-mono tracking-tighter uppercase">{t.move}</span>
               </div>
             </div>
           </div>
 
           {/* RIGHT-SIDE ACTION BUTTONS CONTAINER */}
           <div className="absolute bottom-6 right-6 flex flex-col items-end gap-3 pointer-events-auto">
-            {/* Top Row: Flashlight & Crouch */}
             <div className="flex items-center gap-2.5">
-              {/* Crouch Button */}
               <button
                 onClick={() => engine?.toggleCrouch()}
                 className={`w-12 h-12 rounded-full border flex flex-col items-center justify-center shadow-lg cursor-pointer transition-all active:scale-90 ${
@@ -253,13 +243,11 @@ export const MobileControls: React.FC<MobileControlsProps> = ({
                     ? 'bg-amber-500 border-amber-400 text-black font-black shadow-[0_0_15px_rgba(245,158,11,0.4)]'
                     : 'bg-neutral-900/80 border-neutral-600 text-neutral-300'
                 }`}
-                title="Crouch / Stand (C)"
               >
                 {stats.isCrouched ? <ChevronUp className="w-5 h-5" /> : <ChevronDown className="w-5 h-5" />}
-                <span className="text-[8px] font-mono font-bold leading-none">CROUCH</span>
+                <span className="text-[8px] font-mono font-bold leading-none">{t.crouch}</span>
               </button>
 
-              {/* Flashlight Button */}
               <button
                 onClick={() => engine?.toggleFlashlight()}
                 className={`w-12 h-12 rounded-full border flex flex-col items-center justify-center shadow-lg cursor-pointer transition-all active:scale-90 ${
@@ -267,26 +255,21 @@ export const MobileControls: React.FC<MobileControlsProps> = ({
                     ? 'bg-amber-400 border-amber-300 text-black font-bold shadow-[0_0_15px_rgba(251,191,36,0.5)]'
                     : 'bg-neutral-900/80 border-neutral-600 text-neutral-400'
                 }`}
-                title="Toggle Flashlight (F)"
               >
                 <Flashlight className="w-5 h-5" />
-                <span className="text-[8px] font-mono font-bold leading-none">LIGHT</span>
+                <span className="text-[8px] font-mono font-bold leading-none">{t.light}</span>
               </button>
 
-              {/* Pause Button */}
               <button
                 onClick={onPause}
                 className="w-12 h-12 rounded-full border border-neutral-600 bg-neutral-900/80 text-neutral-300 flex flex-col items-center justify-center shadow-lg cursor-pointer active:scale-90"
-                title="Pause Menu"
               >
                 <Pause className="w-4 h-4" />
-                <span className="text-[8px] font-mono font-bold leading-none">PAUSE</span>
+                <span className="text-[8px] font-mono font-bold leading-none">{t.pause}</span>
               </button>
             </div>
 
-            {/* Bottom Row: RUN (Sprint) & INTERACT (E) */}
             <div className="flex items-center gap-3">
-              {/* RUN / SPRINT BUTTON */}
               <button
                 onClick={handleToggleSprint}
                 className={`w-16 h-16 rounded-full border-2 flex flex-col items-center justify-center shadow-2xl cursor-pointer transition-all active:scale-90 ${
@@ -294,22 +277,19 @@ export const MobileControls: React.FC<MobileControlsProps> = ({
                     ? 'bg-gradient-to-br from-red-600 to-amber-600 border-amber-300 text-white shadow-[0_0_25px_rgba(239,68,68,0.6)] animate-pulse'
                     : 'bg-neutral-900/85 border-amber-500/50 text-amber-300'
                 }`}
-                title="Sprint / Run (Shift on PC)"
               >
                 <Flame className="w-5 h-5" />
                 <span className="text-[10px] font-mono font-black tracking-wider leading-tight">
-                  {isSprintingMobile ? 'RUNNING' : 'RUN'}
+                  {isSprintingMobile ? t.running : t.run}
                 </span>
               </button>
 
-              {/* BIG INTERACT BUTTON (E) */}
               <button
                 onClick={() => engine?.interact()}
                 className="w-20 h-20 rounded-full border-2 border-amber-400 bg-gradient-to-tr from-amber-600 to-yellow-500 text-black font-black flex flex-col items-center justify-center shadow-[0_0_30px_rgba(245,158,11,0.5)] cursor-pointer active:scale-95 transition-all"
-                title="Interact / Talk / Action (E)"
               >
                 <Hand className="w-7 h-7" />
-                <span className="text-xs font-mono font-black tracking-wider">ACTION</span>
+                <span className="text-xs font-mono font-black tracking-wider">{t.action}</span>
                 <span className="text-[9px] font-mono opacity-80 leading-none">[E]</span>
               </button>
             </div>

@@ -1,6 +1,7 @@
 import React from 'react';
-import { ObjectiveStep, PlayerStats, NightState } from '../types/game';
+import { ObjectiveStep, PlayerStats, NightState, Language } from '../types/game';
 import { Flashlight, CheckCircle2, ChevronRight } from 'lucide-react';
+import { getTranslations } from '../i18n/translations';
 
 interface HUDProps {
   stats: PlayerStats;
@@ -9,6 +10,7 @@ interface HUDProps {
   objectiveCompletedNotice: string | null;
   interactionPrompt: string | null;
   onPauseClick: () => void;
+  language: Language;
 }
 
 export const HUD: React.FC<HUDProps> = ({
@@ -18,7 +20,9 @@ export const HUD: React.FC<HUDProps> = ({
   objectiveCompletedNotice,
   interactionPrompt,
   onPauseClick,
+  language,
 }) => {
+  const t = getTranslations(language).hud;
   const hourDisplay = nightState.timeHour === 0 ? 12 : nightState.timeHour;
   const minuteDisplay =
     nightState.timeMinute < 10 ? `0${nightState.timeMinute}` : nightState.timeMinute;
@@ -32,13 +36,13 @@ export const HUD: React.FC<HUDProps> = ({
       {/* TOP BAR: Single Active Sequential Objective & Digital Clock */}
       <div className="absolute top-4 left-4 right-4 flex items-start justify-between">
         {/* SINGLE ACTIVE OBJECTIVE CONTAINER */}
-        <div className="pointer-events-auto bg-black/90 border border-neutral-700/80 rounded-lg p-3.5 max-w-md w-full shadow-2xl backdrop-blur-none">
+        <div className="pointer-events-auto bg-black/90 border border-neutral-700/80 rounded-lg p-3.5 max-w-md w-full shadow-2xl">
           <div className="flex items-center justify-between text-[10px] text-amber-500 font-bold uppercase tracking-widest pb-1 border-b border-neutral-800">
             <span className="flex items-center gap-1.5">
               <ChevronRight className="w-3.5 h-3.5 text-amber-400" />
-              Night {nightState.night} Shift — Employee: Duck
+              {t.nightShiftEmployee(nightState.night)}
             </span>
-            <span className="text-neutral-400">Step {nightState.currentObjectiveIndex + 1}</span>
+            <span className="text-neutral-400">{t.stepLabel(nightState.currentObjectiveIndex + 1)}</span>
           </div>
 
           {/* Active Task (Only ONE displayed at a time) */}
@@ -53,7 +57,7 @@ export const HUD: React.FC<HUDProps> = ({
             </div>
           ) : (
             <div className="mt-2 text-xs text-emerald-400 font-bold">
-              All duties completed for this shift!
+              {t.allDutiesDone}
             </div>
           )}
         </div>
@@ -69,10 +73,10 @@ export const HUD: React.FC<HUDProps> = ({
         {/* Top Right: Digital Shift Clock & Pause */}
         <div className="flex items-center gap-3">
           <div className="bg-black/85 border border-neutral-700/80 rounded-lg px-4 py-2 text-right shadow-2xl">
-            <div className="text-[10px] text-neutral-400 uppercase tracking-widest">Shift Clock</div>
+            <div className="text-[10px] text-neutral-400 uppercase tracking-widest">{t.shiftClock}</div>
             <div className="text-xl font-black text-amber-400 tabular-nums tracking-wider">{timeString}</div>
             <div className="text-[10px] text-neutral-400 uppercase tracking-wider">
-              {nightState.timeHour >= 6 ? 'DAWN (6:00 AM)' : 'CLOSING AT 6:00 AM'}
+              {nightState.timeHour >= 6 ? t.dawnLabel : t.closingLabel}
             </div>
           </div>
 
@@ -80,7 +84,7 @@ export const HUD: React.FC<HUDProps> = ({
             onClick={onPauseClick}
             className="pointer-events-auto bg-neutral-900/90 hover:bg-neutral-800 text-neutral-300 border border-neutral-700 text-xs px-3.5 py-2.5 rounded-lg font-bold cursor-pointer transition-colors shadow-lg"
           >
-            ESC / PAUSE
+            {t.escPause}
           </button>
         </div>
       </div>
@@ -101,7 +105,7 @@ export const HUD: React.FC<HUDProps> = ({
         {/* Left: Stamina */}
         <div className="bg-black/85 border border-neutral-700/80 rounded-lg p-3 min-w-[210px] shadow-2xl">
           <div className="flex justify-between items-center text-[10px] uppercase text-neutral-400 mb-1">
-            <span>Stamina</span>
+            <span>{t.stamina}</span>
             <span className="tabular-nums text-neutral-300">{Math.round(stats.stamina)}%</span>
           </div>
           <div className="w-full bg-neutral-800 h-2 rounded overflow-hidden">
@@ -114,9 +118,9 @@ export const HUD: React.FC<HUDProps> = ({
           </div>
 
           <div className="mt-2 flex items-center justify-between text-[10px]">
-            <span className="text-neutral-400">STANCE:</span>
+            <span className="text-neutral-400">{t.stance}</span>
             <span className={`font-bold ${stats.isCrouched ? 'text-amber-400' : 'text-neutral-300'}`}>
-              {stats.isCrouched ? '[C] CROUCHED' : '[C] STANDING'}
+              {stats.isCrouched ? t.crouched : t.standing}
             </span>
           </div>
         </div>
@@ -125,10 +129,10 @@ export const HUD: React.FC<HUDProps> = ({
         {(stats.hasTrashInHand || stats.hasCardboardInHand || stats.hasFoodInHand) && (
           <div className="bg-amber-950/90 border border-amber-500 text-amber-200 px-4 py-1.5 rounded text-xs font-bold tracking-wider uppercase animate-pulse">
             {stats.hasFoodInHand
-              ? '🍗 Carrying Prepared Meal Tray (Fried Chicken Bucket & Hot McCafé Coffee) — Deliver to Guest at Counter'
+              ? t.carryingFood
               : stats.hasTrashInHand
-              ? '📦 Carrying Dining Trash Bags (Take to rear dumpster)'
-              : '📦 Carrying Cardboard Bundle (Take to rear dumpster)'}
+              ? t.carryingTrash
+              : t.carryingCardboard}
           </div>
         )}
 
@@ -137,15 +141,15 @@ export const HUD: React.FC<HUDProps> = ({
           <div className="flex justify-between items-center text-[10px] uppercase text-neutral-400 mb-1">
             <span className="flex items-center gap-1.5">
               <Flashlight className="w-3.5 h-3.5 text-amber-400" />
-              Heavy Worklight [F]
+              {t.heavyWorklight}
             </span>
-            <span className="text-emerald-400 font-bold">UNLIMITED</span>
+            <span className="text-emerald-400 font-bold">{t.unlimited}</span>
           </div>
 
           <div className="mt-2 flex items-center justify-between text-[10px]">
-            <span className="text-neutral-400">STATUS:</span>
+            <span className="text-neutral-400">{t.status}</span>
             <span className={`font-bold ${stats.flashlightOn ? 'text-emerald-400' : 'text-neutral-500'}`}>
-              {stats.flashlightOn ? 'BEAM ACTIVE' : 'BEAM OFF'}
+              {stats.flashlightOn ? t.beamActive : t.beamOff}
             </span>
           </div>
         </div>

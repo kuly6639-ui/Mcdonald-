@@ -12,6 +12,8 @@ export type GameScreen =
 
 export type GraphicsQuality = 'low' | 'medium' | 'high';
 
+export type Language = 'en' | 'vi' | 'ru' | 'id';
+
 export interface ObjectiveStep {
   id: string;
   title: string;
@@ -28,6 +30,7 @@ export interface GameSettings {
   invertY: boolean;
   crtFilter: boolean;
   graphicsQuality: GraphicsQuality;
+  language: Language;
 }
 
 export interface PlayerStats {
@@ -118,7 +121,9 @@ export interface InteractiveItem {
     | 'cctv_monitor'
     | 'front_door_exit'
     | 'seated_customer'
-    | 'kitchen_prep_station';
+    | 'kitchen_prep_station'
+    | 'employee_john'
+    | 'electrical_box';
   name: string;
   actionText: string;
   position: [number, number, number];
