@@ -203,7 +203,10 @@ export default function App() {
       {/* Horror Loading Screen */}
       {currentScreen === 'loading' && (
         <LoadingScreen
-          onComplete={() => setCurrentScreen('menu')}
+          onComplete={() => {
+            engineRef.current?.setScreen('menu');
+            setCurrentScreen('menu');
+          }}
           language={settings.language}
         />
       )}
@@ -292,11 +295,12 @@ export default function App() {
         />
       )}
 
-      {/* Night 1 Ending & Night 2 Teaser Ending */}
-      {(currentScreen === 'night1_complete' || currentScreen === 'night2_teaser') && (
+      {/* Night 1 & Night 2 Shift Completion Screens */}
+      {(currentScreen === 'night1_complete' || currentScreen === 'night2_complete') && (
         <VictoryModal
           night={currentScreen === 'night1_complete' ? 1 : 2}
           onProceedToNight2={() => handleStartNight(2)}
+          onPlayNight2Again={() => handleStartNight(2)}
           onPlayAgain={() => handleStartNight(1)}
           onMainMenu={handleMainMenu}
           language={settings.language}

@@ -10,6 +10,7 @@ import {
   Flame,
 } from 'lucide-react';
 import { getTranslations } from '../i18n/translations';
+import { soundEngine } from '../audio/SoundEngine';
 
 interface MobileControlsProps {
   engine: GameEngine | null;
@@ -36,6 +37,29 @@ export const MobileControls: React.FC<MobileControlsProps> = ({
   const [joystickActive, setJoystickActive] = useState(false);
   const [knobPos, setKnobPos] = useState({ x: 0, y: 0 });
   const [isSprintingMobile, setIsSprintingMobile] = useState(false);
+  const [poppedBtn, setPoppedBtn] = useState<string | null>(null);
+  const popTimerRef = useRef<number | null>(null);
+  const actionTimerRef = useRef<number | null>(null);
+
+  useEffect(() => {
+    return () => {
+      if (popTimerRef.current) window.clearTimeout(popTimerRef.current);
+      if (actionTimerRef.current) window.clearTimeout(actionTimerRef.current);
+    };
+  }, []);
+
+  const triggerBtnPop = (id: string, cb: () => void, delayMs: number = 0) => {
+    soundEngine.playUICellPop();
+    setPoppedBtn(id);
+    if (popTimerRef.current) window.clearTimeout(popTimerRef.current);
+    if (actionTimerRef.current) window.clearTimeout(actionTimerRef.current);
+    popTimerRef.current = window.setTimeout(() => setPoppedBtn(null), 240);
+    if (delayMs > 0) {
+      actionTimerRef.current = window.setTimeout(() => cb(), delayMs);
+    } else {
+      cb();
+    }
+  };
 
   const touchIdRef = useRef<number | null>(null);
   const baseCenterRef = useRef<{ x: number; y: number }>({ x: 0, y: 0 });
@@ -180,8 +204,10 @@ export const MobileControls: React.FC<MobileControlsProps> = ({
     <>
       {/* PERSISTENT FLOATING CONTROLS TOGGLE BUTTON (TOP RIGHT) */}
       <button
-        onClick={onToggleControls}
-        className="fixed top-4 right-28 z-50 pointer-events-auto flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-neutral-900/90 hover:bg-neutral-800 border border-neutral-700/80 text-neutral-300 text-[11px] font-mono font-bold shadow-xl cursor-pointer transition-all active:scale-95"
+        onClick={() => triggerBtnPop('toggle_controls', onToggleControls)}
+        className={`fixed top-4 right-28 z-50 pointer-events-auto flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-neutral-900/90 hover:bg-neutral-800 border border-neutral-700/80 text-neutral-300 text-[11px] font-mono font-bold shadow-xl cursor-pointer transition-all active:scale-95 ${
+          poppedBtn === 'toggle_controls' ? 'animate-cell-pop' : ''
+        }`}
       >
         <span className={showMobileControls ? 'text-amber-400' : 'text-neutral-500'}>
           {showMobileControls ? t.touchOn : t.pcControls}
@@ -237,8 +263,10 @@ export const MobileControls: React.FC<MobileControlsProps> = ({
           <div className="absolute bottom-6 right-6 flex flex-col items-end gap-3 pointer-events-auto">
             <div className="flex items-center gap-2.5">
               <button
-                onClick={() => engine?.toggleCrouch()}
+                onClick={() => triggerBtnPop('crouch', () => engine?.toggleCrouch())}
                 className={`w-12 h-12 rounded-full border flex flex-col items-center justify-center shadow-lg cursor-pointer transition-all active:scale-90 ${
+                  poppedBtn === 'crouch' ? 'animate-cell-pop' : ''
+                } ${
                   stats.isCrouched
                     ? 'bg-amber-500 border-amber-400 text-black font-black shadow-[0_0_15px_rgba(245,158,11,0.4)]'
                     : 'bg-neutral-900/80 border-neutral-600 text-neutral-300'
@@ -249,8 +277,10 @@ export const MobileControls: React.FC<MobileControlsProps> = ({
               </button>
 
               <button
-                onClick={() => engine?.toggleFlashlight()}
+                onClick={() => triggerBtnPop('flashlight', () => engine?.toggleFlashlight())}
                 className={`w-12 h-12 rounded-full border flex flex-col items-center justify-center shadow-lg cursor-pointer transition-all active:scale-90 ${
+                  poppedBtn === 'flashlight' ? 'animate-cell-pop' : ''
+                } ${
                   stats.flashlightOn
                     ? 'bg-amber-400 border-amber-300 text-black font-bold shadow-[0_0_15px_rgba(251,191,36,0.5)]'
                     : 'bg-neutral-900/80 border-neutral-600 text-neutral-400'
@@ -261,8 +291,10 @@ export const MobileControls: React.FC<MobileControlsProps> = ({
               </button>
 
               <button
-                onClick={onPause}
-                className="w-12 h-12 rounded-full border border-neutral-600 bg-neutral-900/80 text-neutral-300 flex flex-col items-center justify-center shadow-lg cursor-pointer active:scale-90"
+                onClick={() => triggerBtnPop('pause', onPause, 130)}
+                className={`w-12 h-12 rounded-full border border-neutral-600 bg-neutral-900/80 text-neutral-300 flex flex-col items-center justify-center shadow-lg cursor-pointer active:scale-90 transition-all ${
+                  poppedBtn === 'pause' ? 'animate-cell-pop' : ''
+                }`}
               >
                 <Pause className="w-4 h-4" />
                 <span className="text-[8px] font-mono font-bold leading-none">{t.pause}</span>
@@ -271,10 +303,12 @@ export const MobileControls: React.FC<MobileControlsProps> = ({
 
             <div className="flex items-center gap-3">
               <button
-                onClick={handleToggleSprint}
+                onClick={() => triggerBtnPop('sprint', handleToggleSprint)}
                 className={`w-16 h-16 rounded-full border-2 flex flex-col items-center justify-center shadow-2xl cursor-pointer transition-all active:scale-90 ${
+                  poppedBtn === 'sprint' ? 'animate-cell-pop' : ''
+                } ${
                   isSprintingMobile || stats.isSprinting
-                    ? 'bg-gradient-to-br from-red-600 to-amber-600 border-amber-300 text-white shadow-[0_0_25px_rgba(239,68,68,0.6)] animate-pulse'
+                    ? 'bg-gradient-to-br from-red-600 to-amber-600 border-amber-300 text-white shadow-[0_0_25px_rgba(239,68,68,0.6)] scale-105'
                     : 'bg-neutral-900/85 border-amber-500/50 text-amber-300'
                 }`}
               >
@@ -285,8 +319,10 @@ export const MobileControls: React.FC<MobileControlsProps> = ({
               </button>
 
               <button
-                onClick={() => engine?.interact()}
-                className="w-20 h-20 rounded-full border-2 border-amber-400 bg-gradient-to-tr from-amber-600 to-yellow-500 text-black font-black flex flex-col items-center justify-center shadow-[0_0_30px_rgba(245,158,11,0.5)] cursor-pointer active:scale-95 transition-all"
+                onClick={() => triggerBtnPop('action', () => engine?.interact())}
+                className={`w-20 h-20 rounded-full border-2 border-amber-400 bg-gradient-to-tr from-amber-600 to-yellow-500 text-black font-black flex flex-col items-center justify-center shadow-[0_0_30px_rgba(245,158,11,0.5)] cursor-pointer active:scale-95 transition-all ${
+                  poppedBtn === 'action' ? 'animate-cell-pop' : ''
+                }`}
               >
                 <Hand className="w-7 h-7" />
                 <span className="text-xs font-mono font-black tracking-wider">{t.action}</span>

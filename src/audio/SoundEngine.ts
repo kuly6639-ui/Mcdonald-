@@ -825,6 +825,78 @@ export class SoundEngine {
     osc.stop(now + 0.35);
   }
 
+  /** Layered plastic trash bag crinkle and rustle when picking up garbage bags */
+  public playTrashBagRustle() {
+    if (!this.ctx || !this.masterGain) return;
+    const now = this.ctx.currentTime;
+
+    const bursts = [
+      { offset: 0.0, dur: 0.14, freq: 2400, gain: 0.22 },
+      { offset: 0.09, dur: 0.16, freq: 3400, gain: 0.26 },
+      { offset: 0.21, dur: 0.19, freq: 2800, gain: 0.19 },
+    ];
+
+    bursts.forEach((b) => {
+      if (!this.ctx || !this.masterGain) return;
+      const start = now + b.offset;
+      const len = Math.floor(this.ctx.sampleRate * b.dur);
+      const buffer = this.ctx.createBuffer(1, len, this.ctx.sampleRate);
+      const data = buffer.getChannelData(0);
+
+      let prev = 0;
+      for (let i = 0; i < len; i++) {
+        const white = Math.random() * 2 - 1;
+        // Sharp crackle spikes characteristic of stiff polyethylene trash bag film
+        const spike = Math.random() < 0.09 ? (Math.random() * 2 - 1) * 1.9 : white * 0.55;
+        const hp = spike - prev * 0.65;
+        prev = spike;
+        const env = Math.sin((i / len) * Math.PI);
+        data[i] = hp * env;
+      }
+
+      const src = this.ctx.createBufferSource();
+      src.buffer = buffer;
+
+      const bp = this.ctx.createBiquadFilter();
+      bp.type = 'bandpass';
+      bp.frequency.setValueAtTime(b.freq, start);
+      bp.frequency.exponentialRampToValueAtTime(b.freq * 0.72, start + b.dur);
+      bp.Q.value = 1.35;
+
+      const gain = this.ctx.createGain();
+      gain.gain.setValueAtTime(0.001, start);
+      gain.gain.linearRampToValueAtTime(b.gain, start + 0.015);
+      gain.gain.exponentialRampToValueAtTime(0.001, start + b.dur);
+
+      src.connect(bp);
+      bp.connect(gain);
+      gain.connect(this.masterGain);
+      src.start(start);
+    });
+  }
+
+  /** Crisp tactile pop sound for clicking interactive UI cells */
+  public playUICellPop() {
+    this.init();
+    this.resume();
+    if (!this.ctx || !this.masterGain) return;
+    const now = this.ctx.currentTime;
+
+    const osc = this.ctx.createOscillator();
+    const gain = this.ctx.createGain();
+    osc.type = 'sine';
+    osc.frequency.setValueAtTime(520, now);
+    osc.frequency.exponentialRampToValueAtTime(980, now + 0.045);
+
+    gain.gain.setValueAtTime(0.09, now);
+    gain.gain.exponentialRampToValueAtTime(0.0008, now + 0.065);
+
+    osc.connect(gain);
+    gain.connect(this.masterGain);
+    osc.start(now);
+    osc.stop(now + 0.07);
+  }
+
   public playSwitchToggle() {
     if (!this.ctx || !this.masterGain) return;
     const now = this.ctx.currentTime;
@@ -979,6 +1051,40 @@ export class SoundEngine {
     if (!this.ctx || !this.masterGain) return;
     const now = this.ctx.currentTime;
 
+    // 0. Sharp electrical bulb/arc POP right as the lights cut out
+    const popOsc = this.ctx.createOscillator();
+    const popGain = this.ctx.createGain();
+    popOsc.type = 'triangle';
+    popOsc.frequency.setValueAtTime(1950, now);
+    popOsc.frequency.exponentialRampToValueAtTime(160, now + 0.065);
+    popGain.gain.setValueAtTime(0.55, now);
+    popGain.gain.exponentialRampToValueAtTime(0.001, now + 0.085);
+    popOsc.connect(popGain);
+    popGain.connect(this.masterGain);
+    popOsc.start(now);
+    popOsc.stop(now + 0.09);
+
+    // High-frequency spark snap transient for the bulb pop
+    const sparkLen = Math.floor(this.ctx.sampleRate * 0.06);
+    const sparkBuf = this.ctx.createBuffer(1, sparkLen, this.ctx.sampleRate);
+    const sparkData = sparkBuf.getChannelData(0);
+    for (let i = 0; i < sparkLen; i++) {
+      sparkData[i] = (Math.random() * 2 - 1) * Math.exp(-i / (sparkLen * 0.16));
+    }
+    const sparkSrc = this.ctx.createBufferSource();
+    sparkSrc.buffer = sparkBuf;
+    const sparkHp = this.ctx.createBiquadFilter();
+    sparkHp.type = 'bandpass';
+    sparkHp.frequency.value = 2400;
+    sparkHp.Q.value = 1.2;
+    const sparkGain = this.ctx.createGain();
+    sparkGain.gain.setValueAtTime(0.45, now);
+    sparkGain.gain.exponentialRampToValueAtTime(0.001, now + 0.06);
+    sparkSrc.connect(sparkHp);
+    sparkHp.connect(sparkGain);
+    sparkGain.connect(this.masterGain);
+    sparkSrc.start(now);
+
     // 1. Heavy main breaker trip clunk
     const noiseLen = Math.floor(this.ctx.sampleRate * 0.14);
     const noiseBuf = this.ctx.createBuffer(1, noiseLen, this.ctx.sampleRate);
@@ -992,33 +1098,79 @@ export class SoundEngine {
     clunkFilter.type = 'lowpass';
     clunkFilter.frequency.value = 340;
     const clunkGain = this.ctx.createGain();
-    clunkGain.gain.setValueAtTime(0.45, now);
-    clunkGain.gain.exponentialRampToValueAtTime(0.001, now + 0.16);
+    clunkGain.gain.setValueAtTime(0.42, now + 0.03);
+    clunkGain.gain.exponentialRampToValueAtTime(0.001, now + 0.19);
     clunk.connect(clunkFilter);
     clunkFilter.connect(clunkGain);
     clunkGain.connect(this.masterGain);
-    clunk.start(now);
+    clunk.start(now + 0.03);
 
     // 2. Downward power-down electrical transformer whine
     const osc = this.ctx.createOscillator();
     const oscGain = this.ctx.createGain();
     osc.type = 'sawtooth';
-    osc.frequency.setValueAtTime(240, now + 0.02);
-    osc.frequency.exponentialRampToValueAtTime(32, now + 1.35);
+    osc.frequency.setValueAtTime(240, now + 0.04);
+    osc.frequency.exponentialRampToValueAtTime(32, now + 1.38);
 
     const lp = this.ctx.createBiquadFilter();
     lp.type = 'lowpass';
-    lp.frequency.setValueAtTime(600, now);
-    lp.frequency.exponentialRampToValueAtTime(90, now + 1.35);
+    lp.frequency.setValueAtTime(600, now + 0.04);
+    lp.frequency.exponentialRampToValueAtTime(90, now + 1.38);
 
-    oscGain.gain.setValueAtTime(0.24, now + 0.02);
-    oscGain.gain.exponentialRampToValueAtTime(0.001, now + 1.4);
+    oscGain.gain.setValueAtTime(0.24, now + 0.04);
+    oscGain.gain.exponentialRampToValueAtTime(0.001, now + 1.42);
 
     osc.connect(lp);
     lp.connect(oscGain);
     oscGain.connect(this.masterGain);
-    osc.start(now + 0.02);
-    osc.stop(now + 1.45);
+    osc.start(now + 0.04);
+    osc.stop(now + 1.48);
+  }
+
+  public playToiletFlush() {
+    if (!this.ctx || !this.masterGain) return;
+    const now = this.ctx.currentTime;
+
+    // Chrome handle clink
+    const clink = this.ctx.createOscillator();
+    const clinkGain = this.ctx.createGain();
+    clink.type = 'triangle';
+    clink.frequency.setValueAtTime(1150, now);
+    clink.frequency.exponentialRampToValueAtTime(420, now + 0.06);
+    clinkGain.gain.setValueAtTime(0.16, now);
+    clinkGain.gain.exponentialRampToValueAtTime(0.001, now + 0.08);
+    clink.connect(clinkGain);
+    clinkGain.connect(this.masterGain);
+    clink.start(now);
+    clink.stop(now + 0.09);
+
+    // Swirling water flush rush (filtered noise)
+    const duration = 2.4;
+    const len = Math.floor(this.ctx.sampleRate * duration);
+    const buf = this.ctx.createBuffer(1, len, this.ctx.sampleRate);
+    const d = buf.getChannelData(0);
+    for (let i = 0; i < len; i++) {
+      d[i] = Math.random() * 2 - 1;
+    }
+    const src = this.ctx.createBufferSource();
+    src.buffer = buf;
+
+    const bp = this.ctx.createBiquadFilter();
+    bp.type = 'bandpass';
+    bp.frequency.setValueAtTime(950, now + 0.05);
+    bp.frequency.exponentialRampToValueAtTime(320, now + 1.6);
+    bp.frequency.exponentialRampToValueAtTime(620, now + 2.3);
+    bp.Q.value = 1.1;
+
+    const gain = this.ctx.createGain();
+    gain.gain.setValueAtTime(0.01, now + 0.05);
+    gain.gain.linearRampToValueAtTime(0.24, now + 0.35);
+    gain.gain.exponentialRampToValueAtTime(0.001, now + duration);
+
+    src.connect(bp);
+    bp.connect(gain);
+    gain.connect(this.masterGain);
+    src.start(now + 0.05);
   }
 
   public playPowerRestore() {

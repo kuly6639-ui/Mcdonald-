@@ -32,15 +32,20 @@ import {
   createDetailedCar,
   createMopAndBucket,
   createDriveThruOrderStation,
-  createSeatedCustomerInBooth,
   createEmployeeJohn,
   createElectricalBox,
   createWelcomingClownStatue,
   createWarehouseSupplyRack,
+  createRestroomToiletStall,
+  createRestroomSinkAndMirror,
+  createRestroomDoorSign,
+  createIndoorTrashBin,
 } from './props';
 import { InteractiveItem } from '../types/game';
 
 export interface CollisionBox {
+  id?: string;
+  enabled?: boolean;
   minX: number;
   maxX: number;
   minZ: number;
@@ -100,6 +105,9 @@ export interface RestaurantWorld {
   };
   kitchenLight: THREE.PointLight;
   employeeJohn: THREE.Group;
+  clownStatue: THREE.Group;
+  wallMeshes: THREE.Mesh[];
+  mopInBucket: THREE.Object3D | null;
 }
 
 export function buildCompactRestaurantWorld(): RestaurantWorld {
@@ -111,9 +119,18 @@ export function buildCompactRestaurantWorld(): RestaurantWorld {
   const storeLights: StoreLightEntry[] = [];
   const storeSignMaterials: StoreSignMaterialEntry[] = [];
   const cameraScreens: THREE.Mesh[] = [];
+  const wallMeshes: THREE.Mesh[] = [];
 
-  const addCollision = (minX: number, maxX: number, minZ: number, maxZ: number) => {
+  const addCollision = (
+    minX: number,
+    maxX: number,
+    minZ: number,
+    maxZ: number,
+    id?: string
+  ) => {
     collisionBoxes.push({
+      id,
+      enabled: true,
       minX: Math.min(minX, maxX),
       maxX: Math.max(minX, maxX),
       minZ: Math.min(minZ, maxZ),
@@ -178,36 +195,54 @@ export function buildCompactRestaurantWorld(): RestaurantWorld {
     mesh.position.set(x, y, z);
     mesh.castShadow = true;
     mesh.receiveShadow = true;
+    mesh.updateMatrix();
+    mesh.matrixAutoUpdate = false;
     root.add(mesh);
+    if (h >= 2.5) {
+      wallMeshes.push(mesh);
+    }
     if (hasCollision) {
       addCollision(x - w / 2 - 0.2, x + w / 2 + 0.2, z - d / 2 - 0.2, z + d / 2 + 0.2);
     }
     return mesh;
   };
 
-  // --- 1. COMPACT BUILDING (16m wide x 12m deep) ---
-  // Floor: X: -8 to 8, Z: -6 to 6
-  const floorMesh = new THREE.Mesh(new THREE.PlaneGeometry(16, 12), floorMat);
+  // --- 1. EXPANDED BUILDING (20m wide: X: -12 to +8, 12m deep: Z: -6 to +6) ---
+  // Floor: X: -12 to 8 (centered at X = -2)
+  floorTex.repeat.set(7.5, 5);
+  const floorMesh = new THREE.Mesh(new THREE.PlaneGeometry(20, 12), floorMat);
   floorMesh.rotation.x = -Math.PI / 2;
-  floorMesh.position.set(0, 0, 0);
+  floorMesh.position.set(-2, 0, 0);
   floorMesh.receiveShadow = true;
   root.add(floorMesh);
 
-  // --- 1. COMPACT BUILDING STRUCTURE & EXTERIOR ROOF ---
+  // Cool Slate Restroom Tile Overlay (X: -12 to -8, Z: 0 to 6)
+  const restroomTileMat = new THREE.MeshStandardMaterial({
+    color: 0x525e68,
+    roughness: 0.3,
+    metalness: 0.08,
+  });
+  const restroomFloor = new THREE.Mesh(new THREE.PlaneGeometry(4, 6), restroomTileMat);
+  restroomFloor.rotation.x = -Math.PI / 2;
+  restroomFloor.position.set(-10, 0.004, 3);
+  restroomFloor.receiveShadow = true;
+  root.add(restroomFloor);
+
+  // --- 1. BUILDING STRUCTURE & EXTERIOR ROOF ---
   // Interior Ceiling
-  const ceilingMesh = new THREE.Mesh(new THREE.PlaneGeometry(16, 12), ceilingMat);
+  const ceilingMesh = new THREE.Mesh(new THREE.PlaneGeometry(20, 12), ceilingMat);
   ceilingMesh.rotation.x = Math.PI / 2;
-  ceilingMesh.position.set(0, 3.2, 0);
+  ceilingMesh.position.set(-2, 3.2, 0);
   root.add(ceilingMesh);
 
-  // Exterior Tar & Gravel Roof Deck Slab (16.6m wide x 12.6m deep x 0.3m thick)
+  // Exterior Tar & Gravel Roof Deck Slab (20.6m wide x 12.6m deep)
   const roofDeckMat = new THREE.MeshStandardMaterial({
     color: 0x1c1e21,
     roughness: 0.95,
     metalness: 0.1,
   });
-  const roofDeck = new THREE.Mesh(new THREE.BoxGeometry(16.6, 0.28, 12.6), roofDeckMat);
-  roofDeck.position.set(0, 3.34, 0);
+  const roofDeck = new THREE.Mesh(new THREE.BoxGeometry(20.6, 0.28, 12.6), roofDeckMat);
+  roofDeck.position.set(-2, 3.34, 0);
   roofDeck.receiveShadow = true;
   root.add(roofDeck);
 
@@ -217,12 +252,12 @@ export function buildCompactRestaurantWorld(): RestaurantWorld {
     roughness: 0.85,
     metalness: 0.25,
   });
-  const parapetN = new THREE.Mesh(new THREE.BoxGeometry(16.6, 0.45, 0.32), parapetMat);
-  parapetN.position.set(0, 3.65, 6.16);
-  const parapetS = new THREE.Mesh(new THREE.BoxGeometry(16.6, 0.45, 0.32), parapetMat);
-  parapetS.position.set(0, 3.65, -6.16);
+  const parapetN = new THREE.Mesh(new THREE.BoxGeometry(20.6, 0.45, 0.32), parapetMat);
+  parapetN.position.set(-2, 3.65, 6.16);
+  const parapetS = new THREE.Mesh(new THREE.BoxGeometry(20.6, 0.45, 0.32), parapetMat);
+  parapetS.position.set(-2, 3.65, -6.16);
   const parapetW = new THREE.Mesh(new THREE.BoxGeometry(0.32, 0.45, 12.6), parapetMat);
-  parapetW.position.set(-8.16, 3.65, 0);
+  parapetW.position.set(-12.16, 3.65, 0);
   const parapetE = new THREE.Mesh(new THREE.BoxGeometry(0.32, 0.45, 12.6), parapetMat);
   parapetE.position.set(8.16, 3.65, 0);
   root.add(parapetN, parapetS, parapetW, parapetE);
@@ -233,8 +268,8 @@ export function buildCompactRestaurantWorld(): RestaurantWorld {
     roughness: 0.45,
     metalness: 0.3,
   });
-  const frontMansard = new THREE.Mesh(new THREE.BoxGeometry(16.8, 0.95, 0.45), mansardMat);
-  frontMansard.position.set(0, 3.9, 6.25);
+  const frontMansard = new THREE.Mesh(new THREE.BoxGeometry(20.8, 0.95, 0.45), mansardMat);
+  frontMansard.position.set(-2, 3.9, 6.25);
   frontMansard.rotation.x = 0.25; // Sloped down towards street
   root.add(frontMansard);
 
@@ -291,11 +326,11 @@ export function buildCompactRestaurantWorld(): RestaurantWorld {
   root.add(entranceSign);
 
   // Warm Golden Entrance Neon Light casting glow onto the sidewalk and doors
-  const entranceSignLight = new THREE.PointLight(0xffbe26, 2.2, 14);
+  const entranceSignLight = new THREE.PointLight(0xffbe26, 1.75, 13);
   entranceSignLight.position.set(0, 3.3, 7.2);
   root.add(entranceSignLight);
-  flickeringLights.push({ light: entranceSignLight, baseIntensity: 2.2, flickerRate: 0.05 });
-  storeLights.push({ light: entranceSignLight, baseIntensity: 2.2 });
+  flickeringLights.push({ light: entranceSignLight, baseIntensity: 1.75, flickerRate: 0.05 });
+  storeLights.push({ light: entranceSignLight, baseIntensity: 1.75 });
 
   // --- OUTDOOR McDONALD'S ADVERTISEMENTS FLANKING THE FRONT DOORS ---
   // 1. Big Mac Promotional Lightbox Poster (Left of front doors)
@@ -312,10 +347,10 @@ export function buildCompactRestaurantWorld(): RestaurantWorld {
   adBigMacFace.position.set(-2.8, 1.75, 6.23);
   root.add(adBigMacFrame, adBigMacFace);
 
-  const adLightL = new THREE.PointLight(0xfff5e0, 0.85, 4.5);
+  const adLightL = new THREE.PointLight(0xfff5e0, 0.65, 4.2);
   adLightL.position.set(-2.8, 2.5, 6.55);
   root.add(adLightL);
-  storeLights.push({ light: adLightL, baseIntensity: 0.85 });
+  storeLights.push({ light: adLightL, baseIntensity: 0.65 });
 
   // 2. World Famous Fries Promotional Lightbox Poster (Right of front doors)
   const adFriesMat = new THREE.MeshBasicMaterial({
@@ -331,10 +366,10 @@ export function buildCompactRestaurantWorld(): RestaurantWorld {
   adFriesFace.position.set(2.8, 1.75, 6.23);
   root.add(adFriesFrame, adFriesFace);
 
-  const adLightR = new THREE.PointLight(0xfff5e0, 0.85, 4.5);
+  const adLightR = new THREE.PointLight(0xfff5e0, 0.65, 4.2);
   adLightR.position.set(2.8, 2.5, 6.55);
   root.add(adLightR);
-  storeLights.push({ light: adLightR, baseIntensity: 0.85 });
+  storeLights.push({ light: adLightR, baseIntensity: 0.65 });
 
   // 3. Freestanding Promotional Sidewalk A-Frame Sign (Grimace Shake Promo)
   const aFrameGroup = new THREE.Group();
@@ -354,8 +389,8 @@ export function buildCompactRestaurantWorld(): RestaurantWorld {
   root.add(aFrameGroup);
   addCollision(-4.1, -3.1, 7.1, 8.1);
 
-  // Exterior West Wall (X = -8)
-  createWall(0.3, 3.2, 12, -8, 1.6, 0);
+  // Exterior West Wall (Expanded to X = -12 to house the Restroom wing)
+  createWall(0.3, 3.2, 12, -12, 1.6, 0);
 
   // Exterior East Wall (X = 8, with Drive-Thru Service Window)
   createWall(0.3, 3.2, 5.0, 8, 1.6, 3.5); // East front segment
@@ -377,13 +412,13 @@ export function buildCompactRestaurantWorld(): RestaurantWorld {
   dtLedge.position.set(8.25, 0.82, 0);
   root.add(dtFrame, dtGlass, dtLedge);
 
-  // Exterior South Wall (Z = -6, with doorway for rear service door at X = 4)
-  createWall(11.5, 3.2, 0.3, -2.25, 1.6, -6);
+  // Exterior South Wall (Z = -6, extending from X = -12 to +8 with doorway at X = 4)
+  createWall(15.5, 3.2, 0.3, -4.25, 1.6, -6);
   createWall(3.3, 3.2, 0.3, 6.35, 1.6, -6);
   // Opening for rear service door at X = 4, Z = -6
 
-  // Exterior North Wall (Z = 6, Front Facade with Automatic Sliding Doors at X = 0)
-  createWall(6.5, 3.2, 0.3, -4.75, 1.6, 6);
+  // Exterior North Wall (Z = 6, extending from X = -12 to +8 with Sliding Doors at X = 0)
+  createWall(10.5, 3.2, 0.3, -6.75, 1.6, 6);
   createWall(6.5, 3.2, 0.3, 4.75, 1.6, 6);
 
   // --- LARGE ARCHITECTURAL STOREFRONT WINDOWS WITH ALUMINUM FRAMES & SILLS ---
@@ -456,17 +491,17 @@ export function buildCompactRestaurantWorld(): RestaurantWorld {
   rearDoor.group.position.set(4, 0, -6.0);
   root.add(rearDoor.group);
 
-  // --- 2. OUTDOOR REAR TRASH & SERVICE AREA (South: Z = -6 to -14) ---
-  const rearPadMesh = new THREE.Mesh(new THREE.PlaneGeometry(16, 8), sidewalkMat);
+  // --- 2. OUTDOOR REAR TRASH & SERVICE AREA (South: Z = -6 to -14, X: -12 to +8) ---
+  const rearPadMesh = new THREE.Mesh(new THREE.PlaneGeometry(20, 8), sidewalkMat);
   rearPadMesh.rotation.x = -Math.PI / 2;
-  rearPadMesh.position.set(0, -0.01, -10);
+  rearPadMesh.position.set(-2, -0.01, -10);
   rearPadMesh.receiveShadow = true;
   root.add(rearPadMesh);
 
   // Rear boundary wall/fence (leave dark back-west corner service gap at Z: -11.4 to -14 for clown escape)
-  createWall(16, 2.8, 0.3, 0, 1.4, -14);
-  createWall(0.3, 2.8, 5.4, -8, 1.4, -8.7);
-  addCollision(-8.35, -7.65, -14.2, -11.2); // Invisible boundary keeping player in yard while clown can bolt through gap
+  createWall(20, 2.8, 0.3, -2, 1.4, -14);
+  createWall(0.3, 2.8, 5.4, -12, 1.4, -8.7);
+  addCollision(-12.35, -11.65, -14.2, -11.2); // Invisible boundary keeping player in yard while clown can bolt through gap
   createWall(0.3, 2.8, 8, 8, 1.4, -10);
 
   // Exterior Main Electrical Circuit Breaker Box (mounted on back wall behind the shop)
@@ -501,10 +536,10 @@ export function buildCompactRestaurantWorld(): RestaurantWorld {
   });
 
   // Outdoor Wall-Mounted Security Floodlight above rear door
-  const rearFloodlight = new THREE.PointLight(0xffeedd, 1.2, 12);
+  const rearFloodlight = new THREE.PointLight(0xffeedd, 0.85, 11);
   rearFloodlight.position.set(4, 2.8, -6.6);
   root.add(rearFloodlight);
-  storeLights.push({ light: rearFloodlight, baseIntensity: 1.2 });
+  storeLights.push({ light: rearFloodlight, baseIntensity: 0.85 });
 
   // Bundled Cardboard Recycling Box by back wall
   const cardboardBundle = createCardboardBundle();
@@ -643,6 +678,46 @@ export function buildCompactRestaurantWorld(): RestaurantWorld {
   // Divider between Security Office (Z: -3 to 0) and Freezer (Z: -6 to -3)
   createWall(7.0, 3.2, 0.3, -4.5, 1.6, -3.0);
 
+  // West Wall of Security Office / Rear Storage at X = -8 (closes off back half behind restroom)
+  createWall(0.3, 3.2, 6.0, -8.0, 1.6, -3.0);
+
+  // --- RESTROOM / TOILET WING (X: -12 to -8, Z: 0 to +6) ---
+  // Restroom South Wall separating Restroom from rear void (Z = 0, X: -12 to -8)
+  createWall(4.0, 3.2, 0.3, -10.0, 1.6, 0);
+
+  // Partition Wall between Dining Area and Restroom (X = -8, Z: 0 to 6) with Open Doorway (Z: 1.0 to 2.6)
+  createWall(0.3, 3.2, 1.0, -8.0, 1.6, 0.5);
+  createWall(0.3, 3.2, 3.4, -8.0, 1.6, 4.3);
+  createWall(0.3, 0.85, 1.6, -8.0, 2.775, 1.8, wallMat, false); // Doorway header
+
+  // Restroom Wall Sign mounted above doorway facing dining room (+X)
+  const restroomSign = createRestroomDoorSign();
+  restroomSign.position.set(-7.83, 2.58, 1.8);
+  restroomSign.rotation.y = Math.PI / 2;
+  root.add(restroomSign);
+
+  // Restroom Porcelain Toilet Stall (Northwest corner X: -11.0, Z: 4.7)
+  const toiletStall = createRestroomToiletStall();
+  toiletStall.position.set(-11.0, 0, 4.7);
+  root.add(toiletStall);
+  addCollision(-11.85, -10.15, 3.88, 4.08); // Stall partition divider
+  addCollision(-11.85, -10.75, 4.25, 5.15); // Porcelain toilet fixture
+
+  interactiveItems.push({
+    id: 'toilet_flush',
+    type: 'toilet_flush',
+    name: 'Restroom Toilet',
+    actionText: 'Flush Toilet',
+    position: [-11.1, 0.9, 4.75],
+    radius: 1.9,
+  });
+
+  // Restroom Vanity Sink, Mirror & Paper Towel Dispenser along South Wall (Z = 0.16)
+  const restroomSink = createRestroomSinkAndMirror();
+  restroomSink.position.set(-10.0, 0, 0.16);
+  root.add(restroomSink);
+  addCollision(-10.8, -9.2, 0.1, 0.78);
+
   // --- COMPACT CASHIER COUNTER (X: 3.4, Z: 0.5) ---
   const cashierCounter = createCompactCashierCounter();
   cashierCounter.position.set(3.4, 0, 0.5);
@@ -654,7 +729,7 @@ export function buildCompactRestaurantWorld(): RestaurantWorld {
   clownStatue.position.set(1.15, 0, 1.15);
   clownStatue.rotation.y = 0.28;
   root.add(clownStatue);
-  addCollision(0.75, 1.55, 0.75, 1.55);
+  addCollision(0.75, 1.55, 0.75, 1.55, 'clown_statue');
 
   // --- DRIVE-THRU ORDER STATION (Relocated to right corner of cashier counter) ---
   const driveThruStation = createDriveThruOrderStation();
@@ -698,21 +773,6 @@ export function buildCompactRestaurantWorld(): RestaurantWorld {
     booth.position.set(bx, 0, bz);
     root.add(booth);
     addCollision(bx - 0.9, bx + 0.9, bz - 0.7, bz + 0.7);
-  });
-
-  // --- SEATED CUSTOMER MODEL IN BOOTH #3 (Old Man Silas / Night Regular) ---
-  const seatedCustomer = createSeatedCustomerInBooth(2);
-  seatedCustomer.position.set(5.0, 0, 4.2);
-  root.add(seatedCustomer);
-  interactiveMeshes.set('seated_customer', seatedCustomer);
-
-  interactiveItems.push({
-    id: 'seated_customer',
-    type: 'seated_customer',
-    name: 'Silas (Night Regular)',
-    actionText: 'Talk to Customer',
-    position: [5.0, 1.1, 4.2],
-    radius: 2.2,
   });
 
   // Table Mess Tasks (Tables to clean)
@@ -844,6 +904,31 @@ export function buildCompactRestaurantWorld(): RestaurantWorld {
   mopAndBucket.position.set(-7.3, 0, -0.5);
   root.add(mopAndBucket);
   addCollision(-7.6, -7.0, -0.7, -0.3);
+  const mopInBucket: THREE.Object3D | null = mopAndBucket.userData.mopInBucket || null;
+
+  interactiveItems.push({
+    id: 'mop_tool',
+    type: 'mop_tool',
+    name: 'Janitor Mop & Bucket',
+    actionText: 'Pick Up Mop',
+    position: [-7.3, 0.7, -0.5],
+    radius: 2.0,
+  });
+
+  // Indoor Kitchen/Service Trash Bin beside food prep table (used to discard spoiled food)
+  const indoorTrashBin = createIndoorTrashBin();
+  indoorTrashBin.position.set(5.25, 0, -2.4);
+  root.add(indoorTrashBin);
+  addCollision(4.95, 5.55, -2.7, -2.1);
+
+  interactiveItems.push({
+    id: 'trash_bin',
+    type: 'trash_bin',
+    name: 'Kitchen Trash Bin',
+    actionText: 'Throw Spoiled Food in Trash',
+    position: [5.25, 0.7, -2.4],
+    radius: 2.0,
+  });
 
   // Office auxiliary light breaker switch (Night 2)
   const officeSwitch = new THREE.Mesh(
@@ -878,19 +963,34 @@ export function buildCompactRestaurantWorld(): RestaurantWorld {
     radius: 2.2,
   });
 
-  // Hallway / Office Corner Fluid Spill (Night 2) - positioned safely in corner beside mop bucket
-  const puddle = createHallwayPuddle();
-  puddle.position.set(-6.8, 0.01, -0.5);
-  root.add(puddle);
-  interactiveMeshes.set('hallway_spill', puddle);
+  // 8 Dirty Puddles across Office, Restroom Entrance, Dining Area, Cashier & Kitchen (require Mop in hand)
+  const puddleSpecs: { id: string; pos: [number, number, number]; rot: number; scale: number }[] = [
+    { id: 'hallway_spill', pos: [-6.3, 0.01, -0.8], rot: 0.2, scale: 1.0 },
+    { id: 'dirty_puddle_2', pos: [-4.1, 0.01, -0.2], rot: 1.1, scale: 0.92 },
+    { id: 'dirty_puddle_3', pos: [-7.0, 0.01, 2.0], rot: 0.7, scale: 0.95 },
+    { id: 'dirty_puddle_4', pos: [-3.0, 0.01, 3.2], rot: 2.2, scale: 1.05 },
+    { id: 'dirty_puddle_5', pos: [0.2, 0.01, 3.8], rot: 0.4, scale: 1.08 },
+    { id: 'dirty_puddle_6', pos: [3.1, 0.01, 2.2], rot: 1.6, scale: 0.96 },
+    { id: 'dirty_puddle_7', pos: [5.75, 0.01, -0.8], rot: 2.6, scale: 0.9 },
+    { id: 'dirty_puddle_8', pos: [2.0, 0.01, -3.8], rot: 0.9, scale: 1.0 },
+  ];
 
-  interactiveItems.push({
-    id: 'hallway_spill',
-    type: 'hallway_spill',
-    name: 'Unidentified Fluid Spill',
-    actionText: 'Mop & Clean Dark Liquid Puddle',
-    position: [-6.8, 0.2, -0.5],
-    radius: 1.8,
+  puddleSpecs.forEach((ps, idx) => {
+    const puddle = createHallwayPuddle();
+    puddle.position.set(ps.pos[0], ps.pos[1], ps.pos[2]);
+    puddle.rotation.y = ps.rot;
+    puddle.scale.setScalar(ps.scale);
+    root.add(puddle);
+    interactiveMeshes.set(ps.id, puddle);
+
+    interactiveItems.push({
+      id: ps.id,
+      type: 'hallway_spill',
+      name: `Dirty Puddle #${idx + 1}`,
+      actionText: 'Mop & Clean Dirty Puddle',
+      position: [ps.pos[0], 0.2, ps.pos[2]],
+      radius: 1.85,
+    });
   });
 
   // --- OUTGOING NIGHT SHIFT EMPLOYEE: JOHN (Lobby Handover NPC) ---
@@ -909,43 +1009,50 @@ export function buildCompactRestaurantWorld(): RestaurantWorld {
     radius: 2.8,
   });
 
-  // --- LIGHTING ---
-  const hemiLight = new THREE.HemisphereLight(0x223040, 0x0a0f16, 0.35);
+  // --- LIGHTING (Dimly lit late-night horror mood) ---
+  const hemiLight = new THREE.HemisphereLight(0x223040, 0x0a0f16, 0.18);
   root.add(hemiLight);
 
   // Dining lights
-  const diningLight1 = new THREE.PointLight(0xfff3d6, 0.95, 11);
+  const diningLight1 = new THREE.PointLight(0xfff3d6, 0.58, 10);
   diningLight1.position.set(-3.5, 2.9, 3.5);
   root.add(diningLight1);
-  flickeringLights.push({ light: diningLight1, baseIntensity: 0.95, flickerRate: 0.04 });
-  storeLights.push({ light: diningLight1, baseIntensity: 0.95 });
+  flickeringLights.push({ light: diningLight1, baseIntensity: 0.58, flickerRate: 0.04 });
+  storeLights.push({ light: diningLight1, baseIntensity: 0.58 });
 
-  const diningLight2 = new THREE.PointLight(0xfff3d6, 0.9, 11);
+  const diningLight2 = new THREE.PointLight(0xfff3d6, 0.55, 10);
   diningLight2.position.set(3.5, 2.9, 3.5);
   root.add(diningLight2);
-  flickeringLights.push({ light: diningLight2, baseIntensity: 0.9, flickerRate: 0.06 });
-  storeLights.push({ light: diningLight2, baseIntensity: 0.9 });
+  flickeringLights.push({ light: diningLight2, baseIntensity: 0.55, flickerRate: 0.06 });
+  storeLights.push({ light: diningLight2, baseIntensity: 0.55 });
+
+  // Restroom fluorescent light
+  const toiletLight = new THREE.PointLight(0xdff4ff, 0.48, 7.5);
+  toiletLight.position.set(-10.0, 2.9, 3.0);
+  root.add(toiletLight);
+  flickeringLights.push({ light: toiletLight, baseIntensity: 0.48, flickerRate: 0.07 });
+  storeLights.push({ light: toiletLight, baseIntensity: 0.48 });
 
   // Kitchen light
-  const kitchenLight = new THREE.PointLight(0xe8f0f5, 0.85, 10);
+  const kitchenLight = new THREE.PointLight(0xe8f0f5, 0.54, 9.5);
   kitchenLight.position.set(3.5, 2.9, -3.0);
   root.add(kitchenLight);
-  flickeringLights.push({ light: kitchenLight, baseIntensity: 0.85, flickerRate: 0.05 });
-  storeLights.push({ light: kitchenLight, baseIntensity: 0.85 });
+  flickeringLights.push({ light: kitchenLight, baseIntensity: 0.54, flickerRate: 0.05 });
+  storeLights.push({ light: kitchenLight, baseIntensity: 0.54 });
 
   // Office light
-  const officeLight = new THREE.PointLight(0xffd59e, 0.8, 8);
+  const officeLight = new THREE.PointLight(0xffd59e, 0.46, 7.5);
   officeLight.position.set(-4.5, 2.9, -1.5);
   root.add(officeLight);
-  flickeringLights.push({ light: officeLight, baseIntensity: 0.8, flickerRate: 0.02 });
-  storeLights.push({ light: officeLight, baseIntensity: 0.8 });
+  flickeringLights.push({ light: officeLight, baseIntensity: 0.46, flickerRate: 0.02 });
+  storeLights.push({ light: officeLight, baseIntensity: 0.46 });
 
-  // Freezer light
-  const freezerLight = new THREE.PointLight(0x99ddff, 0.65, 8);
+  // Back hallway / Freezer light
+  const freezerLight = new THREE.PointLight(0x99ddff, 0.36, 7.5);
   freezerLight.position.set(-4.5, 2.9, -4.5);
   root.add(freezerLight);
-  flickeringLights.push({ light: freezerLight, baseIntensity: 0.65, flickerRate: 0.02 });
-  storeLights.push({ light: freezerLight, baseIntensity: 0.65 });
+  flickeringLights.push({ light: freezerLight, baseIntensity: 0.36, flickerRate: 0.02 });
+  storeLights.push({ light: freezerLight, baseIntensity: 0.36 });
 
   // --- RAIN PARTICLE SYSTEM ---
   const rainCount = 1000;
@@ -977,8 +1084,8 @@ export function buildCompactRestaurantWorld(): RestaurantWorld {
     {
       id: 2,
       name: 'CAM 02 - CASHIER COUNTER',
-      position: new THREE.Vector3(-4.0, 2.8, 4.5),
-      lookAt: new THREE.Vector3(2.4, 1.0, 0.5),
+      position: new THREE.Vector3(-3.8, 2.75, 4.6),
+      lookAt: new THREE.Vector3(3.1, 1.15, 1.0),
     },
     {
       id: 3,
@@ -1018,5 +1125,8 @@ export function buildCompactRestaurantWorld(): RestaurantWorld {
     rearDoor,
     kitchenLight,
     employeeJohn,
+    clownStatue,
+    wallMeshes,
+    mopInBucket,
   };
 }

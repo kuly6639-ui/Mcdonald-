@@ -1,8 +1,9 @@
-import React from 'react';
+import React, { useState, useRef, useEffect } from 'react';
 import { Play, RotateCcw, Home, Globe } from 'lucide-react';
 import { GameSettings } from '../types/game';
 import { McDonaldsLogo } from './McDonaldsLogo';
 import { getTranslations, LANGUAGE_OPTIONS } from '../i18n/translations';
+import { soundEngine } from '../audio/SoundEngine';
 
 interface PauseMenuProps {
   onResume: () => void;
@@ -21,6 +22,22 @@ export const PauseMenu: React.FC<PauseMenuProps> = ({
 }) => {
   const bundle = getTranslations(settings.language);
   const t = bundle.pause;
+  const [poppedCell, setPoppedCell] = useState<string | null>(null);
+  const timerRef = useRef<number | null>(null);
+
+  useEffect(() => {
+    return () => {
+      if (timerRef.current) window.clearTimeout(timerRef.current);
+    };
+  }, []);
+
+  const triggerPop = (id: string, cb: () => void) => {
+    soundEngine.playUICellPop();
+    setPoppedCell(id);
+    if (timerRef.current) window.clearTimeout(timerRef.current);
+    timerRef.current = window.setTimeout(() => setPoppedCell(null), 240);
+    cb();
+  };
 
   return (
     <div className="absolute inset-0 z-50 bg-black/85 flex items-center justify-center p-4 font-mono select-none">
@@ -35,24 +52,30 @@ export const PauseMenu: React.FC<PauseMenuProps> = ({
         {/* Buttons */}
         <div className="space-y-3 mb-5">
           <button
-            onClick={onResume}
-            className="w-full flex items-center justify-center gap-2 py-3 bg-red-700 hover:bg-red-600 active:scale-98 text-white font-bold text-xs uppercase tracking-widest rounded border border-red-500 cursor-pointer transition-colors"
+            onClick={() => triggerPop('resume', onResume)}
+            className={`w-full flex items-center justify-center gap-2 py-3 bg-red-700 hover:bg-red-600 active:scale-95 text-white font-bold text-xs uppercase tracking-widest rounded border border-red-500 cursor-pointer transition-all ${
+              poppedCell === 'resume' ? 'animate-cell-pop' : ''
+            }`}
           >
             <Play className="w-4 h-4 fill-white" />
             {t.resume}
           </button>
 
           <button
-            onClick={onRestartNight}
-            className="w-full flex items-center justify-center gap-2 py-2.5 bg-neutral-900 hover:bg-neutral-800 text-neutral-200 font-bold text-xs uppercase tracking-widest rounded border border-neutral-700 cursor-pointer transition-colors"
+            onClick={() => triggerPop('restart', onRestartNight)}
+            className={`w-full flex items-center justify-center gap-2 py-2.5 bg-neutral-900 hover:bg-neutral-800 active:scale-95 text-neutral-200 font-bold text-xs uppercase tracking-widest rounded border border-neutral-700 cursor-pointer transition-all ${
+              poppedCell === 'restart' ? 'animate-cell-pop' : ''
+            }`}
           >
             <RotateCcw className="w-4 h-4" />
             {t.restartNight}
           </button>
 
           <button
-            onClick={onMainMenu}
-            className="w-full flex items-center justify-center gap-2 py-2.5 bg-neutral-900 hover:bg-neutral-800 text-neutral-300 font-bold text-xs uppercase tracking-widest rounded border border-neutral-700 cursor-pointer transition-colors"
+            onClick={() => triggerPop('menu', onMainMenu)}
+            className={`w-full flex items-center justify-center gap-2 py-2.5 bg-neutral-900 hover:bg-neutral-800 active:scale-95 text-neutral-300 font-bold text-xs uppercase tracking-widest rounded border border-neutral-700 cursor-pointer transition-all ${
+              poppedCell === 'menu' ? 'animate-cell-pop' : ''
+            }`}
           >
             <Home className="w-4 h-4" />
             {t.mainMenu}
@@ -69,20 +92,25 @@ export const PauseMenu: React.FC<PauseMenuProps> = ({
             <span className="text-amber-400 font-bold">{bundle.languageName}</span>
           </div>
           <div className="grid grid-cols-4 gap-1.5">
-            {LANGUAGE_OPTIONS.map((opt) => (
-              <button
-                key={opt.code}
-                onClick={() => onUpdateSettings({ language: opt.code })}
-                title={opt.label}
-                className={`py-1 rounded text-[11px] font-bold border cursor-pointer transition-colors ${
-                  (settings.language || 'en') === opt.code
-                    ? 'bg-amber-600 text-white border-amber-400'
-                    : 'bg-neutral-900 text-neutral-400 border-neutral-700 hover:bg-neutral-800'
-                }`}
-              >
-                {opt.short}
-              </button>
-            ))}
+            {LANGUAGE_OPTIONS.map((opt) => {
+              const cellId = `pause_lang_${opt.code}`;
+              return (
+                <button
+                  key={opt.code}
+                  onClick={() => triggerPop(cellId, () => onUpdateSettings({ language: opt.code }))}
+                  title={opt.label}
+                  className={`py-1 rounded text-[11px] font-bold border cursor-pointer transition-all hover:scale-105 active:scale-95 ${
+                    poppedCell === cellId ? 'animate-cell-pop' : ''
+                  } ${
+                    (settings.language || 'en') === opt.code
+                      ? 'bg-amber-600 text-white border-amber-400'
+                      : 'bg-neutral-900 text-neutral-400 border-neutral-700 hover:bg-neutral-800'
+                  }`}
+                >
+                  {opt.short}
+                </button>
+              );
+            })}
           </div>
         </div>
 

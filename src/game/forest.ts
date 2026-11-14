@@ -96,7 +96,6 @@ export function populateSurroundingForest(
     // Trunk
     const trunk = new THREE.Mesh(trunkGeo, pineTrunkMat);
     trunk.position.y = 5.5;
-    trunk.castShadow = true;
     trunk.receiveShadow = true;
     tree.add(trunk);
 
@@ -105,19 +104,16 @@ export function populateSurroundingForest(
     // Tier 1 (Lowest)
     const cone1 = new THREE.Mesh(pineConeGeo1, needleMat);
     cone1.position.y = 5.8;
-    cone1.castShadow = true;
     tree.add(cone1);
 
     // Tier 2
     const cone2 = new THREE.Mesh(pineConeGeo2, needleMat);
     cone2.position.y = 8.0;
-    cone2.castShadow = true;
     tree.add(cone2);
 
     // Tier 3 (Crown)
     const cone3 = new THREE.Mesh(pineConeGeo3, needleMat);
     cone3.position.y = 10.0;
-    cone3.castShadow = true;
     tree.add(cone3);
 
     tree.scale.setScalar(scale);
@@ -269,22 +265,22 @@ export function populateSurroundingForest(
   // Rear perimeter collision barrier to keep player safely inside the horror boundaries
   registerCollision(-50, 50, -52, -10.5);
 
-  // 2. WEST FOREST PERIMETER (Left side of restaurant & parking lot)
-  // X ranges from -15 to -52, Z ranges from -30 to 28
+  // 2. WEST FOREST PERIMETER (Left side of expanded restaurant X: -12 & parking lot)
+  // X ranges from -18.5 to -55, Z ranges from -30 to 28
   for (let col = 0; col < 6; col++) {
-    const baseX = -14.5 - col * 6.0;
+    const baseX = -18.5 - col * 6.0;
     const count = 18;
     for (let r = 0; r < count; r++) {
       const z = -28 + (r / count) * 56 + (pseudoRandom() - 0.5) * 2.8;
       const x = baseX + (pseudoRandom() - 0.5) * 2.6;
 
-      // Avoid clipping the west wall of restaurant or parking spot
-      if (x > -11.0 && z > -7.0 && z < 18.0) continue;
+      // Avoid clipping the expanded west wall (-12), rear yard, or parking spot
+      if (x > -15.5 && z > -15.5 && z < 19.0) continue;
 
       spawnTreeAt(x, z, 1.0 + col * 0.08);
     }
   }
-  registerCollision(-52, -14.5, -30, 28);
+  registerCollision(-55, -18.0, -30, 28);
 
   // 3. EAST FOREST PERIMETER (Right side of restaurant & drive-thru/road)
   // X ranges from 14.5 to 52, Z ranges from -30 to 28

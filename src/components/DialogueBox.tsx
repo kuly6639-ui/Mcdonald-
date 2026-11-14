@@ -105,34 +105,37 @@ export const DialogueBox: React.FC<DialogueBoxProps> = ({ dialogue, onAdvance, l
 
   return (
     <div
-      onClick={handleUserAction}
-      className="absolute bottom-20 left-1/2 -translate-x-1/2 z-40 max-w-md w-[88%] md:w-[420px] pointer-events-auto cursor-pointer select-none animate-in fade-in zoom-in-95 duration-200"
+      onClick={() => {
+        soundEngine.playUICellPop();
+        handleUserAction();
+      }}
+      className="absolute bottom-12 left-1/2 -translate-x-1/2 z-40 max-w-[300px] sm:max-w-[330px] w-[82%] pointer-events-auto cursor-pointer select-none animate-in fade-in zoom-in-95 duration-200"
     >
       <div
-        className={`relative p-3.5 rounded-xl border shadow-xl transition-colors ${
+        className={`relative p-2.5 rounded-lg border shadow-xl transition-colors ${
           isDuck
-            ? 'bg-neutral-950/95 border-amber-500/70 shadow-[0_0_20px_rgba(245,158,11,0.18)]'
-            : 'bg-neutral-950/95 border-sky-500/70 shadow-[0_0_20px_rgba(14,165,233,0.18)]'
+            ? 'bg-neutral-950/95 border-amber-500/70 shadow-[0_0_16px_rgba(245,158,11,0.16)]'
+            : 'bg-neutral-950/95 border-sky-500/70 shadow-[0_0_16px_rgba(14,165,233,0.16)]'
         }`}
       >
         {/* Top Speaker Bar */}
-        <div className="flex items-center justify-between pb-1.5 mb-1.5 border-b border-neutral-800">
+        <div className="flex items-center justify-between pb-1 mb-1 border-b border-neutral-800">
           <div className="flex items-center gap-1.5">
             <div
-              className={`p-1 rounded ${
+              className={`p-0.5 rounded ${
                 isDuck ? 'bg-amber-500/20 text-amber-400' : 'bg-sky-500/20 text-sky-400'
               }`}
             >
-              {isDuck ? <User className="w-3.5 h-3.5" /> : <MessageSquare className="w-3.5 h-3.5" />}
+              {isDuck ? <User className="w-3 h-3" /> : <MessageSquare className="w-3 h-3" />}
             </div>
             <span
-              className={`text-[11px] font-black tracking-wider uppercase ${
+              className={`text-[10px] font-black tracking-wider uppercase ${
                 isDuck ? 'text-amber-400' : 'text-sky-400'
               }`}
             >
               {currentLine.speaker}
               {dialogue.isMonologue && (
-                <span className="ml-1.5 text-[9px] font-normal text-neutral-400 normal-case tracking-normal">
+                <span className="ml-1 text-[8px] font-normal text-neutral-400 normal-case tracking-normal">
                   {t.internal}
                 </span>
               )}
@@ -140,17 +143,17 @@ export const DialogueBox: React.FC<DialogueBoxProps> = ({ dialogue, onAdvance, l
           </div>
 
           <span className="text-[9px] font-mono text-neutral-500">
-            {dialogue.currentIndex + 1} / {dialogue.lines.length}
+            {dialogue.currentIndex + 1}/{dialogue.lines.length}
           </span>
         </div>
 
         {/* Dialogue Text with Scrolling Typewriter */}
-        <div className="min-h-[40px] flex items-center">
-          <p className="text-xs md:text-[13px] font-mono text-neutral-100 leading-snug tracking-wide">
+        <div className="min-h-[26px] flex items-center">
+          <p className="text-[11px] sm:text-xs font-mono text-neutral-100 leading-snug tracking-wide">
             “{visibleText}
             {isTyping && (
               <span
-                className={`inline-block w-1.5 h-3.5 ml-0.5 align-middle animate-pulse ${
+                className={`inline-block w-1.5 h-3 ml-0.5 align-middle animate-pulse ${
                   isDuck ? 'bg-amber-400' : 'bg-sky-400'
                 }`}
               />
@@ -160,8 +163,8 @@ export const DialogueBox: React.FC<DialogueBoxProps> = ({ dialogue, onAdvance, l
         </div>
 
         {/* Footer Hint */}
-        <div className="mt-2 pt-1 border-t border-neutral-900 flex items-center justify-between text-[10px] font-mono text-neutral-400">
-          <span className="text-[9px] text-neutral-500">
+        <div className="mt-1.5 pt-1 border-t border-neutral-900 flex items-center justify-between text-[9px] font-mono text-neutral-400">
+          <span className="text-[8px] text-neutral-500">
             {isTyping ? t.transmitting : t.received}
           </span>
 
@@ -169,12 +172,12 @@ export const DialogueBox: React.FC<DialogueBoxProps> = ({ dialogue, onAdvance, l
             {isTyping ? (
               <span className="flex items-center gap-0.5 text-neutral-400 hover:text-amber-300 transition-colors">
                 <span>{t.skip}</span>
-                <FastForward className="w-3 h-3 inline text-amber-400" />
+                <FastForward className="w-2.5 h-2.5 inline text-amber-400" />
               </span>
             ) : (
               <span className="animate-pulse flex items-center gap-0.5 text-amber-300">
                 <span>{isLastLine ? t.close : t.next}</span>
-                <CornerDownLeft className="w-3 h-3 inline" />
+                <CornerDownLeft className="w-2.5 h-2.5 inline" />
               </span>
             )}
           </span>

@@ -1,7 +1,8 @@
-import React from 'react';
+import React, { useState, useRef, useEffect } from 'react';
 import { ObjectiveStep, PlayerStats, NightState, Language } from '../types/game';
-import { Flashlight, CheckCircle2, ChevronRight } from 'lucide-react';
+import { CheckCircle2, ChevronRight } from 'lucide-react';
 import { getTranslations } from '../i18n/translations';
+import { soundEngine } from '../audio/SoundEngine';
 
 interface HUDProps {
   stats: PlayerStats;
@@ -23,6 +24,26 @@ export const HUD: React.FC<HUDProps> = ({
   language,
 }) => {
   const t = getTranslations(language).hud;
+  const [pausePopped, setPausePopped] = useState(false);
+  const popTimerRef = useRef<number | null>(null);
+  const actionTimerRef = useRef<number | null>(null);
+
+  useEffect(() => {
+    return () => {
+      if (popTimerRef.current) window.clearTimeout(popTimerRef.current);
+      if (actionTimerRef.current) window.clearTimeout(actionTimerRef.current);
+    };
+  }, []);
+
+  const handlePauseClick = () => {
+    soundEngine.playUICellPop();
+    setPausePopped(true);
+    if (popTimerRef.current) window.clearTimeout(popTimerRef.current);
+    if (actionTimerRef.current) window.clearTimeout(actionTimerRef.current);
+    popTimerRef.current = window.setTimeout(() => setPausePopped(false), 240);
+    actionTimerRef.current = window.setTimeout(() => onPauseClick(), 130);
+  };
+
   const hourDisplay = nightState.timeHour === 0 ? 12 : nightState.timeHour;
   const minuteDisplay =
     nightState.timeMinute < 10 ? `0${nightState.timeMinute}` : nightState.timeMinute;
@@ -33,30 +54,31 @@ export const HUD: React.FC<HUDProps> = ({
       {/* Subtle CRT Vignette */}
       <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_center,transparent_45%,rgba(0,0,0,0.7)_100%)] pointer-events-none" />
 
-      {/* TOP BAR: Single Active Sequential Objective & Digital Clock */}
-      <div className="absolute top-4 left-4 right-4 flex items-start justify-between">
-        {/* SINGLE ACTIVE OBJECTIVE CONTAINER */}
-        <div className="pointer-events-auto bg-black/90 border border-neutral-700/80 rounded-lg p-3.5 max-w-md w-full shadow-2xl">
-          <div className="flex items-center justify-between text-[10px] text-amber-500 font-bold uppercase tracking-widest pb-1 border-b border-neutral-800">
-            <span className="flex items-center gap-1.5">
-              <ChevronRight className="w-3.5 h-3.5 text-amber-400" />
-              {t.nightShiftEmployee(nightState.night)}
+      {/* TOP BAR: Compact Single Active Sequential Objective & Digital Clock */}
+      <div className="absolute top-3 left-3 right-3 flex items-start justify-between gap-2">
+        {/* COMPACT SINGLE ACTIVE OBJECTIVE CONTAINER */}
+        <div className="pointer-events-auto bg-black/85 border border-neutral-700/80 rounded-lg px-2.5 py-2 max-w-[235px] sm:max-w-[275px] w-auto shadow-xl">
+          <div className="flex items-center justify-between gap-2 text-[9px] text-amber-500 font-bold uppercase tracking-wider pb-1 border-b border-neutral-800">
+            <span className="flex items-center gap-1 truncate">
+              <ChevronRight className="w-3 h-3 text-amber-400 shrink-0" />
+              <span className="truncate">{t.nightShiftEmployee(nightState.night)}</span>
             </span>
-            <span className="text-neutral-400">{t.stepLabel(nightState.currentObjectiveIndex + 1)}</span>
+            <span className="text-neutral-400 shrink-0">
+              {t.stepLabel(nightState.currentObjectiveIndex + 1)}
+            </span>
           </div>
 
-          {/* Active Task (Only ONE displayed at a time) */}
           {activeObjective ? (
-            <div className="mt-2.5 transition-all duration-300">
-              <div className="text-xs font-bold text-amber-300 uppercase tracking-wide mb-1">
+            <div className="mt-1.5">
+              <div className="text-[11px] font-bold text-amber-300 uppercase tracking-wide leading-tight mb-0.5">
                 {activeObjective.title}
               </div>
-              <p className="text-xs text-neutral-200 leading-relaxed">
+              <p className="text-[11px] text-neutral-200 leading-snug">
                 {activeObjective.description}
               </p>
             </div>
           ) : (
-            <div className="mt-2 text-xs text-emerald-400 font-bold">
+            <div className="mt-1.5 text-[11px] text-emerald-400 font-bold">
               {t.allDutiesDone}
             </div>
           )}
@@ -64,25 +86,29 @@ export const HUD: React.FC<HUDProps> = ({
 
         {/* OBJECTIVE COMPLETED BANNER POPUP */}
         {objectiveCompletedNotice && (
-          <div className="bg-emerald-950/95 border-2 border-emerald-500 text-emerald-200 text-xs font-bold px-6 py-2.5 rounded-lg shadow-[0_0_25px_rgba(16,185,129,0.4)] flex items-center gap-2 animate-bounce">
+          <div className="bg-emerald-950/95 border-2 border-emerald-500 text-emerald-200 text-xs font-bold px-4 py-2 rounded-lg shadow-[0_0_25px_rgba(16,185,129,0.4)] flex items-center gap-2">
             <CheckCircle2 className="w-4 h-4 text-emerald-400 shrink-0" />
             <span className="tracking-wide uppercase font-black">{objectiveCompletedNotice}</span>
           </div>
         )}
 
         {/* Top Right: Digital Shift Clock & Pause */}
-        <div className="flex items-center gap-3">
-          <div className="bg-black/85 border border-neutral-700/80 rounded-lg px-4 py-2 text-right shadow-2xl">
-            <div className="text-[10px] text-neutral-400 uppercase tracking-widest">{t.shiftClock}</div>
-            <div className="text-xl font-black text-amber-400 tabular-nums tracking-wider">{timeString}</div>
-            <div className="text-[10px] text-neutral-400 uppercase tracking-wider">
+        <div className="flex items-center gap-2.5 shrink-0">
+          <div className="bg-black/85 border border-neutral-700/80 rounded-lg px-3.5 py-1.5 text-right shadow-xl">
+            <div className="text-[9px] text-neutral-400 uppercase tracking-widest">{t.shiftClock}</div>
+            <div className="text-lg font-black text-amber-400 tabular-nums tracking-wider leading-tight">
+              {timeString}
+            </div>
+            <div className="text-[9px] text-neutral-400 uppercase tracking-wider">
               {nightState.timeHour >= 6 ? t.dawnLabel : t.closingLabel}
             </div>
           </div>
 
           <button
-            onClick={onPauseClick}
-            className="pointer-events-auto bg-neutral-900/90 hover:bg-neutral-800 text-neutral-300 border border-neutral-700 text-xs px-3.5 py-2.5 rounded-lg font-bold cursor-pointer transition-colors shadow-lg"
+            onClick={handlePauseClick}
+            className={`pointer-events-auto bg-neutral-900/90 hover:bg-neutral-800 active:scale-95 text-neutral-300 border border-neutral-700 text-xs px-3 py-2 rounded-lg font-bold cursor-pointer transition-all shadow-lg whitespace-nowrap ${
+              pausePopped ? 'animate-cell-pop' : ''
+            }`}
           >
             {t.escPause}
           </button>
@@ -94,66 +120,35 @@ export const HUD: React.FC<HUDProps> = ({
         <div className="w-1.5 h-1.5 rounded-full bg-white/70 shadow-[0_0_4px_white]" />
 
         {interactionPrompt && (
-          <div className="mt-4 px-4 py-2 bg-black/95 border border-amber-400 text-amber-300 font-bold text-xs tracking-wider rounded-md shadow-2xl animate-pulse">
+          <div className="mt-4 px-3.5 py-1.5 bg-black/95 border border-amber-400 text-amber-300 font-bold text-xs tracking-wider rounded-md shadow-2xl">
             {interactionPrompt}
           </div>
         )}
       </div>
 
-      {/* BOTTOM STATUS BAR (Stamina & Unlimited Flashlight & Carried Items) */}
-      <div className="absolute bottom-4 left-4 right-4 flex items-end justify-between">
-        {/* Left: Stamina */}
-        <div className="bg-black/85 border border-neutral-700/80 rounded-lg p-3 min-w-[210px] shadow-2xl">
-          <div className="flex justify-between items-center text-[10px] uppercase text-neutral-400 mb-1">
-            <span>{t.stamina}</span>
-            <span className="tabular-nums text-neutral-300">{Math.round(stats.stamina)}%</span>
-          </div>
-          <div className="w-full bg-neutral-800 h-2 rounded overflow-hidden">
-            <div
-              className={`h-full transition-all duration-75 ${
-                stats.stamina < 25 ? 'bg-red-600' : stats.stamina < 60 ? 'bg-amber-500' : 'bg-emerald-500'
-              }`}
-              style={{ width: `${stats.stamina}%` }}
-            />
-          </div>
-
-          <div className="mt-2 flex items-center justify-between text-[10px]">
-            <span className="text-neutral-400">{t.stance}</span>
-            <span className={`font-bold ${stats.isCrouched ? 'text-amber-400' : 'text-neutral-300'}`}>
-              {stats.isCrouched ? t.crouched : t.standing}
-            </span>
-          </div>
-        </div>
-
-        {/* Center: Carried Inventory Item indicator */}
-        {(stats.hasTrashInHand || stats.hasCardboardInHand || stats.hasFoodInHand) && (
-          <div className="bg-amber-950/90 border border-amber-500 text-amber-200 px-4 py-1.5 rounded text-xs font-bold tracking-wider uppercase animate-pulse">
+      {/* BOTTOM CENTER: Carried Inventory Item indicator */}
+      {(stats.hasTrashInHand || stats.hasCardboardInHand || stats.hasFoodInHand || stats.hasMopInHand) && (
+        <div className="absolute bottom-4 left-4 right-4 flex items-end justify-center pointer-events-none">
+          <div
+            className={`px-4 py-1.5 rounded text-xs font-bold tracking-wider uppercase shadow-lg text-center border ${
+              stats.hasFoodInHand && stats.mustDiscardFood
+                ? 'bg-red-950/90 border-red-500 text-red-200'
+                : 'bg-amber-950/90 border-amber-500 text-amber-200'
+            }`}
+          >
             {stats.hasFoodInHand
-              ? t.carryingFood
+              ? stats.mustDiscardFood
+                ? t.carryingSpoiledFood
+                : t.carryingFood
+              : stats.hasMopInHand
+              ? t.carryingMop
               : stats.hasTrashInHand
               ? t.carryingTrash
               : t.carryingCardboard}
           </div>
-        )}
-
-        {/* Right: Flashlight Status */}
-        <div className="bg-black/85 border border-neutral-700/80 rounded-lg p-3 min-w-[210px] shadow-2xl text-right">
-          <div className="flex justify-between items-center text-[10px] uppercase text-neutral-400 mb-1">
-            <span className="flex items-center gap-1.5">
-              <Flashlight className="w-3.5 h-3.5 text-amber-400" />
-              {t.heavyWorklight}
-            </span>
-            <span className="text-emerald-400 font-bold">{t.unlimited}</span>
-          </div>
-
-          <div className="mt-2 flex items-center justify-between text-[10px]">
-            <span className="text-neutral-400">{t.status}</span>
-            <span className={`font-bold ${stats.flashlightOn ? 'text-emerald-400' : 'text-neutral-500'}`}>
-              {stats.flashlightOn ? t.beamActive : t.beamOff}
-            </span>
-          </div>
         </div>
-      </div>
+      )}
     </div>
   );
 };
+

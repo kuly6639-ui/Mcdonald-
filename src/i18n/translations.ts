@@ -31,8 +31,6 @@ export interface TranslationBundle {
     playNight2: string;
     locked: string;
     somethingWrong: string;
-    night3Hunt: string;
-    fullGameTeaser: string;
     bgmLabel: string;
     unmute: string;
     musicOn: string;
@@ -75,6 +73,8 @@ export interface TranslationBundle {
     crouched: string;
     standing: string;
     carryingFood: string;
+    carryingSpoiledFood: string;
+    carryingMop: string;
     carryingTrash: string;
     carryingCardboard: string;
     heavyWorklight: string;
@@ -134,12 +134,12 @@ export interface TranslationBundle {
     night1Sub: string;
     beginNight2: string;
     mainMenu: string;
-    teaser1: string;
-    teaser2: string;
-    demoComplete: string;
-    nightsSurvived: string;
-    night3Coming: string;
-    teaserDesc: string;
+    night2Over: string;
+    theSecondShift: string;
+    night2Story1: string;
+    night2Story2: string;
+    night2Sub: string;
+    playNight2Again: string;
     playAgain: string;
   };
   engine: {
@@ -147,6 +147,7 @@ export interface TranslationBundle {
       talk_to_john: { title: string; description: string };
       clock_in: { title: string; description: string };
       clean_tables: { title: string; description: (count: number) => string };
+      mop_puddles: { title: string; description: (count: number) => string };
       collect_trash: { title: string; description: (count: number) => string };
       dump_trash: { title: string; description: string };
       kitchen_fryers: { title: string; description: string };
@@ -154,7 +155,7 @@ export interface TranslationBundle {
       finish_shift: { title: string; description: string; ready6am: string };
       n2_clock_in: { title: string; description: string };
       n2_breaker: { title: string; description: string };
-      n2_mop_puddle: { title: string; description: string };
+      n2_mop_puddle: { title: string; description: (count: number) => string };
       n2_cardboard: { title: string; description: string; carryDesc: string };
       n2_drive_thru: { title: string; description: string };
       n2_cctv_final: { title: string; description: string };
@@ -168,6 +169,9 @@ export interface TranslationBundle {
       serveDesc: (customerName: string) => string;
       powerOutageTitle: string;
       powerOutageDesc: string;
+      powerOutageWithFoodDesc: string;
+      discardFoodTitle: string;
+      discardFoodDesc: string;
     };
     notices: {
       completed: (title: string) => string;
@@ -179,8 +183,13 @@ export interface TranslationBundle {
       noPendingOrders: string;
       orderReady: string;
       shiftEnds6am: (timeStr: string) => string;
+      shiftSkipped6am: string;
       powerOutage: string;
       powerRestored: string;
+      mopPickedUp: string;
+      mopRequired: string;
+      foodDiscarded: string;
+      discardFoodFirst: string;
     };
     prompts: {
       talkToJohn: string;
@@ -191,17 +200,26 @@ export interface TranslationBundle {
       cookingKitchen: (sec: number) => string;
       cookKitchen: string;
       inspectElectricalBox: string;
+      throwFoodInTrash: string;
+      pickUpMop: string;
+      mopPuddle: string;
+      mopRequiredPrompt: string;
       actions: Record<string, string>;
     };
     openingMonologueNight1: DialogueLine[];
     openingMonologueNight2: DialogueLine[];
     johnDialogue: DialogueLine[];
+    johnDialogueNight2: DialogueLine[];
     powerOutageStartDialogue: DialogueLine[];
+    customerPowerOutageLeave: string;
     powerRestoredDialogue: DialogueLine[];
     warehouseClownReactionDialogue: DialogueLine[];
     thankYouDialogue: (customerName: string, price: string) => DialogueLine[];
+    grumpyDeliveredDialogue: (customerName: string, price: string) => DialogueLine[];
+    friendsSeatedDialogue: (customerName: string, price: string) => DialogueLine[];
     waitingOrderDialogue: (customerName: string, itemText: string) => DialogueLine[];
     customers: CustomerArchetypeTranslation[];
+    customersNight2: CustomerArchetypeTranslation[];
   };
 }
 
@@ -245,8 +263,6 @@ export const TRANSLATIONS: Record<Language, TranslationBundle> = {
       playNight2: 'PLAY NIGHT 2',
       locked: '(LOCKED)',
       somethingWrong: 'Something is Wrong',
-      night3Hunt: 'NIGHT 3: THE HUNT',
-      fullGameTeaser: 'FULL GAME TEASER',
       bgmLabel: 'BGM: Cold Glass Passage',
       unmute: 'UNMUTE',
       musicOn: 'MUSIC ON',
@@ -255,13 +271,13 @@ export const TRANSLATIONS: Record<Language, TranslationBundle> = {
       credits: 'Credits',
       storyRuleLabel: 'Story Rule:',
       storyRule:
-        'During Nights 1 & 2, the mascot is observing and not hunting. Experience the calm before the storm.',
+        'Work both 6-hour overnight shifts until 6:00 AM, uncover the rumors of the missing former employee, and stay alert when someone watches from the shadows.',
       shiftMemo: 'Shift Memo',
       employeeRoutine: 'Employee Routine',
       memoItems: [
         'Night 1: Talk to John to take over the shift, clock in, clean tables, collect trash, shutdown kitchen fryers, and serve late guests.',
-        'Night 2: Flip maintenance breaker, mop hallway, recycle cardboard, check drive-thru station and CCTV.',
-        'Flashlight has unlimited power; maintain situational awareness.',
+        'Night 2: Talk to John about the missing staff member, flip maintenance breaker, mop hallway, recycle cardboard, check drive-thru, CCTV, and serve guests.',
+        'Flashlight has unlimited power; check the new restroom west of the dining lobby if needed.',
         'If kitchen lights flicker while cooking, finish the 5-second prep calmly.',
       ],
       settingsTitle: 'Game Settings',
@@ -278,7 +294,7 @@ export const TRANSLATIONS: Record<Language, TranslationBundle> = {
       controlsList: [
         { key: 'W, A, S, D', desc: 'Walk / Move' },
         { key: 'Mouse Look', desc: 'Aim & Pan Camera' },
-        { key: 'Shift', desc: 'Sprint (Consumes stamina)' },
+        { key: 'Shift', desc: 'Sprint / Run' },
         { key: 'C', desc: 'Crouch' },
         { key: 'F', desc: 'Toggle Flashlight (Unlimited)' },
         { key: 'E', desc: 'Talk to John / Customers / Complete Tasks' },
@@ -287,12 +303,12 @@ export const TRANSLATIONS: Record<Language, TranslationBundle> = {
       understood: 'Understood',
       creditsTitle: 'Credits & Lore',
       creditsIntro:
-        "McDonald's Nightfall — DEMO is a 2-night slow-burn mascot horror prologue.",
+        "McDonald's Nightfall is a 2-night slow-burn mascot horror experience.",
       creditsDetails: [
         { label: 'Theme', value: 'Late-night fast-food observation & psychological dread' },
-        { label: 'Format', value: '2 Playable Nights + Night 3 Teaser Ending' },
+        { label: 'Format', value: '2 Full Playable Nights (12:00 AM – 6:00 AM)' },
         { label: 'Engine', value: 'Three.js 3D WebGL & Web Audio API' },
-        { label: 'Story Direction', value: 'The mascot watches and creeps, preparing for Night 3.' },
+        { label: 'Story Direction', value: 'Uncover what happened to the missing former night-shift worker.' },
       ],
       returnMenu: 'Return to Menu',
     },
@@ -310,6 +326,9 @@ export const TRANSLATIONS: Record<Language, TranslationBundle> = {
       standing: '[C] STANDING',
       carryingFood:
         '🍗 Carrying Prepared Meal Tray (Fried Chicken Bucket & Hot McCafé Coffee) — Deliver to Guest at Counter',
+      carryingSpoiledFood:
+        '⚠️ Spoiled Food Tray in Hand (Power went out!) — Throw it into the Trash Bin or Dumpster',
+      carryingMop: '🧹 Holding Commercial Mop — Clean all 8 dirty puddles on the floor',
       carryingTrash: '📦 Carrying Dining Trash Bags (Take to rear dumpster)',
       carryingCardboard: '📦 Carrying Cardboard Bundle (Take to rear dumpster)',
       heavyWorklight: 'Heavy Worklight [F]',
@@ -377,13 +396,14 @@ export const TRANSLATIONS: Record<Language, TranslationBundle> = {
       night1Sub: "He didn't chase Duck. He didn't move. He just watched.",
       beginNight2: 'Begin Night 2: Something is Wrong',
       mainMenu: 'Main Menu',
-      teaser1: '“YOU THOUGHT HE WAS JUST WATCHING.”',
-      teaser2: '“HE WAS WAITING.”',
-      demoComplete: 'DEMO COMPLETE',
-      nightsSurvived: '2 NIGHTS SURVIVED',
-      night3Coming: 'NIGHT 3: THE HUNT IS COMING…',
-      teaserDesc:
-        'During Nights 1 and 2, he stood by and observed every routine. On Night 3, the doors lock from the outside, the power cuts completely, and the real hunt begins in the full game.',
+      night2Over: 'Overnight Shift 2 Finished',
+      theSecondShift: 'THE SECOND SHIFT',
+      night2Story1:
+        'At 6:00 AM, Duck handed off the morning ledger and hurried out past the empty booths toward the damp parking lot.',
+      night2Story2:
+        'Yet he could not shake the face peeking through the front glass door during the final order—or the whispers about the former employee who never clocked out.',
+      night2Sub: 'By the time Duck turned back toward the counter, the figure by the door was already gone.',
+      playNight2Again: 'Play Night 2 Again',
       playAgain: 'Play Night 1 Again',
     },
     engine: {
@@ -399,6 +419,11 @@ export const TRANSLATIONS: Record<Language, TranslationBundle> = {
         clean_tables: {
           title: 'CLEAN TABLES',
           description: (count) => `Wipe down and sanitize the dirty dining tables (${count}/2).`,
+        },
+        mop_puddles: {
+          title: 'MOP DIRTY PUDDLES',
+          description: (count) =>
+            `Pick up the mop from the Security Office corner and mop all dirty puddles (${count}/8).`,
         },
         collect_trash: {
           title: 'COLLECT TRASH',
@@ -430,8 +455,9 @@ export const TRANSLATIONS: Record<Language, TranslationBundle> = {
           description: 'Flip the auxiliary maintenance breaker in the security office.',
         },
         n2_mop_puddle: {
-          title: 'MOP HALLWAY',
-          description: 'Mop up the mysterious dark fluid puddle in the back hallway.',
+          title: 'MOP DIRTY PUDDLES',
+          description: (count) =>
+            `Grab the mop from the Security Office corner and clean all 8 dirty puddles (${count}/8).`,
         },
         n2_cardboard: {
           title: 'RECYCLE CARDBOARD',
@@ -457,6 +483,11 @@ export const TRANSLATIONS: Record<Language, TranslationBundle> = {
         serveDesc: (name) => `Deliver the hot meal tray in hand to ${name} at the front counter.`,
         powerOutageTitle: 'CHECK ELECTRICAL BOX (3:00 AM)',
         powerOutageDesc: 'The power suddenly went out! Go outside behind the back of the store and inspect the electrical box.',
+        powerOutageWithFoodDesc:
+          'Power went out and the guest walked out! Check the electrical box out back and throw the food in the trash.',
+        discardFoodTitle: 'THROW FOOD IN TRASH',
+        discardFoodDesc:
+          'The customer left during the power outage. Throw the leftover food in your hands into the kitchen trash bin or dumpster.',
       },
       notices: {
         completed: (title) => `COMPLETED: ${title}`,
@@ -469,8 +500,13 @@ export const TRANSLATIONS: Record<Language, TranslationBundle> = {
         orderReady: 'ORDER READY! Delivered to your hands. Return to front counter.',
         shiftEnds6am: (timeStr) =>
           `Shift ends strictly at 6:00 AM. Current time is ${timeStr}. Please attend to customer orders until dawn.`,
+        shiftSkipped6am: 'LAST GUEST SERVED — SHIFT CLOCK SKIPPED TO 6:00 AM!',
         powerOutage: '⚡ 3:00 AM POWER OUTAGE — CHECK THE ELECTRICAL BOX BEHIND THE STORE!',
         powerRestored: '⚡ POWER RESTORED — CIRCUIT BREAKER RESET',
+        mopPickedUp: '🧹 PICKED UP MOP — CLEAN ALL 8 DIRTY PUDDLES',
+        mopRequired: '⚠️ YOU NEED THE MOP FIRST! Grab it from the Security Office corner.',
+        foodDiscarded: '🗑️ LEFTOVER FOOD THROWN IN THE TRASH',
+        discardFoodFirst: '⚠️ THROW THE SPOILED FOOD IN YOUR HANDS INTO THE TRASH FIRST!',
       },
       prompts: {
         talkToJohn: '[E] Talk to John (Take Over Shift)',
@@ -481,6 +517,10 @@ export const TRANSLATIONS: Record<Language, TranslationBundle> = {
         cookingKitchen: (sec) => `⏳ Cooking Food in Kitchen (${sec}s remaining)...`,
         cookKitchen: '[E] Cook Food in Kitchen & Brew Coffee (5s)',
         inspectElectricalBox: '[E] Inspect Electrical Box & Flip Circuit Breaker',
+        throwFoodInTrash: '[E] Throw Food in Trash',
+        pickUpMop: '[E] Pick Up Mop',
+        mopPuddle: '[E] Mop Dirty Puddle',
+        mopRequiredPrompt: '⚠️ Pick up Mop in Security Office corner first!',
         actions: {
           employee_john: 'Talk to John (Take Over Shift)',
           time_clock: 'Punch Employee Time Clock',
@@ -489,14 +529,17 @@ export const TRANSLATIONS: Record<Language, TranslationBundle> = {
           trash_bag_1: 'Pick Up Dining Trash Bag',
           trash_bag_2: 'Pick Up Dining Trash Bag',
           outdoor_dumpster: 'Dump Trash into Outdoor Dumpster',
+          trash_bin: 'Throw Food in Trash',
           kitchen_switch: 'Shut Down Kitchen Fryers & Heating',
           office_switch: 'Turn On Auxiliary Hallway Lights',
           cctv_monitor: 'Access Security CCTV Monitor',
           front_door_exit: 'Clock Out & Leave Through Front Door',
-          hallway_spill: 'Mop & Clean Dark Liquid Puddle',
+          mop_tool: 'Pick Up Mop',
+          hallway_spill: 'Mop & Clean Dirty Puddle',
           cardboard_bundle: 'Pick Up Bundled Cardboard Stack',
           drive_thru_order_station: 'Check Drive-Thru Headset & Terminal',
           electrical_box: 'Inspect Electrical Box & Restore Power',
+          toilet_flush: 'Flush Toilet',
         },
       },
       openingMonologueNight1: [
@@ -506,8 +549,7 @@ export const TRANSLATIONS: Record<Language, TranslationBundle> = {
       ],
       openingMonologueNight2: [
         { speaker: 'Duck', text: 'Back for Night 2… The parking lot and forest feel unusually silent tonight.' },
-        { speaker: 'Duck', text: 'Head inside through the doors, finish the checklist, and survive until 6:00 AM.' },
-        { speaker: 'Duck', text: "Let's get in." },
+        { speaker: 'Duck', text: "John is still inside by the counter. Let's head through the sliding doors and talk to him." },
       ],
       johnDialogue: [
         { speaker: 'John', text: 'Yo! New employee! Are you new here?' },
@@ -520,12 +562,23 @@ export const TRANSLATIONS: Record<Language, TranslationBundle> = {
         { speaker: 'John', text: "One more warning... if the kitchen lights start flickering while you're cooking, don't panic. And don't stare too long at the clown mascot. See ya at 6 AM!" },
         { speaker: 'Duck', text: "Weird guy... Alright, let's punch the time clock and get through this shift." },
       ],
+      johnDialogueNight2: [
+        { speaker: 'John', text: 'Oh, hey Duck. Glad you actually came back for Night 2.' },
+        { speaker: 'Duck', text: 'Yeah, well, bills do not pay themselves. Everything quiet tonight?' },
+        { speaker: 'John', text: 'Mostly... except management just posted another notice in the back. Still zero word about the former night-shift guy who vanished last week.' },
+        { speaker: 'Duck', text: 'The guy I replaced? Wait—he went missing right here?' },
+        { speaker: 'John', text: 'Police found his car near the edge of the trees with his uniform cap still on the dash. Boss told us not to bring it up in front of customers, though everyone around town is talking.' },
+        { speaker: 'John', text: 'Anyway, same drill tonight: punch in, flip the office breaker, mop that black puddle in the hallway, haul out the cardboard, test the drive-thru station, check CCTV, and serve guests until 6:00 AM.' },
+        { speaker: 'Duck', text: 'Great... a missing former coworker and another midnight shift. See you at dawn, John.' },
+      ],
       powerOutageStartDialogue: [
         {
           speaker: 'Duck',
           text: "WTF!, what's going on? Did the boss not pay the electricity bill? I don't know I'll go to the back of the store and check.",
         },
       ],
+      customerPowerOutageLeave:
+        "Oh my god, what the hell? This won't do, I'm not buying food anymore, I'm leaving.",
       powerRestoredDialogue: [
         {
           speaker: 'Duck',
@@ -546,6 +599,30 @@ export const TRANSLATIONS: Record<Language, TranslationBundle> = {
         {
           speaker: 'Duck',
           text: 'Thank you! Enjoy your meal and stay safe out there tonight.',
+        },
+      ],
+      grumpyDeliveredDialogue: (customerName, price) => [
+        {
+          speaker: customerName,
+          text: `About time! Took you forever back there. Here's $${price}—don't expect a tip or a smile at 3 in the morning.`,
+        },
+        {
+          speaker: 'Duck',
+          text: '...Right. Not even a thank you. Have a nice night anyway, sir.',
+        },
+      ],
+      friendsSeatedDialogue: (customerName, price) => [
+        {
+          speaker: customerName,
+          text: `Awesome, looks piping hot! Here's $${price}, Duck. Thanks a ton!`,
+        },
+        {
+          speaker: 'Leo',
+          text: "Let's grab that empty booth in the corner and eat here for a bit before heading home!",
+        },
+        {
+          speaker: 'Duck',
+          text: 'Make yourselves comfortable! Just watch out for the mist outside when you head out.',
         },
       ],
       waitingOrderDialogue: (customerName, itemText) => [
@@ -613,6 +690,164 @@ export const TRANSLATIONS: Record<Language, TranslationBundle> = {
             { speaker: 'Duck', text: "...I just took the trash out back ten minutes ago. I'll keep my guard up. Let me cook your meal right now." },
           ],
         },
+        {
+          name: 'Maya Lin',
+          title: 'Insomniac College Student',
+          orderItem: 'Iced McCafé Mocha & Spicy Crispy Chicken Sandwich',
+          dialogue: [
+            { speaker: 'Maya Lin', text: 'Hey... tell me you guys still have espresso shots running? Cramming a thesis paper at 2 AM was a terrible idea.' },
+            { speaker: 'Duck', text: 'McCafé machine is hot and loud. Rough night for finals?' },
+            { speaker: 'Maya Lin', text: 'Worse—my headlights clipped something tall by the pine trees turning into the lot, then my phone dropped straight to zero bars.' },
+            { speaker: 'Duck', text: 'Lots of wildlife near this clearing. Deer, raccoons... hopefully not clowns.' },
+            { speaker: 'Maya Lin', text: 'Wait, what? Anyway, let me get an iced mocha and a spicy crispy chicken sandwich to keep me awake.' },
+            { speaker: 'Duck', text: "On it! I'll fry the chicken and pour the espresso in the kitchen." },
+          ],
+        },
+        {
+          name: 'EMT Carter',
+          title: 'Night-Shift Paramedic',
+          orderItem: 'Fried Chicken Bucket & Double Espresso',
+          dialogue: [
+            { speaker: 'EMT Carter', text: 'Quiet night at Station 4, figured I would swing by on patrol. Just you holding down the register?' },
+            { speaker: 'Duck', text: 'Just me and the grease traps until 6 AM. Anything crazy on the ambulance radio tonight?' },
+            { speaker: 'EMT Carter', text: 'Three false 911 static calls pinging from payphones along this highway stretch—nobody talking, just breathing and a carnival horn.' },
+            { speaker: 'Duck', text: 'Okay, that definitely beats screaming customers for creep factor.' },
+            { speaker: 'EMT Carter', text: 'Keep your doors well lit, kid. Can I grab a crispy fried chicken bucket and a double coffee?' },
+            { speaker: 'Duck', text: 'Coming right up! Five seconds at the kitchen station.' },
+          ],
+        },
+        {
+          name: 'Clara Novak',
+          title: 'Lost Highway Traveler',
+          orderItem: 'Hot Caramel Latte & Apple Pie',
+          dialogue: [
+            { speaker: 'Clara Novak', text: 'Excuse me... my GPS completely lost satellite lock ten miles back. Is this still Highway 9?' },
+            { speaker: 'Duck', text: 'Yes ma’am, dead stretch of Highway 9. The forest blocks most signals out here at night.' },
+            { speaker: 'Clara Novak', text: 'I swear I drove past your red sign twice already, like the road loops back into these woods.' },
+            { speaker: 'Duck', text: 'Deep fog plays tricks on drivers around here. Want something warm before getting back on the road?' },
+            { speaker: 'Clara Novak', text: 'A hot caramel latte and a warm apple pie sounds wonderful. Thank you.' },
+            { speaker: 'Duck', text: "Brewing it right now—I'll bring your tray out shortly." },
+          ],
+        },
+      ],
+      customersNight2: [
+        {
+          name: 'Nurse Ramirez',
+          title: 'Exhausted Night-Shift Worker',
+          orderItem: 'Hot McCafé Coffee & Crispy Chicken Bucket',
+          dialogue: [
+            { speaker: 'Nurse Ramirez', text: "Evening, kid. Wait—you're covering nights alone now? I kept expecting to see Marcus behind the counter." },
+            { speaker: 'Duck', text: "Marcus? That's the former night-shift guy everyone's talking about, right?" },
+            { speaker: 'Nurse Ramirez', text: 'Yeah. He came into the ER two weeks ago looking pale, swearing somebody kept tapping on the restroom mirror after 3 AM. Then he just vanished.' },
+            { speaker: 'Duck', text: 'Nobody told me about that when I signed the paperwork...' },
+            { speaker: 'Nurse Ramirez', text: 'Be careful tonight. Can I get a hot McCafé coffee and crispy chicken? I need to stay awake on the drive home.' },
+            { speaker: 'Duck', text: "Right away. I'll cook it in the kitchen now." },
+          ],
+        },
+        {
+          name: 'Tyler',
+          title: 'Jittery Teenager',
+          orderItem: '10-Piece McNuggets & Large Fries',
+          dialogue: [
+            { speaker: 'Tyler', text: 'Bro, did you hear the local news on the radio? They are STILL searching the woods behind this McDonald’s for the missing night employee!' },
+            { speaker: 'Duck', text: 'Yeah, John just mentioned his uniform cap turned up near the trees.' },
+            { speaker: 'Tyler', text: "My cousin used to hang out here late. He swears the missing guy saw a tall red-haired clown outside the glass doors right before his shift ended." },
+            { speaker: 'Duck', text: 'Okay, stop trying to freak me out while I am stuck here until 6 AM. What are you ordering?' },
+            { speaker: 'Tyler', text: '10-piece McNuggets and large fries to go—I am not staying inside for one extra second!' },
+            { speaker: 'Duck', text: 'Got it. Five seconds in the kitchen, hang tight.' },
+          ],
+        },
+        {
+          name: 'Deputy Vance',
+          title: 'Late-Night Patrol Officer',
+          orderItem: 'Black Coffee & Quarter Pounder Meal',
+          dialogue: [
+            { speaker: 'Deputy Vance', text: "Slow patrol tonight. Mind if I grab a black coffee? Checking on this place since it's the last spot Marcus clocked into before he disappeared." },
+            { speaker: 'Duck', text: 'You guys still do not have any leads on what happened to him?' },
+            { speaker: 'Deputy Vance', text: 'The security logs from his final night were corrupted after 3 AM, and the manager refused to hand over the spare keys to the woods trail. Stay sharp.' },
+            { speaker: 'Duck', text: "I'll keep my eyes on the doors and cameras. Want anything else with the coffee?" },
+            { speaker: 'Deputy Vance', text: 'Throw in a Quarter Pounder meal. Keep watching that front entrance, alright?' },
+            { speaker: 'Duck', text: 'On it. Heading back to the kitchen to prepare your meal.' },
+          ],
+        },
+        {
+          name: 'Big Ray',
+          title: 'Highway Long-Hauler',
+          orderItem: 'Fried Chicken Bucket & Hot Coffee',
+          dialogue: [
+            { speaker: 'Big Ray', text: 'Still holding down the fort, kid? Whole truck stop down the highway is whispering about that missing worker from this branch.' },
+            { speaker: 'Duck', text: 'Seems like every customer tonight knew him better than management did.' },
+            { speaker: 'Big Ray', text: "I talked to him two days before he vanished. He said someone in a yellow suit kept staring through the sliding doors during his last order." },
+            { speaker: 'Duck', text: '...Great. Anything I can cook up for your haul?' },
+            { speaker: 'Big Ray', text: 'Fried chicken bucket and a hot coffee. Keep an eye toward the front glass while you cook.' },
+            { speaker: 'Duck', text: "Will do. I'll get your order ready right now." },
+          ],
+        },
+        {
+          name: 'Maya Lin',
+          title: 'Insomniac College Student',
+          orderItem: 'Hot McCafé Mocha & McNuggets',
+          dialogue: [
+            { speaker: 'Maya Lin', text: 'Wait—you are new, right? There was a flyer taped to the campus bulletin board looking for the employee who disappeared here.' },
+            { speaker: 'Duck', text: 'Yeah... Marcus. Every single customer tonight seems to know more about him than our manager.' },
+            { speaker: 'Maya Lin', text: 'A friend who studies late here told me Marcus stopped coming to class the exact morning his car turned up near the pine line.' },
+            { speaker: 'Duck', text: 'I really wish John had mentioned that before handing me the apron.' },
+            { speaker: 'Maya Lin', text: 'Stay near the register lights. Can I get a hot mocha and McNuggets to go?' },
+            { speaker: 'Duck', text: 'Right away. Five seconds in the kitchen.' },
+          ],
+        },
+        {
+          name: 'EMT Carter',
+          title: 'Night-Shift Paramedic',
+          orderItem: 'Spicy Chicken Meal & Black Coffee',
+          dialogue: [
+            { speaker: 'EMT Carter', text: 'Still on solo night duty? Dispatch just circulated an updated missing-person bulletin for Marcus from this address.' },
+            { speaker: 'Duck', text: 'They found anything else besides his car and hat?' },
+            { speaker: 'EMT Carter', text: 'A flashlight battery rolling outside the back service door and footprints deeper in the mud—nothing else.' },
+            { speaker: 'Duck', text: 'Great. And I still have to take trash bags back there.' },
+            { speaker: 'EMT Carter', text: 'Keep your head on a swivel tonight. Hook me up with a spicy chicken meal and black coffee.' },
+            { speaker: 'Duck', text: 'Cooking it now—sit tight.' },
+          ],
+        },
+        {
+          name: 'Clara Novak',
+          title: 'Lost Highway Traveler',
+          orderItem: 'Hot Tea & Crispy Chicken Bucket',
+          dialogue: [
+            { speaker: 'Clara Novak', text: 'I stopped at the gas station two miles east and the clerk warned me nobody should be inside this McDonald’s after 2 AM.' },
+            { speaker: 'Duck', text: 'Let me guess—because of the guy who vanished on the night shift?' },
+            { speaker: 'Clara Novak', text: 'He said the clerk before you kept complaining someone in greasepaint was watching him through the front glass doors.' },
+            { speaker: 'Duck', text: '...Just what I needed to hear before clock-out. What can I prepare for you?' },
+            { speaker: 'Clara Novak', text: 'Just hot tea and a crispy chicken bucket so I can get back on the highway fast.' },
+            { speaker: 'Duck', text: 'Coming right out from the kitchen.' },
+          ],
+        },
+        {
+          name: 'Sam, Leo & Mia',
+          title: 'Late-Night Group of Friends',
+          orderItem: 'Party Fried Chicken Bucket, 3 Coffees & Large Fries',
+          dialogue: [
+            { speaker: 'Sam', text: 'Hey! Good thing you guys are still open—concert traffic kept us stuck on the highway for two hours.' },
+            { speaker: 'Mia', text: 'Wait, is this the forest McDonald’s where that night worker went missing last week? Kinda spooky out here!' },
+            { speaker: 'Leo', text: 'Don’t creep everyone out, Mia! We just want hot food and a table to sit and hang out for a minute.' },
+            { speaker: 'Duck', text: 'Dining booths are all clean if you guys want to eat inside. What can I get started for the three of you?' },
+            { speaker: 'Sam', text: 'One big crispy fried chicken bucket, large fries, and three hot drinks! We will grab that corner booth once it is ready.' },
+            { speaker: 'Duck', text: 'Coming right up! Give me five seconds in the kitchen.' },
+          ],
+        },
+        {
+          name: 'Arthur Crump',
+          title: 'Grumpy Late-Night Customer',
+          orderItem: 'Black Coffee & Plain Burger',
+          dialogue: [
+            { speaker: 'Arthur Crump', text: 'Hmph. Finally somebody behind the register. Do you know how freezing that parking lot is?' },
+            { speaker: 'Duck', text: 'Sorry about the weather, sir. What can I get for you tonight?' },
+            { speaker: 'Arthur Crump', text: 'Spare me the small talk. Everybody around town yapping about some missing clerk and haunted forest... nonsense.' },
+            { speaker: 'Duck', text: 'Got it. Just food then—what would you like?' },
+            { speaker: 'Arthur Crump', text: 'Strong black coffee and a plain burger. Make it hot and don’t waste my time.' },
+            { speaker: 'Duck', text: '...Sure thing. Five seconds in the kitchen.' },
+          ],
+        },
       ],
     },
   },
@@ -649,8 +884,6 @@ export const TRANSLATIONS: Record<Language, TranslationBundle> = {
       playNight2: 'CHƠI ĐÊM 2',
       locked: '(ĐÃ KHÓA)',
       somethingWrong: 'Có Điều Bất Ổn',
-      night3Hunt: 'ĐÊM 3: CUỘC ĐI SĂN',
-      fullGameTeaser: 'TEASER BẢN ĐẦY ĐỦ',
       bgmLabel: 'Nhạc nền: Cold Glass Passage',
       unmute: 'BẬT NHẠC',
       musicOn: 'ĐANG PHÁT',
@@ -659,13 +892,13 @@ export const TRANSLATIONS: Record<Language, TranslationBundle> = {
       credits: 'Thông tin',
       storyRuleLabel: 'Quy tắc cốt truyện:',
       storyRule:
-        'Trong Đêm 1 & 2, linh vật chú hề chỉ quan sát chứ chưa săn đuổi. Hãy cảm nhận sự bình yên trước cơn bão.',
+        'Hoàn thành cả 2 ca trực 6 tiếng đến 6:00 sáng, lần theo tin đồn về cựu nhân viên mất tích và cảnh giác với bóng người rình rập ngoài cửa.',
       shiftMemo: 'Ghi Chú Ca Trực',
       employeeRoutine: 'Quy Trình Nhân Viên',
       memoItems: [
         'Đêm 1: Nói chuyện với John để nhận ca, bấm thẻ giờ, lau bàn, thu gom rác, tắt bếp chiên và phục vụ khách khuya.',
-        'Đêm 2: Gạt cầu dao bảo trì, lau vết bẩn hành lang, bỏ thùng carton, kiểm tra quầy drive-thru và CCTV.',
-        'Đèn pin dùng không giới hạn; hãy luôn giữ cảnh giác xung quanh.',
+        'Đêm 2: Nói chuyện với John về nhân viên mất tích, gạt cầu dao bảo trì, lau vết bẩn hành lang, bỏ thùng carton, kiểm tra drive-thru, CCTV và phục vụ khách.',
+        'Đèn pin dùng không giới hạn; bạn có thể ghé nhà vệ sinh mới ở phía tây sảnh ăn.',
         'Nếu đèn bếp nhấp nháy lúc nấu đồ ăn, hãy bình tĩnh chờ hết 5 giây.',
       ],
       settingsTitle: 'Cài Đặt Trò Chơi',
@@ -682,7 +915,7 @@ export const TRANSLATIONS: Record<Language, TranslationBundle> = {
       controlsList: [
         { key: 'W, A, S, D', desc: 'Di chuyển' },
         { key: 'Chuột', desc: 'Xoay góc nhìn' },
-        { key: 'Shift', desc: 'Chạy nhanh (Tốn thể lực)' },
+        { key: 'Shift', desc: 'Chạy nhanh' },
         { key: 'C', desc: 'Ngồi xuống / Đứng lên' },
         { key: 'F', desc: 'Bật / Tắt Đèn Pin (Vô hạn)' },
         { key: 'E', desc: 'Nói chuyện với John / Khách / Làm nhiệm vụ' },
@@ -691,12 +924,12 @@ export const TRANSLATIONS: Record<Language, TranslationBundle> = {
       understood: 'Đã Hiểu',
       creditsTitle: 'Thông Tin & Cốt Truyện',
       creditsIntro:
-        "McDonald's Nightfall — DEMO là phần mở đầu kinh dị tâm lý kéo dài 2 đêm.",
+        "McDonald's Nightfall là trải nghiệm kinh dị tâm lý 2 đêm trực ca muộn.",
       creditsDetails: [
         { label: 'Chủ đề', value: 'Trực đêm tiệm đồ ăn nhanh & nỗi sợ tâm lý' },
-        { label: 'Định dạng', value: '2 Đêm chơi chính + Đoạn kết giới thiệu Đêm 3' },
+        { label: 'Định dạng', value: '2 Đêm chơi đầy đủ (12:00 AM – 6:00 AM)' },
         { label: 'Công nghệ', value: 'Three.js 3D WebGL & Web Audio API' },
-        { label: 'Hướng truyện', value: 'Linh vật âm thầm theo dõi, chuẩn bị cho Đêm 3.' },
+        { label: 'Hướng truyện', value: 'Tìm hiểu chuyện đã xảy ra với cựu nhân viên ca đêm mất tích.' },
       ],
       returnMenu: 'Quay Lại Menu',
     },
@@ -714,6 +947,9 @@ export const TRANSLATIONS: Record<Language, TranslationBundle> = {
       standing: '[C] ĐANG ĐỨNG',
       carryingFood:
         '🍗 Đang Bưng Khay Đồ Ăn (Gà Rán & Cà Phê McCafé Nóng) — Giao cho khách tại quầy',
+      carryingSpoiledFood:
+        '⚠️ Khay Đồ Ăn Bị Hỏng (Mất điện!) — Mang bỏ vào thùng rác trong bếp hoặc ngoài trời',
+      carryingMop: '🧹 Đang Cầm Cây Lau Nhà — Lau sạch cả 8 vũng nước bẩn trên sàn',
       carryingTrash: '📦 Đang Xách Túi Rác (Mang ra thùng rác phía sau)',
       carryingCardboard: '📦 Đang Ôm Thùng Carton (Mang ra thùng rác phía sau)',
       heavyWorklight: 'Đèn Pin Công Nghiệp [F]',
@@ -781,13 +1017,14 @@ export const TRANSLATIONS: Record<Language, TranslationBundle> = {
       night1Sub: 'Hắn không đuổi theo Duck. Hắn không nhúc nhích. Hắn chỉ đứng nhìn.',
       beginNight2: 'Bắt Đầu Đêm 2: Có Điều Bất Ổn',
       mainMenu: 'Menu Chính',
-      teaser1: '“BẠN TƯỞNG HẮN CHỈ ĐỨNG NHÌN THÔI SAO.”',
-      teaser2: '“HẮN ĐANG CHỜ ĐỢI ĐẤY.”',
-      demoComplete: 'HOÀN THÀNH DEMO',
-      nightsSurvived: 'ĐÃ SỐNG SÓT 2 ĐÊM',
-      night3Coming: 'ĐÊM 3: CUỘC ĐI SĂN SẮP BẮT ĐẦU…',
-      teaserDesc:
-        'Trong suốt Đêm 1 và Đêm 2, hắn chỉ đứng đó quan sát mọi thói quen của bạn. Vào Đêm 3, cửa sẽ khóa từ bên ngoài, điện cắt hoàn toàn, và cuộc đi săn thực sự sẽ bắt đầu trong bản đầy đủ.',
+      night2Over: 'Kết Thúc Ca Trực Đêm 2',
+      theSecondShift: 'CA TRỰC THỨ HAI',
+      night2Story1:
+        'Đúng 6:00 sáng, Duck ghi sổ bàn giao ca sáng và vội vã bước qua những dãy bàn trống ra bãi đỗ xe ẩm ướt.',
+      night2Story2:
+        'Nhưng cậu vẫn không thể quên khuôn mặt lén thò đầu nhìn vào từ cửa kính chính lúc phục vụ vị khách cuối cùng — cũng như lời bàn tán về cựu nhân viên chưa từng bấm thẻ tan ca.',
+      night2Sub: 'Khi Duck giao xong đồ ăn và ngoái nhìn ra cửa, bóng dáng kia đã biến mất không dấu vết.',
+      playNight2Again: 'Chơi Lại Đêm 2',
       playAgain: 'Chơi Lại Đêm 1',
     },
     engine: {
@@ -803,6 +1040,11 @@ export const TRANSLATIONS: Record<Language, TranslationBundle> = {
         clean_tables: {
           title: 'LAU DỌN BÀN',
           description: (count) => `Lau sạch và khử trùng các bàn ăn bị bẩn (${count}/2).`,
+        },
+        mop_puddles: {
+          title: 'LAU CÁC VŨNG BẨN',
+          description: (count) =>
+            `Lấy cây lau nhà ở góc phòng bảo vệ và lau sạch tất cả vũng bẩn (${count}/8).`,
         },
         collect_trash: {
           title: 'THU GOM RÁC',
@@ -834,8 +1076,9 @@ export const TRANSLATIONS: Record<Language, TranslationBundle> = {
           description: 'Gạt công tắc cầu dao phụ trợ trong phòng an ninh.',
         },
         n2_mop_puddle: {
-          title: 'LAU HÀNH LANG',
-          description: 'Lau sạch vũng chất lỏng đen kỳ lạ ở hành lang phía sau.',
+          title: 'LAU CÁC VŨNG BẨN',
+          description: (count) =>
+            `Cầm cây lau nhà ở góc phòng an ninh và lau sạch 8 vũng bẩn khắp quán (${count}/8).`,
         },
         n2_cardboard: {
           title: 'DỌN THÙNG CARTON',
@@ -861,6 +1104,11 @@ export const TRANSLATIONS: Record<Language, TranslationBundle> = {
         serveDesc: (name) => `Mang khay đồ ăn nóng trên tay ra quầy đưa cho ${name}.`,
         powerOutageTitle: 'KIỂM TRA TỦ ĐIỆN (3:00 SÁNG)',
         powerOutageDesc: 'Điện đột ngột tắt ngấm! Hãy ra phía sau cửa hàng kiểm tra hộp cầu dao điện.',
+        powerOutageWithFoodDesc:
+          'Mất điện và khách đã bỏ đi! Hãy ra kiểm tra tủ điện phía sau và vứt phần đồ ăn thừa vào thùng rác.',
+        discardFoodTitle: 'VỨT ĐỒ ĂN VÀO THÙNG RÁC',
+        discardFoodDesc:
+          'Khách đã rời đi vì mất điện. Hãy vứt khay đồ ăn trên tay vào thùng rác trong bếp hoặc thùng rác ngoài trời.',
       },
       notices: {
         completed: (title) => `HOÀN THÀNH: ${title}`,
@@ -873,8 +1121,13 @@ export const TRANSLATIONS: Record<Language, TranslationBundle> = {
         orderReady: 'MÓN ĐÃ XONG! Đang cầm trên tay. Hãy quay lại quầy thu ngân.',
         shiftEnds6am: (timeStr) =>
           `Ca trực chỉ kết thúc đúng 6:00 sáng. Hiện tại là ${timeStr}. Hãy tiếp tục phục vụ khách cho tới sáng.`,
+        shiftSkipped6am: 'ĐÃ PHỤC VỤ VỊ KHÁCH CUỐI CÙNG — ĐỒNG HỒ CHUYỂN SANG 6:00 SÁNG!',
         powerOutage: '⚡ MẤT ĐIỆN LÚC 3:00 SÁNG — KIỂM TRA HỘP ĐIỆN PHÍA SAU CỬA HÀNG!',
         powerRestored: '⚡ ĐÃ CÓ ĐIỆN TRỞ LẠI — ĐÃ BẬT CẦU DAO',
+        mopPickedUp: '🧹 ĐÃ CẦM CÂY LAU NHÀ — LAU SẠCH 8 VŨNG BẨN',
+        mopRequired: '⚠️ CẦN CÂY LAU NHÀ TRƯỚC! Hãy lấy cây lau ở góc phòng bảo vệ.',
+        foodDiscarded: '🗑️ ĐÃ VỨT ĐỒ ĂN THỪA VÀO THÙNG RÁC',
+        discardFoodFirst: '⚠️ HÃY VỨT ĐỒ ĂN BỊ HỎNG TRÊN TAY VÀO THÙNG RÁC TRƯỚC!',
       },
       prompts: {
         talkToJohn: '[E] Nói chuyện với John (Nhận ca)',
@@ -885,6 +1138,10 @@ export const TRANSLATIONS: Record<Language, TranslationBundle> = {
         cookingKitchen: (sec) => `⏳ Đang Nấu Trong Bếp (còn ${sec}s)...`,
         cookKitchen: '[E] Nấu Đồ Ăn & Pha Cà Phê Trong Bếp (5s)',
         inspectElectricalBox: '[E] Kiểm Tra Hộp Điện & Gạt Lại Cầu Dao',
+        throwFoodInTrash: '[E] Vứt Đồ Ăn Vào Thùng Rác',
+        pickUpMop: '[E] Cầm Cây Lau Nhà',
+        mopPuddle: '[E] Lau Vũng Nước Bẩn',
+        mopRequiredPrompt: '⚠️ Hãy lấy cây lau nhà ở góc phòng bảo vệ trước!',
         actions: {
           employee_john: 'Nói chuyện với John (Nhận ca)',
           time_clock: 'Bấm Thẻ Chấm Công Nhân Viên',
@@ -893,14 +1150,17 @@ export const TRANSLATIONS: Record<Language, TranslationBundle> = {
           trash_bag_1: 'Nhặt Túi Rác Bàn Ăn',
           trash_bag_2: 'Nhặt Túi Rác Bàn Ăn',
           outdoor_dumpster: 'Đổ Rác Vào Thùng Rác Ngoài Trời',
+          trash_bin: 'Vứt Đồ Ăn Vào Thùng Rác',
           kitchen_switch: 'Tắt Nguồn Bếp Chiên & Thiết Bị Nóng',
           office_switch: 'Bật Đèn Phụ Trợ Hành Lang',
           cctv_monitor: 'Mở Màn Hình An Ninh CCTV',
           front_door_exit: 'Tan Ca & Rời Cửa Hàng Qua Cửa Chính',
-          hallway_spill: 'Lau Sạch Vũng Chất Lỏng Đen',
+          mop_tool: 'Cầm Cây Lau Nhà',
+          hallway_spill: 'Lau Sạch Vũng Nước Bẩn',
           cardboard_bundle: 'Nhặt Bó Thùng Carton',
           drive_thru_order_station: 'Kiểm Tra Tai Nghe & Máy Drive-Thru',
           electrical_box: 'Kiểm Tra Hộp Điện & Khôi Phục Nguồn',
+          toilet_flush: 'Xả Nước Bồn Cầu',
         },
       },
       openingMonologueNight1: [
@@ -910,8 +1170,7 @@ export const TRANSLATIONS: Record<Language, TranslationBundle> = {
       ],
       openingMonologueNight2: [
         { speaker: 'Duck', text: 'Quay lại Đêm 2 rồi… Bãi xe và khu rừng tối nay yên ắng một cách kỳ lạ.' },
-        { speaker: 'Duck', text: 'Vào trong hoàn thành danh sách công việc và sống sót tới 6:00 sáng.' },
-        { speaker: 'Duck', text: 'Vào thôi.' },
+        { speaker: 'Duck', text: 'John vẫn đang đứng đợi gần quầy. Vào qua cửa trượt để nói chuyện với anh ta thôi.' },
       ],
       johnDialogue: [
         { speaker: 'John', text: 'Ê! Nhân viên mới! Cậu mới vào làm ở đây à?' },
@@ -924,12 +1183,23 @@ export const TRANSLATIONS: Record<Language, TranslationBundle> = {
         { speaker: 'John', text: 'Còn một lời khuyên nữa... nếu đèn bếp tự nhiên chớp tắt lúc đang nấu thì đừng hoảng. Và đừng nhìn con ma-nơ-canh chú hề lâu quá. Hẹn gặp lúc 6 giờ sáng!' },
         { speaker: 'Duck', text: 'Tên này nói năng kỳ quặc thật... Thôi kệ, ra bấm thẻ vào ca rồi làm việc vậy.' },
       ],
+      johnDialogueNight2: [
+        { speaker: 'John', text: 'Ồ, chào Duck. May mà cậu vẫn quay lại làm Đêm 2 đấy.' },
+        { speaker: 'Duck', text: 'Ừ, tiền nhà đâu có tự trả được. Đêm nay mọi thứ vẫn ổn chứ?' },
+        { speaker: 'John', text: 'Cũng tạm... trừ việc quản lý mới dán thêm thông báo trong phòng. Vẫn chẳng có tin tức gì về cậu nhân viên ca đêm cũ bị mất tích tuần trước.' },
+        { speaker: 'Duck', text: 'Người mà tôi thay thế ấy hả? Khoan—anh ta mất tích ngay tại đây luôn sao?' },
+        { speaker: 'John', text: 'Cảnh sát tìm thấy xe của cậu ấy đỗ sát bìa rừng, mũ đồng phục vẫn để trên bảng điều khiển. Ông chủ dặn không được nhắc trước mặt khách, nhưng cả thị trấn đang xôn xao hết rồi.' },
+        { speaker: 'John', text: 'Thôi thì vẫn quy trình tối nay: bấm thẻ, gạt cầu dao phòng an ninh, lau vũng nước đen ở hành lang, dọn thùng carton, kiểm tra quầy drive-thru, xem CCTV rồi phục vụ khách đến 6:00 sáng.' },
+        { speaker: 'Duck', text: 'Tuyệt vời thật... một đồng nghiệp cũ mất tích và thêm một ca trực nửa đêm. Gặp lại lúc sáng nhé, John.' },
+      ],
       powerOutageStartDialogue: [
         {
           speaker: 'Duck',
           text: 'Cái quái gì thế?! Có chuyện gì vậy? Ông chủ quên đóng tiền điện à? Không biết nữa, tôi sẽ ra phía sau cửa hàng kiểm tra xem sao.',
         },
       ],
+      customerPowerOutageLeave:
+        'Ôi trời ơi, cái quái gì vậy? Thế này không được rồi, tôi không mua đồ ăn nữa, tôi đi đây.',
       powerRestoredDialogue: [
         {
           speaker: 'Duck',
@@ -950,6 +1220,30 @@ export const TRANSLATIONS: Record<Language, TranslationBundle> = {
         {
           speaker: 'Duck',
           text: 'Cảm ơn quý khách! Chúc ngon miệng và đi đường cẩn thận đêm nay nhé.',
+        },
+      ],
+      grumpyDeliveredDialogue: (customerName, price) => [
+        {
+          speaker: customerName,
+          text: `Lâu lắc thế! Làm mỗi phần ăn mà mất cả buổi. Cầm lấy $${price} đây—đừng mơ có tiền bo hay lời khen vào lúc nửa đêm.`,
+        },
+        {
+          speaker: 'Duck',
+          text: '...Ừ. Thậm chí còn chẳng thèm nói cảm ơn một câu. Chúc ông về bình an vậy.',
+        },
+      ],
+      friendsSeatedDialogue: (customerName, price) => [
+        {
+          speaker: customerName,
+          text: `Tuyệt vời, nóng hổi thơm phức luôn! Của cậu $${price} nhé Duck. Cảm ơn nhiều!`,
+        },
+        {
+          speaker: 'Leo',
+          text: 'Ra bàn góc kia ngồi ăn tại chỗ khoảng một lát cho ấm bụng rồi hãy về tụi bay ơi!',
+        },
+        {
+          speaker: 'Duck',
+          text: 'Cứ ngồi tự nhiên nhé! Lát ra về nhớ để ý sương mù ngoài đường đấy.',
         },
       ],
       waitingOrderDialogue: (customerName, itemText) => [
@@ -1017,6 +1311,164 @@ export const TRANSLATIONS: Record<Language, TranslationBundle> = {
             { speaker: 'Duck', text: '...Tôi mới ra đổ rác đằng sau mười phút trước thôi. Tôi sẽ cảnh giác. Để tôi vào nấu đồ ăn cho anh ngay.' },
           ],
         },
+        {
+          name: 'Maya Lin',
+          title: 'Sinh viên thức trắng đêm',
+          orderItem: 'McCafé Mocha Đá & Bánh Gà Giòn Cay',
+          dialogue: [
+            { speaker: 'Maya Lin', text: 'Này... nói với tôi là máy pha espresso vẫn còn chạy đi? Viết luận văn lúc 2 giờ sáng đúng là quyết định tồi tệ.' },
+            { speaker: 'Duck', text: 'Máy cà phê vẫn nóng hổi và chạy ầm ầm đây. Thi cử căng lắm à?' },
+            { speaker: 'Maya Lin', text: 'Tệ hơn thế—đèn pha xe tôi vừa quét trúng thứ gì đó cao lêu nghêu cạnh rặng thông lúc rẽ vào bãi xe, rồi điện thoại mất sạch sóng luôn.' },
+            { speaker: 'Duck', text: 'Quanh bãi đất này nhiều thú rừng lắm. Nai, gấu trúc... mong là không phải chú hề.' },
+            { speaker: 'Maya Lin', text: 'Khoan, gì cơ? Thôi cho tôi một ly mocha đá với bánh gà giòn cay cho tỉnh táo nhé.' },
+            { speaker: 'Duck', text: 'Có ngay! Tôi vào bếp chiên gà và pha cà phê liền.' },
+          ],
+        },
+        {
+          name: 'Nhân viên Cấp cứu Carter',
+          title: 'Y tế trực đêm',
+          orderItem: 'Xô Gà Rán & Espresso Đôi',
+          dialogue: [
+            { speaker: 'Nhân viên Cấp cứu Carter', text: 'Trạm 4 đêm nay khá yên nên tôi ghé ngang qua chút. Chỉ có một mình cậu trực quầy thôi à?' },
+            { speaker: 'Duck', text: 'Chỉ có mình tôi với đám chảo dầu tới 6 giờ sáng thôi. Trên bộ đàm cứu thương đêm nay có gì lạ không?' },
+            { speaker: 'Nhân viên Cấp cứu Carter', text: 'Có ba cuộc gọi 911 nhiễu sóng phát ra từ bốt điện thoại dọc quốc lộ này—không ai nói gì, chỉ có tiếng thở và tiếng còi rạp xiếc.' },
+            { speaker: 'Duck', text: 'Chà, nghe còn rợn hơn cả mấy vị khách khó tính nữa.' },
+            { speaker: 'Nhân viên Cấp cứu Carter', text: 'Nhớ bật sáng đèn cửa ra vào nhé. Lấy giúp tôi một xô gà rán giòn và ly cà phê đậm.' },
+            { speaker: 'Duck', text: 'Có ngay đây! Đợi 5 giây ở bếp nhé.' },
+          ],
+        },
+        {
+          name: 'Clara Novak',
+          title: 'Du khách lạc đường',
+          orderItem: 'Latte Caramel Nóng & Bánh Táo',
+          dialogue: [
+            { speaker: 'Clara Novak', text: 'Xin lỗi... GPS của tôi mất tín hiệu hoàn toàn từ mười dặm trước rồi. Đây vẫn là Quốc lộ 9 chứ?' },
+            { speaker: 'Duck', text: 'Đúng rồi cô ơi, đoạn vắng của Quốc lộ 9. Ban đêm rừng rậm chắn hết sóng ở khu này.' },
+            { speaker: 'Clara Novak', text: 'Tôi thề mình đã lái xe ngang qua biển hiệu đỏ của quán hai lần rồi, cứ như con đường tự vòng ngược lại vào rừng.' },
+            { speaker: 'Duck', text: 'Sương dày dễ làm tài xế mất phương hướng lắm. Cô dùng chút đồ nóng trước khi đi tiếp nhé?' },
+            { speaker: 'Clara Novak', text: 'Một ly latte caramel nóng và bánh táo ấm thì tuyệt quá. Cảm ơn cậu.' },
+            { speaker: 'Duck', text: 'Tôi pha ngay đây—lát nữa tôi bưng khay ra liền.' },
+          ],
+        },
+      ],
+      customersNight2: [
+        {
+          name: 'Y tá Ramirez',
+          title: 'Nhân viên trực đêm kiệt sức',
+          orderItem: 'Cà phê McCafé nóng & Gà Rán Giòn',
+          dialogue: [
+            { speaker: 'Y tá Ramirez', text: 'Chào buổi tối. Khoan đã—cậu phải trực đêm một mình thật sao? Tôi cứ tưởng tối nay vẫn thấy cậu Marcus đứng quầy chứ.' },
+            { speaker: 'Duck', text: 'Marcus hả? Đó là anh nhân viên ca đêm trước mà mọi người hay nhắc tới phải không?' },
+            { speaker: 'Y tá Ramirez', text: 'Phải. Hai tuần trước cậu ấy từng ghé phòng cấp cứu trong bộ dạng tái mét, thề rằng có kẻ gõ lên gương nhà vệ sinh sau 3 giờ sáng. Rồi cậu ấy bặt vô âm tín.' },
+            { speaker: 'Duck', text: 'Lúc tôi ký hợp đồng chẳng ai nói với tôi chuyện đó cả...' },
+            { speaker: 'Y tá Ramirez', text: 'Đêm nay nhớ cẩn thận nhé. Cho tôi một ly cà phê McCafé nóng với phần gà rán giòn để tỉnh táo lái xe về.' },
+            { speaker: 'Duck', text: 'Có ngay đây. Tôi vào bếp làm ngay cho chị.' },
+          ],
+        },
+        {
+          name: 'Tyler',
+          title: 'Thiếu niên bồn chồn',
+          orderItem: '10 miếng McNuggets & Khoai Tây Cỡ Lớn',
+          dialogue: [
+            { speaker: 'Tyler', text: 'Anh bạn ơi, nghe tin tức trên đài chưa? Cảnh sát VẪN đang tìm kiếm quanh khu rừng sau quán McDonald’s này để tìm nhân viên ca đêm bị mất tích đấy!' },
+            { speaker: 'Duck', text: 'Ừ, John mới kể với tôi người ta tìm thấy mũ đồng phục của anh ta gần bìa rừng.' },
+            { speaker: 'Tyler', text: 'Anh họ tôi hay ghé đây khuya kể lại rằng người mất tích từng thấy một gã chú hề cao lêu nghêu tóc đỏ đứng ngoài cửa kính ngay trước khi hết ca.' },
+            { speaker: 'Duck', text: 'Thôi đừng dọa nhau nữa, tôi còn phải kẹt ở đây tới 6 giờ sáng đấy. Cậu gọi món gì?' },
+            { speaker: 'Tyler', text: '10 miếng McNuggets với khoai tây lớn mang đi — tôi không dám ở lại thêm một giây nào đâu!' },
+            { speaker: 'Duck', text: 'Rồi, chờ 5 giây trong bếp nhé.' },
+          ],
+        },
+        {
+          name: 'Phó Cảnh Sát Vance',
+          title: 'Cảnh sát tuần tra đêm',
+          orderItem: 'Cà phê Đen & Phần Quarter Pounder',
+          dialogue: [
+            { speaker: 'Phó Cảnh Sát Vance', text: 'Đêm nay tuần tra vắng vẻ. Cho tôi ly cà phê đen nhé? Tôi ghé kiểm tra quán vì đây là nơi cuối cùng Marcus bấm thẻ trước khi mất tích.' },
+            { speaker: 'Duck', text: 'Bên cảnh sát vẫn chưa có manh mối nào về chuyện xảy ra với anh ấy ạ?' },
+            { speaker: 'Phó Cảnh Sát Vance', text: 'Dữ liệu camera đêm cuối cùng của cậu ấy bị hỏng sau 3 giờ sáng, còn quản lý từ chối giao chìa khóa dự phòng ra lối mòn trong rừng. Hãy giữ cảnh giác.' },
+            { speaker: 'Duck', text: 'Cháu sẽ để mắt tới cửa ra vào và camera. Chú có muốn gọi thêm món gì với cà phê không?' },
+            { speaker: 'Phó Cảnh Sát Vance', text: 'Lấy thêm một phần Quarter Pounder. Nhớ trông chừng cửa kính phía trước đấy nhé.' },
+            { speaker: 'Duck', text: 'Vâng. Cháu vào bếp chuẩn bị đồ ăn ngay đây.' },
+          ],
+        },
+        {
+          name: 'Big Ray',
+          title: 'Tài xế xe tải đường dài',
+          orderItem: 'Xô Gà Rán & Cà Phê Nóng',
+          dialogue: [
+            { speaker: 'Big Ray', text: 'Vẫn trụ vững hả cậu trẻ? Cả trạm dừng xe tải ngoài quốc lộ ai cũng bàn tán về người nhân viên mất tích ở chi nhánh này.' },
+            { speaker: 'Duck', text: 'Có vẻ vị khách nào tối nay cũng biết về anh ta rõ hơn cả quản lý.' },
+            { speaker: 'Big Ray', text: 'Tôi từng nói chuyện với cậu ấy hai hôm trước khi cậu ta biến mất. Cậu ta bảo có ai đó mặc đồ vàng cứ đứng nhìn chằm chằm qua cửa kính trượt lúc cậu phục vụ đơn cuối.' },
+            { speaker: 'Duck', text: '...Nghe rợn thật đấy. Anh muốn tôi nấu món gì cho chuyến đi?' },
+            { speaker: 'Big Ray', text: 'Một xô gà rán với ly cà phê nóng. Nhớ để mắt ra phía cửa kính trước lúc cậu nấu đấy.' },
+            { speaker: 'Duck', text: 'Rõ rồi. Tôi làm món cho anh ngay đây.' },
+          ],
+        },
+        {
+          name: 'Maya Lin',
+          title: 'Sinh viên thức trắng đêm',
+          orderItem: 'McCafé Mocha Nóng & Gà McNuggets',
+          dialogue: [
+            { speaker: 'Maya Lin', text: 'Khoan—cậu là nhân viên mới à? Trên bảng tin trường đại học có dán tờ rơi tìm người nhân viên đã biến mất ngay tại quán này.' },
+            { speaker: 'Duck', text: 'Ừ... Marcus. Đêm nay vị khách nào ghé qua dường như cũng biết về anh ta rõ hơn quản lý quán.' },
+            { speaker: 'Maya Lin', text: 'Bạn tôi hay ghé đây ôn bài khuya kể Marcus nghỉ học đúng buổi sáng xe cậu ấy được tìm thấy cạnh hàng thông.' },
+            { speaker: 'Duck', text: 'Giá như John kể chuyện đó trước khi đưa tạp dề cho tôi.' },
+            { speaker: 'Maya Lin', text: 'Nhớ đứng gần ánh đèn quầy thu ngân nhé. Cho tôi một mocha nóng với phần McNuggets mang về.' },
+            { speaker: 'Duck', text: 'Có ngay. Chờ 5 giây trong bếp.' },
+          ],
+        },
+        {
+          name: 'Nhân viên Cấp cứu Carter',
+          title: 'Y tế trực đêm',
+          orderItem: 'Phần Gà Cay & Cà Phê Đen',
+          dialogue: [
+            { speaker: 'Nhân viên Cấp cứu Carter', text: 'Vẫn trực đêm một mình à? Trung tâm điều phối vừa phát lại thông báo tìm người mất tích tên Marcus ngay tại địa chỉ này.' },
+            { speaker: 'Duck', text: 'Họ có tìm thấy thêm manh mối nào ngoài chiếc xe với cái mũ không?' },
+            { speaker: 'Nhân viên Cấp cứu Carter', text: 'Chỉ thấy cục pin đèn pin lăn bên ngoài cửa hậu và dấu chân lún sâu vào bùn đất—chẳng còn gì khác.' },
+            { speaker: 'Duck', text: 'Tuyệt vời. Vậy mà tôi vẫn phải mang túi rác ra đằng sau đó.' },
+            { speaker: 'Nhân viên Cấp cứu Carter', text: 'Đêm nay nhớ cảnh giác bốn phía đấy. Làm giúp tôi suất gà cay và ly cà phê đen.' },
+            { speaker: 'Duck', text: 'Tôi đang nấu ngay—đợi một chút nhé.' },
+          ],
+        },
+        {
+          name: 'Clara Novak',
+          title: 'Du khách lạc đường',
+          orderItem: 'Trà Nóng & Xô Gà Rán Giòn',
+          dialogue: [
+            { speaker: 'Clara Novak', text: 'Tôi vừa ghé trạm xăng cách đây hai dặm phía đông và nhân viên ở đó cảnh báo đừng ai vào quán McDonald’s này sau 2 giờ sáng.' },
+            { speaker: 'Duck', text: 'Để tôi đoán—vì chuyện anh nhân viên ca đêm bị mất tích phải không?' },
+            { speaker: 'Clara Novak', text: 'Cậu ấy kể người trực trước cậu cứ than có kẻ mặt bôi phấn trắng đứng nhìn mình chằm chằm qua cửa kính trước.' },
+            { speaker: 'Duck', text: '...Đúng thứ tôi cần nghe trước giờ tan ca đấy. Cô muốn gọi món gì ạ?' },
+            { speaker: 'Clara Novak', text: 'Chỉ cần trà nóng và một xô gà giòn để tôi còn nhanh chóng quay lại đường lớn.' },
+            { speaker: 'Duck', text: 'Tôi làm ở bếp mang ra ngay.' },
+          ],
+        },
+        {
+          name: 'Nhóm Sam, Leo & Mia',
+          title: 'Nhóm Bạn Thân Đi Chơi Khuya',
+          orderItem: 'Xô Gà Rán Cỡ Lớn, 3 Ly Cà Phê & Khoai Chiên',
+          dialogue: [
+            { speaker: 'Sam', text: 'Ê chào cậu! May quá quán vẫn mở—tụi tôi kẹt xe sau buổi diễn suốt hai tiếng ngoài quốc lộ.' },
+            { speaker: 'Mia', text: 'Khoan, đây có phải quán McDonald’s giữa rừng có anh nhân viên mất tích tuần trước không? Nhìn hơi rợn nha!' },
+            { speaker: 'Leo', text: 'Đừng dọa nhau nữa Mia! Tụi mình chỉ cần đồ ăn nóng rồi ngồi bàn ăn nghỉ một lát thôi.' },
+            { speaker: 'Duck', text: 'Bàn ghế tôi lau sạch hết rồi đấy, các bạn cứ tự nhiên ngồi ăn trong quán. Muốn gọi gì nào?' },
+            { speaker: 'Sam', text: 'Cho một xô gà rán giòn cỡ đại, khoai tây chiên và ba ly nước nóng nhé! Xong tụi tôi ra bàn góc ngồi ăn luôn.' },
+            { speaker: 'Duck', text: 'Có ngay đây! Đợi tôi 5 giây trong bếp.' },
+          ],
+        },
+        {
+          name: 'Ông Arthur Crump',
+          title: 'Vị Khách Cáu Kỉnh',
+          orderItem: 'Cà Phê Đen & Burger Thường',
+          dialogue: [
+            { speaker: 'Ông Arthur Crump', text: 'Hừ. Cuối cùng cũng có người đứng quầy. Cậu biết ngoài bãi xe lạnh cóng thế nào không hả?' },
+            { speaker: 'Duck', text: 'Xin lỗi ông vì thời tiết ngoài đó. Ông muốn dùng món gì tối nay ạ?' },
+            { speaker: 'Ông Arthur Crump', text: 'Miễn chào hỏi rườm rà đi. Cả thị trấn cứ xì xào chuyện nhân viên mất tích với rừng ma... toàn chuyện nhảm nhí.' },
+            { speaker: 'Duck', text: 'Vâng. Vậy chỉ gọi món thôi ạ—ông muốn ăn gì?' },
+            { speaker: 'Ông Arthur Crump', text: 'Một ly cà phê đen đặc và một cái burger thường. Làm nhanh và nóng lên, đừng làm mất thời gian của tôi.' },
+            { speaker: 'Duck', text: '...Vâng. Chờ 5 giây trong bếp.' },
+          ],
+        },
       ],
     },
   },
@@ -1053,8 +1505,6 @@ export const TRANSLATIONS: Record<Language, TranslationBundle> = {
       playNight2: 'ИГРАТЬ: НОЧЬ 2',
       locked: '(ЗАБЛОКИРОВАНО)',
       somethingWrong: 'Что-то не так',
-      night3Hunt: 'НОЧЬ 3: ОХОТА',
-      fullGameTeaser: 'ТИЗЕР ПОЛНОЙ ВЕРСИИ',
       bgmLabel: 'Музыка: Cold Glass Passage',
       unmute: 'ВКЛ. ЗВУК',
       musicOn: 'МУЗЫКА ВКЛ',
@@ -1063,13 +1513,13 @@ export const TRANSLATIONS: Record<Language, TranslationBundle> = {
       credits: 'Об игре',
       storyRuleLabel: 'Правило сюжета:',
       storyRule:
-        'В 1-ю и 2-ю ночи маскот только наблюдает и не охотится. Ощутите затишье перед бурей.',
+        'Отработайте обе 6-часовые ночные смены до 6:00 утра, раскройте слухи о пропавшем бывшем сотруднике и будьте начеку, когда кто-то следит из темноты.',
       shiftMemo: 'Памятка смены',
       employeeRoutine: 'Распорядок сотрудника',
       memoItems: [
         'Ночь 1: Поговорите с Джоном, отметьтесь, протрите столы, соберите мусор, отключите фритюрницы и обслужите поздних гостей.',
-        'Ночь 2: Включите рубильник в офисе, вытрите лужу в коридоре, вынесите картон, проверьте автораздачу и камеры.',
-        'Фонарик работает без ограничений; сохраняйте бдительность.',
+        'Ночь 2: Поговорите с Джоном о пропавшем сотруднике, включите рубильник, вытрите лужу, вынесите картон, проверьте автораздачу, камеры и гостей.',
+        'Фонарик работает без ограничений; при необходимости загляните в новый туалет к западу от зала.',
         'Если во время готовки замигает свет на кухне, спокойно дождитесь конца 5 секунд.',
       ],
       settingsTitle: 'Настройки игры',
@@ -1086,7 +1536,7 @@ export const TRANSLATIONS: Record<Language, TranslationBundle> = {
       controlsList: [
         { key: 'W, A, S, D', desc: 'Ходьба / Движение' },
         { key: 'Мышь', desc: 'Осмотр и поворот камеры' },
-        { key: 'Shift', desc: 'Бег (тратит выносливость)' },
+        { key: 'Shift', desc: 'Бег' },
         { key: 'C', desc: 'Присесть' },
         { key: 'F', desc: 'Фонарик (без ограничений)' },
         { key: 'E', desc: 'Поговорить с Джоном / гостями / действие' },
@@ -1095,12 +1545,12 @@ export const TRANSLATIONS: Record<Language, TranslationBundle> = {
       understood: 'Понятно',
       creditsTitle: 'Об игре и лор',
       creditsIntro:
-        "McDonald's Nightfall — DEMO — это двухночный пролог психологического хоррора с маскотом.",
+        "McDonald's Nightfall — двухночный психологический хоррор о работе в ночную смену.",
       creditsDetails: [
         { label: 'Тема', value: 'Ночная смена в фастфуде и нарастающая тревога' },
-        { label: 'Формат', value: '2 игровые ночи + тизер 3-й ночи' },
+        { label: 'Формат', value: '2 полноценные ночи (00:00 – 6:00 утра)' },
         { label: 'Движок', value: 'Three.js 3D WebGL и Web Audio API' },
-        { label: 'Сюжет', value: 'Маскот наблюдает и подкрадывается, готовясь к 3-й ночи.' },
+        { label: 'Сюжет', value: 'Узнайте, что случилось с пропавшим бывшим сотрудником ночной смены.' },
       ],
       returnMenu: 'Назад в меню',
     },
@@ -1118,6 +1568,9 @@ export const TRANSLATIONS: Record<Language, TranslationBundle> = {
       standing: '[C] СТОЯ',
       carryingFood:
         '🍗 В руках поднос (ведёрко курицы и горячий кофе McCafé) — отнесите гостю на кассу',
+      carryingSpoiledFood:
+        '⚠️ В руках испорченная еда (отключили свет!) — выбросите её в мусорное ведро или контейнер',
+      carryingMop: '🧹 В руках швабра — вымойте все 8 грязных луж на полу',
       carryingTrash: '📦 В руках пакеты с мусором (отнесите в контейнер сзади)',
       carryingCardboard: '📦 В руках стопка картона (отнесите в контейнер сзади)',
       heavyWorklight: 'Фонарь [F]',
@@ -1185,13 +1638,14 @@ export const TRANSLATIONS: Record<Language, TranslationBundle> = {
       night1Sub: 'Он не погнался за Даком. Он даже не шелохнулся. Он просто смотрел.',
       beginNight2: 'Начать Ночь 2: Что-то не так',
       mainMenu: 'Главное меню',
-      teaser1: '«ТЫ ДУМАЛ, ОН ПРОСТО НАБЛЮДАЛ.»',
-      teaser2: '«ОН ЖДАЛ.»',
-      demoComplete: 'ДЕМО ПРОЙДЕНО',
-      nightsSurvived: 'ВЫ ПРОЖИЛИ 2 НОЧИ',
-      night3Coming: 'НОЧЬ 3: ОХОТА НАЧИНАЕТСЯ…',
-      teaserDesc:
-        'В первую и вторую ночь он лишь стоял в стороне и изучал каждый ваш шаг. В 3-ю ночь двери заблокируются снаружи, свет погаснет, и в полной версии начнётся настоящая охота.',
+      night2Over: 'Ночная смена 2 завершена',
+      theSecondShift: 'ВТОРАЯ СМЕНА',
+      night2Story1:
+        'Ровно в 6:00 утра Дак сдал утренний журнал и поспешил мимо пустых столиков на сырую парковку.',
+      night2Story2:
+        'Но он не мог выбросить из головы лицо, заглядывавшее в стеклянную дверь во время последнего заказа, и шёпот о бывшем сотруднике, который так и не закрыл смену.',
+      night2Sub: 'Когда Дак отдал еду и снова оглянулся на вход, фигура за дверью уже исчезла.',
+      playNight2Again: 'Сыграть Ночь 2 снова',
       playAgain: 'Сыграть Ночь 1 снова',
     },
     engine: {
@@ -1207,6 +1661,11 @@ export const TRANSLATIONS: Record<Language, TranslationBundle> = {
         clean_tables: {
           title: 'УБРАТЬ СТОЛЫ',
           description: (count) => `Протрите и продезинфицируйте грязные столы в зале (${count}/2).`,
+        },
+        mop_puddles: {
+          title: 'ВЫМЫТЬ ГРЯЗНЫЕ ЛУЖИ',
+          description: (count) =>
+            `Возьмите швабру в углу офиса охраны и вытрите все грязные лужи (${count}/8).`,
         },
         collect_trash: {
           title: 'СОБРАТЬ МУСОР',
@@ -1238,8 +1697,9 @@ export const TRANSLATIONS: Record<Language, TranslationBundle> = {
           description: 'Включите резервный рубильник обслуживания в офисе охраны.',
         },
         n2_mop_puddle: {
-          title: 'ВЫМЫТЬ КОРИДОР',
-          description: 'Вытрите странную тёмную лужу в заднем коридоре.',
+          title: 'ВЫМЫТЬ ГРЯЗНЫЕ ЛУЖИ',
+          description: (count) =>
+            `Возьмите швабру в углу офиса охраны и вытрите все 8 грязных луж (${count}/8).`,
         },
         n2_cardboard: {
           title: 'СДАТЬ КАРТОН',
@@ -1265,6 +1725,11 @@ export const TRANSLATIONS: Record<Language, TranslationBundle> = {
         serveDesc: (name) => `Отнесите горячий поднос из рук гостю ${name} на кассу.`,
         powerOutageTitle: 'ПРОВЕРИТЬ ЭЛЕКТРОЩИТОК (3:00)',
         powerOutageDesc: 'Внезапно погас свет! Выйдите за заднюю стену магазина и проверьте электрощиток.',
+        powerOutageWithFoodDesc:
+          'Свет погас и гость ушёл! Проверьте электрощиток сзади и выбросите еду из рук в мусор.',
+        discardFoodTitle: 'ВЫБРОСИТЬ ЕДУ В МУСОР',
+        discardFoodDesc:
+          'Посетитель ушёл во время отключения света. Выбросите оставшуюся в руках еду в мусорное ведро или контейнер.',
       },
       notices: {
         completed: (title) => `ВЫПОЛНЕНО: ${title}`,
@@ -1277,8 +1742,13 @@ export const TRANSLATIONS: Record<Language, TranslationBundle> = {
         orderReady: 'ЗАКАЗ ГОТОВ! Он у вас в руках. Возвращайтесь к кассе.',
         shiftEnds6am: (timeStr) =>
           `Смена заканчивается ровно в 6:00 утра. Сейчас ${timeStr}. Продолжайте обслуживать гостей до рассвета.`,
+        shiftSkipped6am: 'ПОСЛЕДНИЙ ГОСТЬ ОБСЛУЖЕН — ЧАСЫ ПЕРЕВЕДЕНЫ НА 6:00 УТРА!',
         powerOutage: '⚡ 3:00 — ОТКЛЮЧЕНИЕ СВЕТА! ПРОВЕРЬТЕ ЭЛЕКТРОЩИТОК ЗА МАГАЗИНОМ!',
         powerRestored: '⚡ ЭЛЕКТРИЧЕСТВО ВОССТАНОВЛЕНО — РУБИЛЬНИК ВКЛЮЧЕН',
+        mopPickedUp: '🧹 ВЫ ВЗЯЛИ ШВАБРУ — ВЫТРИТЕ ВСЕ 8 ГРЯЗНЫХ ЛУЖ',
+        mopRequired: '⚠️ СНАЧАЛА НУЖНА ШВАБРА! Возьмите её в углу офиса охраны.',
+        foodDiscarded: '🗑️ ОСТАВШАЯСЯ ЕДА ВЫБРОШЕНА В МУСОР',
+        discardFoodFirst: '⚠️ СНАЧАЛА ВЫБРОСИТЕ ИСПОРЧЕННУЮ ЕДУ ИЗ РУК В МУСОР!',
       },
       prompts: {
         talkToJohn: '[E] Поговорить с Джоном (Принять смену)',
@@ -1289,6 +1759,10 @@ export const TRANSLATIONS: Record<Language, TranslationBundle> = {
         cookingKitchen: (sec) => `⏳ Готовка на кухне (осталось ${sec} с)...`,
         cookKitchen: '[E] Приготовить еду и кофе на кухне (5 с)',
         inspectElectricalBox: '[E] Осмотреть электрощиток и включить рубильник',
+        throwFoodInTrash: '[E] Выбросить еду в мусор',
+        pickUpMop: '[E] Взять швабру',
+        mopPuddle: '[E] Вытереть грязную лужу',
+        mopRequiredPrompt: '⚠️ Сначала возьмите швабру в углу офиса охраны!',
         actions: {
           employee_john: 'Поговорить с Джоном (Принять смену)',
           time_clock: 'Отметиться на табельных часах',
@@ -1297,14 +1771,17 @@ export const TRANSLATIONS: Record<Language, TranslationBundle> = {
           trash_bag_1: 'Взять пакет с мусором',
           trash_bag_2: 'Взять пакет с мусором',
           outdoor_dumpster: 'Выбросить мусор в контейнер',
+          trash_bin: 'Выбросить еду в мусор',
           kitchen_switch: 'Выключить фритюрницы и плиту',
           office_switch: 'Включить свет в коридоре',
           cctv_monitor: 'Открыть монитор камер CCTV',
           front_door_exit: 'Завершить смену и выйти через дверь',
-          hallway_spill: 'Вытереть тёмную лужу шваброй',
+          mop_tool: 'Взять швабру',
+          hallway_spill: 'Вытереть грязную лужу шваброй',
           cardboard_bundle: 'Взять связку картона',
           drive_thru_order_station: 'Проверить гарнитуру и терминал автозаказов',
           electrical_box: 'Осмотреть электрощиток и вернуть свет',
+          toilet_flush: 'Смыть воду в туалете',
         },
       },
       openingMonologueNight1: [
@@ -1314,8 +1791,7 @@ export const TRANSLATIONS: Record<Language, TranslationBundle> = {
       ],
       openingMonologueNight2: [
         { speaker: 'Duck', text: 'Снова на Ночь 2… Парковка и лес сегодня пугающе тихие.' },
-        { speaker: 'Duck', text: 'Заходим внутрь, выполняем список дел и доживаем до 6:00 утра.' },
-        { speaker: 'Duck', text: 'Пора заходить.' },
+        { speaker: 'Duck', text: 'Джон всё ещё ждёт внутри у стойки. Зайдём через раздвижные двери и поговорим с ним.' },
       ],
       johnDialogue: [
         { speaker: 'John', text: 'Эй! Новенький! Ты тут впервые?' },
@@ -1328,12 +1804,23 @@ export const TRANSLATIONS: Record<Language, TranslationBundle> = {
         { speaker: 'John', text: 'И ещё одно… если свет на кухне начнёт мигать во время готовки — не паникуй. И не смотри слишком долго на этого клоуна-маскота. Удачи, увидимся в 6 утра!' },
         { speaker: 'Duck', text: 'Странный тип… Ладно, отметимся на часах и отработаем смену.' },
       ],
+      johnDialogueNight2: [
+        { speaker: 'John', text: 'О, привет, Дак. Рад, что ты всё-таки вышел на 2-ю ночь.' },
+        { speaker: 'Duck', text: 'Ну да, счета сами себя не оплатят. Сегодня всё спокойно?' },
+        { speaker: 'John', text: 'Вроде того… только начальство повесило ещё одно объявление в подсобке. О бывшем ночном сотруднике, который пропал на прошлой неделе, до сих пор ни слуху ни духу.' },
+        { speaker: 'Duck', text: 'О том парне, которого я заменил? Погоди — он исчез прямо здесь?' },
+        { speaker: 'John', text: 'Полиция нашла его машину у опушки леса, а кепка так и лежала на панели. Босс велел не болтать об этом при клиентах, но весь город уже обсуждает.' },
+        { speaker: 'John', text: 'В общем, порядок на сегодня такой: отметься на часах, включи рубильник в офисе, вытри чёрную лужу в коридоре, вынеси картон, проверь терминал автозаказов, камеры CCTV и обслужи гостей до 6:00 утра.' },
+        { speaker: 'Duck', text: 'Отлично… пропавший коллега и ещё одна смена до рассвета. До утра, Джон.' },
+      ],
       powerOutageStartDialogue: [
         {
           speaker: 'Duck',
           text: 'Что за чёрт?! Что происходит? Неужели босс не заплатил за электричество? Не знаю, пойду за заднюю дверь магазина и проверю.',
         },
       ],
+      customerPowerOutageLeave:
+        'О боже, что за чёрт? Так не пойдёт, я больше не покупаю здесь еду, я ухожу.',
       powerRestoredDialogue: [
         {
           speaker: 'Duck',
@@ -1354,6 +1841,30 @@ export const TRANSLATIONS: Record<Language, TranslationBundle> = {
         {
           speaker: 'Duck',
           text: 'Спасибо! Приятного аппетита и берегите себя этой ночью.',
+        },
+      ],
+      grumpyDeliveredDialogue: (customerName, price) => [
+        {
+          speaker: customerName,
+          text: `Наконец-то! Целую вечность возился. Вот твои $${price} — и не жди чаевых или любезностей в три часа ночи.`,
+        },
+        {
+          speaker: 'Duck',
+          text: '…Ладно. Даже «спасибо» не сказал. Всё равно спокойной ночи, сэр.',
+        },
+      ],
+      friendsSeatedDialogue: (customerName, price) => [
+        {
+          speaker: customerName,
+          text: `Супер, всё горячее! Держи $${price}, Дак. Огромное спасибо!`,
+        },
+        {
+          speaker: 'Лео',
+          text: 'Пойдём сядем за тот свободный столик в углу и поедим тут минутку перед дорогой домой!',
+        },
+        {
+          speaker: 'Duck',
+          text: 'Устраивайтесь поудобнее! Только будьте осторожны в тумане на обратном пути.',
         },
       ],
       waitingOrderDialogue: (customerName, itemText) => [
@@ -1421,6 +1932,164 @@ export const TRANSLATIONS: Record<Language, TranslationBundle> = {
             { speaker: 'Duck', text: '…Я выносил туда мусор десять минут назад. Буду настороже. Сейчас приготовлю ваш заказ.' },
           ],
         },
+        {
+          name: 'Майя Лин',
+          title: 'Неспящая студентка',
+          orderItem: 'Айс Мокка McCafé и острый куриный бургер',
+          dialogue: [
+            { speaker: 'Майя Лин', text: 'Привет… скажи, кофемашина ещё работает? Писать диплом в два часа ночи было ужасной идеей.' },
+            { speaker: 'Duck', text: 'Аппарат McCafé горячий и шумит. Тяжёлая ночь перед защитой?' },
+            { speaker: 'Майя Лин', text: 'Хуже — мои фары на въезде выхватили кого-то очень высокого у сосен, а потом телефон сразу потерял сеть.' },
+            { speaker: 'Duck', text: 'Вокруг поляны полно лесного зверья. Олени, еноты… надеюсь, не клоуны.' },
+            { speaker: 'Майя Лин', text: 'Чего? Ладно, можно мне айс-мокку и острый хрустящий чикенбургер, чтобы не уснуть.' },
+            { speaker: 'Duck', text: 'Уже бегу на кухню жарить курицу и варить эспрессо.' },
+          ],
+        },
+        {
+          name: 'Фельдшер Картер',
+          title: 'Ночной парамедик',
+          orderItem: 'Ведёрко жареной курицы и двойной эспрессо',
+          dialogue: [
+            { speaker: 'Фельдшер Картер', text: 'На 4-й станции тихо, решил заскочить по пути. Ты сегодня один на кассе?' },
+            { speaker: 'Duck', text: 'Только я и фритюрницы до 6 утра. На волне скорой ничего странного за ночь не было?' },
+            { speaker: 'Фельдшер Картер', text: 'Три ложных вызова с таксофонов вдоль этой трассы — одни помехи, тяжёлое дыхание и гудок циркового рожка.' },
+            { speaker: 'Duck', text: 'Окей, это даже жутче, чем буйные посетители.' },
+            { speaker: 'Фельдшер Картер', text: 'Держи двери освещёнными, парень. Собери ведёрко хрустящей курицы и двойной кофе.' },
+            { speaker: 'Duck', text: 'Сейчас будет! Пять секунд на кухне.' },
+          ],
+        },
+        {
+          name: 'Клара Новак',
+          title: 'Заблудившаяся путешественница',
+          orderItem: 'Горячий карамельный латте и яблочный пирожок',
+          dialogue: [
+            { speaker: 'Клара Новак', text: 'Простите… мой навигатор потерял спутники десять миль назад. Это всё ещё 9-е шоссе?' },
+            { speaker: 'Duck', text: 'Да, мэм, глухой участок 9-го шоссе. Ночью лес глушит здесь почти весь сигнал.' },
+            { speaker: 'Клара Новак', text: 'Клянусь, я уже дважды проезжала мимо вашей красной вывески, будто дорога ведёт по кругу в чащу.' },
+            { speaker: 'Duck', text: 'Густой туман часто сбивает водителей с толку. Согреетесь чем-нибудь перед дорогой?' },
+            { speaker: 'Клара Новак', text: 'Горячий карамельный латте и тёплый яблочный пирожок — было бы чудесно. Спасибо.' },
+            { speaker: 'Duck', text: 'Уже готовлю — скоро вынесу поднос.' },
+          ],
+        },
+      ],
+      customersNight2: [
+        {
+          name: 'Медсестра Рамирес',
+          title: 'Измотанная сотрудница ночной смены',
+          orderItem: 'Горячий кофе McCafé и ведёрко хрустящей курицы',
+          dialogue: [
+            { speaker: 'Медсестра Рамирес', text: 'Привет… подожди, ты теперь один в ночь? Я думала увидеть на кассе Маркуса.' },
+            { speaker: 'Duck', text: 'Маркуса? Это тот бывший ночной сотрудник, о котором все говорят?' },
+            { speaker: 'Медсестра Рамирес', text: 'Да. Две недели назад он зашёл в приёмный покой бледный как мел — клялся, что после 3 ночи кто-то стучит в зеркало туалета. А потом просто исчез.' },
+            { speaker: 'Duck', text: 'При найме мне об этом ничего не сказали…' },
+            { speaker: 'Медсестра Рамирес', text: 'Береги себя. Можно горячий кофе McCafé и хрустящую курицу? Надо не уснуть за рулём.' },
+            { speaker: 'Duck', text: 'Сейчас приготовлю на кухне.' },
+          ],
+        },
+        {
+          name: 'Тайлер',
+          title: 'Нервный подросток',
+          orderItem: '10 Макнаггетсов и большая картошка',
+          dialogue: [
+            { speaker: 'Тайлер', text: 'Бро, ты слышал новости по радио?! Лес за этим McDonald’s ВСЁ ЕЩЁ прочёсывают в поисках пропавшего ночного работника!' },
+            { speaker: 'Duck', text: 'Да, Джон только что рассказал про его кепку у деревьев.' },
+            { speaker: 'Тайлер', text: 'Мой брат часто заезжал сюда ночью. Говорит, тот парень видел высокого рыжего клоуна за стеклом прямо перед концом смены.' },
+            { speaker: 'Duck', text: 'Хватит меня пугать, мне тут торчать до 6 утра. Что будешь заказывать?' },
+            { speaker: 'Тайлер', text: '10 Макнаггетсов и большую картошку с собой — я тут ни секунды лишней не задержусь!' },
+            { speaker: 'Duck', text: 'Принято. 5 секунд на кухне, жди.' },
+          ],
+        },
+        {
+          name: 'Помощник шерифа Вэнс',
+          title: 'Ночной патрульный',
+          orderItem: 'Чёрный кофе и комбо Четвертьфунтовый',
+          dialogue: [
+            { speaker: 'Помощник шерифа Вэнс', text: 'Тихое дежурство. Нальёшь чёрного кофе? Заехал проверить — это последнее место, где Маркус отметился перед исчезновением.' },
+            { speaker: 'Duck', text: 'У вас до сих пор нет зацепок, что с ним случилось?' },
+            { speaker: 'Помощник шерифа Вэнс', text: 'Записи камер с его последней ночи повредились после 3:00, а управляющий отказался дать ключи от тропы в лес. Смотри в оба.' },
+            { speaker: 'Duck', text: 'Буду следить за дверью и камерами. Ещё что-нибудь к кофе?' },
+            { speaker: 'Помощник шерифа Вэнс', text: 'Добавь Четвертьфунтовый комбо. И не спускай глаз со входной двери.' },
+            { speaker: 'Duck', text: 'Понял, иду на кухню готовить.' },
+          ],
+        },
+        {
+          name: 'Большой Рэй',
+          title: 'Дальнобойщик',
+          orderItem: 'Ведёрко жареной курицы и горячий кофе',
+          dialogue: [
+            { speaker: 'Большой Рэй', text: 'Всё ещё держишь пост, парень? На всей трассе дальнобойщики только и шепчутся о пропавшем работнике из этого ресторана.' },
+            { speaker: 'Duck', text: 'Похоже, сегодня каждый гость знает о нём больше, чем начальство.' },
+            { speaker: 'Большой Рэй', text: 'Я говорил с ним за два дня до исчезновения. Он жаловался, что кто-то в жёлтом костюме пялился сквозь раздвижные двери во время его последнего заказа.' },
+            { speaker: 'Duck', text: '…Весело. Что приготовить тебе в дорогу?' },
+            { speaker: 'Большой Рэй', text: 'Ведёрко курицы и горячий кофе. Поглядывай на переднее стекло, пока готовишь.' },
+            { speaker: 'Duck', text: 'Хорошо. Сейчас всё сделаю.' },
+          ],
+        },
+        {
+          name: 'Майя Лин',
+          title: 'Неспящая студентка',
+          orderItem: 'Горячий Мокка McCafé и Макнаггетс',
+          dialogue: [
+            { speaker: 'Майя Лин', text: 'Погоди — ты новенький, да? На доске объявлений в кампусе висит листовка о пропавшем здесь сотруднике.' },
+            { speaker: 'Duck', text: 'Да… Маркус. Похоже, каждый гость знает о нём больше нашего управляющего.' },
+            { speaker: 'Майя Лин', text: 'Подруга, которая часто заезжала сюда ночью, сказала, что Маркус исчез именно в то утро, когда его машину нашли у сосен.' },
+            { speaker: 'Duck', text: 'Лучше бы Джон рассказал об этом до того, как вручил мне фартук.' },
+            { speaker: 'Майя Лин', text: 'Держись ближе к свету над кассой. Мне горячий мокка и Макнаггетсы с собой.' },
+            { speaker: 'Duck', text: 'Сейчас. Пять секунд на кухне.' },
+          ],
+        },
+        {
+          name: 'Фельдшер Картер',
+          title: 'Ночной парамедик',
+          orderItem: 'Острый куриный комбо и чёрный кофе',
+          dialogue: [
+            { speaker: 'Фельдшер Картер', text: 'Всё ещё дежуришь один? Диспетчерская обновила ориентировку на пропавшего Маркуса с этого адреса.' },
+            { speaker: 'Duck', text: 'Нашли ещё что-нибудь, кроме машины и кепки?' },
+            { speaker: 'Фельдшер Картер', text: 'Батарейку от фонарика у задней двери и следы, уходящие глубоко в грязь — больше ничего.' },
+            { speaker: 'Duck', text: 'Прекрасно. А мне ведь ещё мусор туда выносить.' },
+            { speaker: 'Фельдшер Картер', text: 'Смотри по сторонам сегодня. Сделай острый куриный комбо и чёрный кофе.' },
+            { speaker: 'Duck', text: 'Уже готовлю — пару секунд.' },
+          ],
+        },
+        {
+          name: 'Клара Новак',
+          title: 'Заблудившаяся путешественница',
+          orderItem: 'Горячий чай и ведёрко хрустящей курицы',
+          dialogue: [
+            { speaker: 'Клара Новак', text: 'На заправке в двух милях к востоку кассир предупредил меня, что в этот McDonald’s лучше не заходить после двух ночи.' },
+            { speaker: 'Duck', text: 'Дай угадаю — из-за парня, который пропал в ночную смену?' },
+            { speaker: 'Клара Новак', text: 'Он сказал, что твой предшественник жаловался, будто кто-то в белом гриме наблюдал за ним через переднюю стеклянную дверь.' },
+            { speaker: 'Duck', text: '…Именно то, что хочется услышать до конца смены. Что вам приготовить?' },
+            { speaker: 'Клара Новак', text: 'Просто горячий чай и ведёрко курицы, чтобы я поскорее уехала по трассе.' },
+            { speaker: 'Duck', text: 'Сейчас вынесу с кухни.' },
+          ],
+        },
+        {
+          name: 'Сэм, Лео и Мия',
+          title: 'Компания ночных друзей',
+          orderItem: 'Большое ведёрко курицы, 3 кофе и большая картошка',
+          dialogue: [
+            { speaker: 'Сэм', text: 'Привет! Как здорово, что вы открыты — после концерта застряли в пробке на шоссе на целых два часа.' },
+            { speaker: 'Мия', text: 'Погодите, это тот самый лесной McDonald’s, где на прошлой неделе исчез ночной работник? Тут как-то жутковато!' },
+            { speaker: 'Лео', text: 'Не нагоняй жути, Мия! Мы просто хотим горячей еды и посидеть в тепле за столиком минутку.' },
+            { speaker: 'Duck', text: 'Столики в зале чистые, можете спокойно поесть внутри. Что приготовить для вашей компании?' },
+            { speaker: 'Сэм', text: 'Большое ведёрко хрустящей курицы, большую картошку и три горячих напитка! Мы займём вон тот угловой столик.' },
+            { speaker: 'Duck', text: 'Сейчас будет! Подождите пять секунд на кухне.' },
+          ],
+        },
+        {
+          name: 'Артур Крамп',
+          title: 'Ворчливый ночной посетитель',
+          orderItem: 'Чёрный кофе и обычный бургер',
+          dialogue: [
+            { speaker: 'Артур Крамп', text: 'Хмф. Наконец-то хоть кто-то за кассой. Вы вообще знаете, какой холод на этой парковке?' },
+            { speaker: 'Duck', text: 'Извините за непогоду, сэр. Что вам приготовить сегодня?' },
+            { speaker: 'Артур Крамп', text: 'Обойдёмся без любезностей. Весь город треплется про пропавшего кассира и проклятый лес… чушь собачья.' },
+            { speaker: 'Duck', text: 'Понял. Тогда только заказ — что желаете?' },
+            { speaker: 'Артур Крамп', text: 'Крепкий чёрный кофе и обычный бургер. Чтобы всё было горячим и без задержек.' },
+            { speaker: 'Duck', text: '…Хорошо. Пять секунд на кухне.' },
+          ],
+        },
       ],
     },
   },
@@ -1457,8 +2126,6 @@ export const TRANSLATIONS: Record<Language, TranslationBundle> = {
       playNight2: 'MAIN MALAM 2',
       locked: '(TERKUNCI)',
       somethingWrong: 'Ada yang Tidak Beres',
-      night3Hunt: 'MALAM 3: PERBURUAN',
-      fullGameTeaser: 'TEASER GAME PENUH',
       bgmLabel: 'Musik Latar: Cold Glass Passage',
       unmute: 'NYALAKAN',
       musicOn: 'MUSIK AKTIF',
@@ -1467,13 +2134,13 @@ export const TRANSLATIONS: Record<Language, TranslationBundle> = {
       credits: 'Kredit',
       storyRuleLabel: 'Aturan Cerita:',
       storyRule:
-        'Selama Malam 1 & 2, maskot hanya mengamati dan belum berburu. Rasakan ketenangan sebelum badai datang.',
+        'Jalani kedua shift malam 6 jam hingga pukul 6:00 pagi, ungkap rumor mantan karyawan yang hilang, dan tetap waspada saat ada yang mengintip dari balik bayangan.',
       shiftMemo: 'Catatan Shift',
       employeeRoutine: 'Rutinitas Karyawan',
       memoItems: [
         'Malam 1: Bicara dengan John untuk serah terima shift, absen, lap meja, kumpulkan sampah, matikan penggorengan dapur, dan layani tamu malam.',
-        'Malam 2: Nyalakan sakelar pemeliharaan, pel lorong, buang kardus, cek stasiun drive-thru dan CCTV.',
-        'Senter memiliki daya tak terbatas; tetap jaga kewaspadaan sekitar.',
+        'Malam 2: Bicara dengan John soal staf yang hilang, nyalakan sakelar, pel lorong, buang kardus, cek drive-thru, CCTV, dan layani tamu.',
+        'Senter memiliki daya tak terbatas; periksa juga toilet baru di sisi barat ruang makan bila perlu.',
         'Jika lampu dapur berkedip saat memasak, selesaikan persiapan 5 detik dengan tenang.',
       ],
       settingsTitle: 'Pengaturan Game',
@@ -1490,7 +2157,7 @@ export const TRANSLATIONS: Record<Language, TranslationBundle> = {
       controlsList: [
         { key: 'W, A, S, D', desc: 'Jalan / Bergerak' },
         { key: 'Mouse', desc: 'Arahkan & Putar Kamera' },
-        { key: 'Shift', desc: 'Lari Cepat (Menguras stamina)' },
+        { key: 'Shift', desc: 'Lari Cepat' },
         { key: 'C', desc: 'Menunduk' },
         { key: 'F', desc: 'Nyalakan/Matikan Senter (Tanpa batas)' },
         { key: 'E', desc: 'Bicara dengan John / Tamu / Selesaikan Tugas' },
@@ -1499,12 +2166,12 @@ export const TRANSLATIONS: Record<Language, TranslationBundle> = {
       understood: 'Mengerti',
       creditsTitle: 'Kredit & Cerita',
       creditsIntro:
-        "McDonald's Nightfall — DEMO adalah prolog horor maskot 2 malam yang menegangkan.",
+        "McDonald's Nightfall adalah game horor psikologis shift malam berdurasi 2 malam penuh.",
       creditsDetails: [
         { label: 'Tema', value: 'Shift malam restoran cepat saji & ketegangan psikologis' },
-        { label: 'Format', value: '2 Malam Dimainkan + Ending Teaser Malam 3' },
+        { label: 'Format', value: '2 Malam Penuh Dimainkan (12:00 AM – 6:00 AM)' },
         { label: 'Mesin', value: 'Three.js 3D WebGL & Web Audio API' },
-        { label: 'Arah Cerita', value: 'Maskot mengawasi dan mengintai, bersiap untuk Malam 3.' },
+        { label: 'Arah Cerita', value: 'Ungkap apa yang terjadi pada mantan pekerja shift malam yang hilang.' },
       ],
       returnMenu: 'Kembali ke Menu',
     },
@@ -1522,6 +2189,9 @@ export const TRANSLATIONS: Record<Language, TranslationBundle> = {
       standing: '[C] BERDIRI',
       carryingFood:
         '🍗 Membawa Nampan Makanan (Ember Ayam Goreng & Kopi McCafé Panas) — Antar ke Tamu di Kasir',
+      carryingSpoiledFood:
+        '⚠️ Membawa Makanan Sisa (Listrik Padam!) — Buang ke tempat sampah dapur atau bak sampah luar',
+      carryingMop: '🧹 Memegang Kain Pel — Bersihkan semua 8 genangan kotor di lantai',
       carryingTrash: '📦 Membawa Kantong Sampah (Bawa ke tempat sampah belakang)',
       carryingCardboard: '📦 Membawa Tumpukan Kardus (Bawa ke tempat sampah belakang)',
       heavyWorklight: 'Senter Kerja [F]',
@@ -1589,13 +2259,14 @@ export const TRANSLATIONS: Record<Language, TranslationBundle> = {
       night1Sub: 'Dia tidak mengejar Duck. Dia tidak bergerak. Dia hanya mengawasi.',
       beginNight2: 'Mulai Malam 2: Ada yang Tidak Beres',
       mainMenu: 'Menu Utama',
-      teaser1: '“KAU KIRA DIA HANYA MENGAWASI.”',
-      teaser2: '“DIA SEDANG MENUNGGU.”',
-      demoComplete: 'DEMO SELESAI',
-      nightsSurvived: '2 MALAM BERTAHAN',
-      night3Coming: 'MALAM 3: PERBURUAN AKAN DATANG…',
-      teaserDesc:
-        'Selama Malam 1 dan 2, dia hanya berdiri dan mengamati setiap rutinitasmu. Di Malam 3, pintu terkunci dari luar, listrik padam total, dan perburuan sesungguhnya dimulai di versi penuh.',
+      night2Over: 'Shift Malam 2 Selesai',
+      theSecondShift: 'SHIFT KEDUA',
+      night2Story1:
+        'Tepat pukul 6:00 pagi, Duck menyerahkan buku catatan shift dan bergegas melewati kursi kosong menuju parkiran yang lembap.',
+      night2Story2:
+        'Namun ia tidak bisa melupakan wajah yang mengintip lewat pintu kaca depan saat pesanan terakhir—maupun bisik-bisik tentang mantan karyawan yang tidak pernah absen pulang.',
+      night2Sub: 'Saat Duck menyerahkan makanan dan menoleh ke pintu lagi, sosok itu sudah menghilang.',
+      playNight2Again: 'Main Malam 2 Lagi',
       playAgain: 'Main Malam 1 Lagi',
     },
     engine: {
@@ -1611,6 +2282,11 @@ export const TRANSLATIONS: Record<Language, TranslationBundle> = {
         clean_tables: {
           title: 'BERSIHKAN MEJA',
           description: (count) => `Lap dan bersihkan meja makan yang kotor (${count}/2).`,
+        },
+        mop_puddles: {
+          title: 'PEL GENANGAN KOTOR',
+          description: (count) =>
+            `Ambil kain pel di sudut ruang keamanan dan bersihkan semua genangan kotor (${count}/8).`,
         },
         collect_trash: {
           title: 'KUMPULKAN SAMPAH',
@@ -1642,8 +2318,9 @@ export const TRANSLATIONS: Record<Language, TranslationBundle> = {
           description: 'Nyalakan sakelar pemeliharaan tambahan di kantor keamanan.',
         },
         n2_mop_puddle: {
-          title: 'PEL LORONG',
-          description: 'Pel genangan cairan hitam misterius di lorong belakang.',
+          title: 'PEL GENANGAN KOTOR',
+          description: (count) =>
+            `Ambil kain pel di sudut ruang keamanan dan bersihkan semua 8 genangan kotor (${count}/8).`,
         },
         n2_cardboard: {
           title: 'DAUR ULANG KARDUS',
@@ -1669,6 +2346,11 @@ export const TRANSLATIONS: Record<Language, TranslationBundle> = {
         serveDesc: (name) => `Antarkan nampan makanan hangat di tangan ke ${name} di kasir depan.`,
         powerOutageTitle: 'PERIKSA KOTAK LISTRIK (3:00 AM)',
         powerOutageDesc: 'Listrik tiba-tiba padam! Pergi ke belakang toko dan periksa kotak listrik.',
+        powerOutageWithFoodDesc:
+          'Listrik padam dan tamu langsung pergi! Cek kotak listrik di belakang dan buang makanan di tangan ke tempat sampah.',
+        discardFoodTitle: 'BUANG MAKANAN KE TEMPAT SAMPAH',
+        discardFoodDesc:
+          'Pelanggan pergi saat listrik padam. Buang makanan sisa di tanganmu ke tempat sampah dapur atau bak sampah luar.',
       },
       notices: {
         completed: (title) => `SELESAI: ${title}`,
@@ -1681,8 +2363,13 @@ export const TRANSLATIONS: Record<Language, TranslationBundle> = {
         orderReady: 'PESANAN SIAP! Sudah di tanganmu. Kembali ke kasir depan.',
         shiftEnds6am: (timeStr) =>
           `Shift berakhir tepat pukul 6:00 AM. Sekarang pukul ${timeStr}. Harap layani pesanan pelanggan hingga fajar.`,
+        shiftSkipped6am: 'TAMU TERAKHIR DILAYANI — JAM SHIFT LOMPAT KE 6:00 AM!',
         powerOutage: '⚡ MATI LAMPU JAM 3:00 PAGI — PERIKSA KOTAK LISTRIK DI BELAKANG TOKO!',
         powerRestored: '⚡ LISTRIK KEMBALI MENYALA — PEMUTUS ARUS DIAKTIFKAN',
+        mopPickedUp: '🧹 KAIN PEL DIAMBIL — BERSIHKAN SEMUA 8 GENANGAN KOTOR',
+        mopRequired: '⚠️ BUTUH KAIN PEL DULU! Ambil di sudut ruang keamanan.',
+        foodDiscarded: '🗑️ MAKANAN SISA DIBUANG KE TEMPAT SAMPAH',
+        discardFoodFirst: '⚠️ BUANG MAKANAN SISA DI TANGANMU KE TEMPAT SAMPAH TERLEBIH DAHULU!',
       },
       prompts: {
         talkToJohn: '[E] Bicara dengan John (Ambil Alih Shift)',
@@ -1693,6 +2380,10 @@ export const TRANSLATIONS: Record<Language, TranslationBundle> = {
         cookingKitchen: (sec) => `⏳ Memasak di Dapur (sisa ${sec} dtk)...`,
         cookKitchen: '[E] Masak di Dapur & Seduh Kopi (5 dtk)',
         inspectElectricalBox: '[E] Periksa Kotak Listrik & Nyalakan Pemutus Arus',
+        throwFoodInTrash: '[E] Buang Makanan ke Tempat Sampah',
+        pickUpMop: '[E] Ambil Kain Pel',
+        mopPuddle: '[E] Pel Genangan Kotor',
+        mopRequiredPrompt: '⚠️ Ambil kain pel di sudut ruang keamanan dulu!',
         actions: {
           employee_john: 'Bicara dengan John (Ambil Alih Shift)',
           time_clock: 'Absen di Mesin Absen Karyawan',
@@ -1701,14 +2392,17 @@ export const TRANSLATIONS: Record<Language, TranslationBundle> = {
           trash_bag_1: 'Ambil Kantong Sampah Meja Makan',
           trash_bag_2: 'Ambil Kantong Sampah Meja Makan',
           outdoor_dumpster: 'Buang Sampah ke Bak Sampah Luar',
+          trash_bin: 'Buang Makanan ke Tempat Sampah',
           kitchen_switch: 'Matikan Penggorengan & Pemanas Dapur',
           office_switch: 'Nyalakan Lampu Tambahan Lorong',
           cctv_monitor: 'Buka Monitor Keamanan CCTV',
           front_door_exit: 'Absen Pulang & Keluar Lewat Pintu Depan',
-          hallway_spill: 'Pel & Bersihkan Genangan Cairan Gelap',
+          mop_tool: 'Ambil Kain Pel',
+          hallway_spill: 'Pel & Bersihkan Genangan Kotor',
           cardboard_bundle: 'Ambil Tumpukan Kardus Terikat',
           drive_thru_order_station: 'Cek Headset & Terminal Drive-Thru',
           electrical_box: 'Periksa Kotak Listrik & Pulihkan Daya',
+          toilet_flush: 'Siram Toilet',
         },
       },
       openingMonologueNight1: [
@@ -1718,8 +2412,7 @@ export const TRANSLATIONS: Record<Language, TranslationBundle> = {
       ],
       openingMonologueNight2: [
         { speaker: 'Duck', text: 'Kembali untuk Malam 2… Area parkir dan hutan terasa sangat sunyi malam ini.' },
-        { speaker: 'Duck', text: 'Masuk lewat pintu depan, selesaikan daftar tugas, dan bertahan sampai jam 6:00 pagi.' },
-        { speaker: 'Duck', text: 'Ayo masuk.' },
+        { speaker: 'Duck', text: 'John masih menunggu di dalam dekat kasir. Ayo masuk lewat pintu geser dan bicara dengannya.' },
       ],
       johnDialogue: [
         { speaker: 'John', text: 'Yo! Karyawan baru! Kamu baru di sini ya?' },
@@ -1732,12 +2425,23 @@ export const TRANSLATIONS: Record<Language, TranslationBundle> = {
         { speaker: 'John', text: 'Satu peringatan lagi... kalau lampu dapur berkedip saat kamu memasak, jangan panik. Dan jangan menatap maskot badut itu terlalu lama. Sampai jumpa jam 6 pagi!' },
         { speaker: 'Duck', text: 'Orang yang aneh... Baiklah, ayo absen masuk dan selesaikan shift ini.' },
       ],
+      johnDialogueNight2: [
+        { speaker: 'John', text: 'Oh, hai Duck. Syukurlah kamu benar-benar kembali untuk Malam 2.' },
+        { speaker: 'Duck', text: 'Ya, tagihan tidak bisa bayar sendiri. Malam ini tenang kan?' },
+        { speaker: 'John', text: 'Lumayan... kecuali manajemen baru menempel pengumuman lagi di belakang. Masih belum ada kabar soal mantan staf shift malam yang menghilang minggu lalu.' },
+        { speaker: 'Duck', text: 'Orang yang kugantikan itu? Tunggu—dia hilang di sekitar sini?' },
+        { speaker: 'John', text: 'Polisi menemukan mobilnya di tepi hutan dengan topi seragamnya masih di dasbor. Bos melarang kami membahasnya di depan pelanggan, tapi semua orang di kota sudah membicarakannya.' },
+        { speaker: 'John', text: 'Pokoknya tugas malam ini: absen masuk, nyalakan pemutus arus kantor, pel genangan hitam di lorong, buang kardus, cek stasiun drive-thru, periksa CCTV, dan layani tamu sampai jam 6:00 pagi.' },
+        { speaker: 'Duck', text: 'Hebat sekali... rekan lama yang hilang dan shift tengah malam lagi. Sampai jumpa subuh, John.' },
+      ],
       powerOutageStartDialogue: [
         {
           speaker: 'Duck',
           text: 'Apaan nih?! Ada apa ini? Apa bos lupa bayar tagihan listrik? Entahlah, aku pergi ke belakang toko untuk mengeceknya.',
         },
       ],
+      customerPowerOutageLeave:
+        'Ya Tuhan, apa-apaan ini? Begini tidak bisa dibiarkan, aku tidak jadi beli makanan, aku pergi.',
       powerRestoredDialogue: [
         {
           speaker: 'Duck',
@@ -1758,6 +2462,30 @@ export const TRANSLATIONS: Record<Language, TranslationBundle> = {
         {
           speaker: 'Duck',
           text: 'Terima kasih! Selamat menikmati makanan Anda dan hati-hati di luar malam ini.',
+        },
+      ],
+      grumpyDeliveredDialogue: (customerName, price) => [
+        {
+          speaker: customerName,
+          text: `Lama sekali! Bikin pesanan segini saja berjam-jam. Ini $${price}—jangan harap dapat tip atau senyuman jam 3 pagi begini.`,
+        },
+        {
+          speaker: 'Duck',
+          text: '...Baiklah. Bahkan bilang terima kasih pun tidak. Tetap hati-hati di jalan, Pak.',
+        },
+      ],
+      friendsSeatedDialogue: (customerName, price) => [
+        {
+          speaker: customerName,
+          text: `Mantap, masih panas mengepul! Ini $${price}, Duck. Terima kasih banyak ya!`,
+        },
+        {
+          speaker: 'Leo',
+          text: 'Ayo duduk di meja sudut yang kosong itu dan makan sebentar di sini sebelum pulang!',
+        },
+        {
+          speaker: 'Duck',
+          text: 'Silakan duduk santai! Hati-hati kabut di luar nanti waktu kalian pulang.',
         },
       ],
       waitingOrderDialogue: (customerName, itemText) => [
@@ -1823,6 +2551,164 @@ export const TRANSLATIONS: Record<Language, TranslationBundle> = {
             { speaker: 'Duck', text: '...Tidak boleh ada siapa-siapa di belakang dapur.' },
             { speaker: 'Big Ray', text: 'Orang tinggi, rambut merah terang, baju terusan kuning. Kulihat dia mengintip lewat jendela waktu aku memutar truk.' },
             { speaker: 'Duck', text: '...Aku baru saja buang sampah ke belakang sepuluh menit lalu. Aku akan waspada. Biar kumasakkan pesananmu sekarang.' },
+          ],
+        },
+        {
+          name: 'Maya Lin',
+          title: 'Mahasiswi Begadang',
+          orderItem: 'McCafé Mocha Dingin & Burger Ayam Renyah Pedas',
+          dialogue: [
+            { speaker: 'Maya Lin', text: 'Hei... bilang dong mesin espressonya masih nyala? Ngerjain skripsi jam 2 pagi ternyata ide yang buruk.' },
+            { speaker: 'Duck', text: 'Mesin McCafé masih panas dan berdengung. Lagi kejar deadline ujian ya?' },
+            { speaker: 'Maya Lin', text: 'Lebih parah—lampu mobilku sempat menyorot sosok jangkung dekat pohon pinus pas belok masuk parkiran, lalu sinyal HP langsung mati total.' },
+            { speaker: 'Duck', text: 'Di sekitar hutan ini memang banyak satwa liar. Rusa, rakun... semoga bukan badut.' },
+            { speaker: 'Maya Lin', text: 'Tunggu, apa? Pokoknya pesan iced mocha dan burger ayam renyah pedas biar aku tetap melek.' },
+            { speaker: 'Duck', text: 'Siap! Kugoreng ayam dan kuseduh kopinya di dapur sekarang.' },
+          ],
+        },
+        {
+          name: 'Paramedis Carter',
+          title: 'Petugas Medis Shift Malam',
+          orderItem: 'Ember Ayam Goreng & Espresso Ganda',
+          dialogue: [
+            { speaker: 'Paramedis Carter', text: 'Pos 4 lagi sepi, sekalian mampir saat patroli. Cuma kamu sendiri yang jaga kasir malam ini?' },
+            { speaker: 'Duck', text: 'Cuma aku dan penggorengan sampai jam 6 pagi. Ada kejadian aneh di radio ambulans malam ini?' },
+            { speaker: 'Paramedis Carter', text: 'Tiga panggilan 911 palsu berisi suara statis dari telepon umum sepanjang jalan raya ini—tidak ada yang bicara, cuma suara napas dan klakson karnaval.' },
+            { speaker: 'Duck', text: 'Oke, itu jauh lebih menyeramkan daripada pelanggan yang rewel.' },
+            { speaker: 'Paramedis Carter', text: 'Pastikan lampu pintu tetap terang, Nak. Pesan ember ayam goreng renyah dan kopi ganda.' },
+            { speaker: 'Duck', text: 'Siap meluncur! Lima detik di dapur.' },
+          ],
+        },
+        {
+          name: 'Clara Novak',
+          title: 'Pelancong Jalan Tol yang Tersesat',
+          orderItem: 'Caramel Latte Panas & Pai Apel',
+          dialogue: [
+            { speaker: 'Clara Novak', text: 'Permisi... GPS saya kehilangan sinyal satelit sejak sepuluh mil lalu. Ini masih Jalur 9 kan?' },
+            { speaker: 'Duck', text: 'Betul Bu, ruas sepi Jalur 9. Hutan memblokir hampir semua sinyal saat malam hari.' },
+            { speaker: 'Clara Novak', text: 'Saya berani sumpah sudah dua kali melewati papan merah toko ini, seolah jalannya memutar kembali masuk ke hutan.' },
+            { speaker: 'Duck', text: 'Kabut tebal sering mengecoh pengemudi di sekitar sini. Mau minum sesuatu yang hangat sebelum melanjutkan perjalanan?' },
+            { speaker: 'Clara Novak', text: 'Caramel latte panas dan pai apel hangat terdengar sangat pas. Terima kasih.' },
+            { speaker: 'Duck', text: 'Langsung kubuatkan—sebentar lagi kuantar nampannya.' },
+          ],
+        },
+      ],
+      customersNight2: [
+        {
+          name: 'Perawat Ramirez',
+          title: 'Pekerja Shift Malam yang Kelelahan',
+          orderItem: 'Kopi McCafé Panas & Ember Ayam Goreng Renyah',
+          dialogue: [
+            { speaker: 'Perawat Ramirez', text: 'Selamat malam. Tunggu—kamu jaga malam sendirian sekarang? Kukira malam ini aku masih bakal lihat Marcus di kasir.' },
+            { speaker: 'Duck', text: 'Marcus? Itu mantan karyawan shift malam yang lagi dibicarakan semua orang ya?' },
+            { speaker: 'Perawat Ramirez', text: 'Iya. Dua minggu lalu dia datang ke IGD dengan wajah pucat pasi, bersumpah ada yang terus mengetuk cermin toilet lewat jam 3 pagi. Setelah itu dia menghilang.' },
+            { speaker: 'Duck', text: 'Tidak ada yang bilang soal itu waktu aku tanda tangan kontrak...' },
+            { speaker: 'Perawat Ramirez', text: 'Hati-hati malam ini. Pesan satu kopi McCafé panas dan ayam goreng renyah ya, biar aku tetap melek di jalan pulang.' },
+            { speaker: 'Duck', text: 'Siap, langsung kumasak di dapur.' },
+          ],
+        },
+        {
+          name: 'Tyler',
+          title: 'Remaja Gelisah',
+          orderItem: '10 Potong McNuggets & Kentang Besar',
+          dialogue: [
+            { speaker: 'Tyler', text: 'Bro, dengar berita di radio nggak?! Polisi MASIH menyisir hutan di belakang McDonald’s ini buat mencari karyawan malam yang hilang!' },
+            { speaker: 'Duck', text: 'Ya, John barusan cerita topi seragamnya ditemukan dekat pepohonan.' },
+            { speaker: 'Tyler', text: 'Sepupuku sering mampir malam ke sini. Katanya pekerja yang hilang itu sempat melihat badut tinggi berambut merah di luar pintu kaca tepat sebelum shift-nya selesai.' },
+            { speaker: 'Duck', text: 'Sudah, jangan menakut-nakutiku selagi aku harus jaga sampai jam 6 pagi. Mau pesan apa?' },
+            { speaker: 'Tyler', text: '10 potong McNuggets dan kentang besar dibungkus — aku nggak mau berlama-lama di dalam!' },
+            { speaker: 'Duck', text: 'Siap. 5 detik di dapur, tunggu sebentar.' },
+          ],
+        },
+        {
+          name: 'Wakil Sheriff Vance',
+          title: 'Petugas Patroli Malam',
+          orderItem: 'Kopi Hitam & Paket Quarter Pounder',
+          dialogue: [
+            { speaker: 'Wakil Sheriff Vance', text: 'Patroli sepi malam ini. Boleh minta kopi hitam? Sekalian mengecek tempat ini karena ini lokasi terakhir Marcus absen sebelum hilang.' },
+            { speaker: 'Duck', text: 'Kalian masih belum punya petunjuk soal apa yang terjadi padanya?' },
+            { speaker: 'Wakil Sheriff Vance', text: 'Rekaman keamanan malam terakhirnya rusak setelah jam 3 pagi, dan manajer menolak memberi kunci cadangan ke jalur hutan. Tetap waspada.' },
+            { speaker: 'Duck', text: 'Saya akan terus mengawasi pintu dan kamera. Ada tambahan pesanan lagi?' },
+            { speaker: 'Wakil Sheriff Vance', text: 'Tambahkan paket Quarter Pounder. Terus awasi pintu depan itu, ya.' },
+            { speaker: 'Duck', text: 'Siap, Pak. Saya ke dapur menyiapkan pesanan Anda.' },
+          ],
+        },
+        {
+          name: 'Big Ray',
+          title: 'Sopir Truk Lintas Jalan Raya',
+          orderItem: 'Ember Ayam Goreng & Kopi Panas',
+          dialogue: [
+            { speaker: 'Big Ray', text: 'Masih bertahan jaga, Nak? Seluruh pangkalan truk di jalan tol membicarakan pekerja cabang ini yang hilang.' },
+            { speaker: 'Duck', text: 'Sepertinya setiap pelanggan malam ini lebih mengenalnya daripada pihak manajemen.' },
+            { speaker: 'Big Ray', text: 'Aku ngobrol dengannya dua hari sebelum dia menghilang. Dia bilang ada orang berbaju kuning terus menatap lewat pintu kaca geser saat pesanan terakhirnya.' },
+            { speaker: 'Duck', text: '...Bikin merinding saja. Mau pesan apa buat bekal jalan?' },
+            { speaker: 'Big Ray', text: 'Ember ayam goreng dan kopi panas. Awasi terus kaca depan selagi kamu memasak.' },
+            { speaker: 'Duck', text: 'Baik. Akan langsung kusiapkan pesananmu.' },
+          ],
+        },
+        {
+          name: 'Maya Lin',
+          title: 'Mahasiswi Begadang',
+          orderItem: 'McCafé Mocha Panas & McNuggets',
+          dialogue: [
+            { speaker: 'Maya Lin', text: 'Tunggu—kamu karyawan baru ya? Di papan pengumuman kampus ditempel poster orang hilang soal karyawan yang lenyap di sini.' },
+            { speaker: 'Duck', text: 'Iya... Marcus. Sepertinya semua pelanggan malam ini lebih tahu tentang dia daripada manajer kami.' },
+            { speaker: 'Maya Lin', text: 'Temanku yang sering belajar larut malam di sini bilang Marcus berhenti masuk kuliah tepat di pagi mobilnya ditemukan dekat barisan pinus.' },
+            { speaker: 'Duck', text: 'Andai John menceritakan itu sebelum menyerahkan celemek padaku.' },
+            { speaker: 'Maya Lin', text: 'Tetap dekat lampu kasir ya. Pesan mocha panas dan McNuggets dibungkus.' },
+            { speaker: 'Duck', text: 'Siap. Lima detik di dapur.' },
+          ],
+        },
+        {
+          name: 'Paramedis Carter',
+          title: 'Petugas Medis Shift Malam',
+          orderItem: 'Paket Ayam Pedas & Kopi Hitam',
+          dialogue: [
+            { speaker: 'Paramedis Carter', text: 'Masih jaga sendirian malam ini? Pusat kendali baru menyebarkan ulang buletin orang hilang atas nama Marcus dari alamat ini.' },
+            { speaker: 'Duck', text: 'Mereka menemukan petunjuk lain selain mobil dan topinya?' },
+            { speaker: 'Paramedis Carter', text: 'Baterai senter yang menggelinding di luar pintu belakang dan jejak kaki masuk ke lumpur—itu saja.' },
+            { speaker: 'Duck', text: 'Bagus sekali. Padahal aku masih harus membuang sampah ke belakang.' },
+            { speaker: 'Paramedis Carter', text: 'Tetap waspada sekelilingmu malam ini. Buatkan saya paket ayam pedas dan kopi hitam.' },
+            { speaker: 'Duck', text: 'Sedang dimasak—tunggu sebentar.' },
+          ],
+        },
+        {
+          name: 'Clara Novak',
+          title: 'Pelancong Jalan Tol yang Tersesat',
+          orderItem: 'Teh Panas & Ember Ayam Goreng Renyah',
+          dialogue: [
+            { speaker: 'Clara Novak', text: 'Saya berhenti di pom bensin dua mil ke timur dan kasirnya memperingatkan agar jangan masuk ke McDonald’s ini lewat jam 2 pagi.' },
+            { speaker: 'Duck', text: 'Biar kutebak—gara-gara karyawan yang menghilang di shift malam?' },
+            { speaker: 'Clara Novak', text: 'Katanya pekerja sebelum kamu sering mengeluh ada seseorang berias cat wajah terus mengawasinya lewat pintu kaca depan.' },
+            { speaker: 'Duck', text: '...Pas sekali didengar sebelum jam pulang. Mau pesan apa, Bu?' },
+            { speaker: 'Clara Novak', text: 'Cukup teh panas dan satu ember ayam renyah supaya saya bisa cepat kembali ke jalan raya.' },
+            { speaker: 'Duck', text: 'Segera kuambilkan dari dapur.' },
+          ],
+        },
+        {
+          name: 'Sam, Leo & Mia',
+          title: 'Sekelompok Teman Tengah Malam',
+          orderItem: 'Ember Ayam Goreng Besar, 3 Kopi & Kentang Besar',
+          dialogue: [
+            { speaker: 'Sam', text: 'Hei! Untung kalian masih buka—macet sepulang konser bikin kami tertahan di jalan tol dua jam penuh.' },
+            { speaker: 'Mia', text: 'Tunggu, ini McDonald’s di tengah hutan tempat karyawan malam menghilang minggu lalu bukan sih? Agak seram ya!' },
+            { speaker: 'Leo', text: 'Jangan bikin suasana merinding ah, Mia! Kita cuma mau makan makanan hangat dan duduk sebentar sebelum pulang.' },
+            { speaker: 'Duck', text: 'Meja makan sudah bersih semua kok kalau kalian mau makan di sini. Mau pesan apa bertiga?' },
+            { speaker: 'Sam', text: 'Satu ember ayam goreng renyah besar, kentang besar, dan tiga minuman hangat! Kami bakal duduk di meja sudut sana nanti.' },
+            { speaker: 'Duck', text: 'Siap! Tunggu lima detik di dapur ya.' },
+          ],
+        },
+        {
+          name: 'Arthur Crump',
+          title: 'Pelanggan Pemarah Tengah Malam',
+          orderItem: 'Kopi Hitam & Burger Polos',
+          dialogue: [
+            { speaker: 'Arthur Crump', text: 'Hmph. Akhirnya ada juga orang di balik kasir. Kamu tahu betapa dinginnya area parkir di luar sana?' },
+            { speaker: 'Duck', text: 'Maaf soal cuacanya, Pak. Bisa saya bantu pesanannya malam ini?' },
+            { speaker: 'Arthur Crump', text: 'Tidak usah basa-basi. Semua orang di kota sibuk bergosip soal kasir hilang dan hutan berhantu... omong kosong semua.' },
+            { speaker: 'Duck', text: 'Baik. Langsung pesan makanan saja—Bapak mau pesan apa?' },
+            { speaker: 'Arthur Crump', text: 'Kopi hitam kental dan satu burger polos. Pastikan panas dan jangan buang-buang waktuku.' },
+            { speaker: 'Duck', text: '...Baiklah. Lima detik di dapur.' },
           ],
         },
       ],

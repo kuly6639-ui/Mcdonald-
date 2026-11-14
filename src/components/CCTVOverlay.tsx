@@ -1,7 +1,8 @@
-import React from 'react';
+import React, { useState, useRef, useEffect } from 'react';
 import { Camera, X } from 'lucide-react';
 import { Language, NightState } from '../types/game';
 import { getTranslations } from '../i18n/translations';
+import { soundEngine } from '../audio/SoundEngine';
 
 interface CCTVOverlayProps {
   nightState: NightState;
@@ -19,6 +20,33 @@ export const CCTVOverlay: React.FC<CCTVOverlayProps> = ({
   const t = getTranslations(language).cctv;
   const cameras = t.cameras;
   const currentCam = cameras.find((c) => c.id === nightState.cctvActiveCam) || cameras[0];
+  const [poppedCam, setPoppedCam] = useState<number | 'exit' | null>(null);
+  const timerRef = useRef<number | null>(null);
+  const exitTimerRef = useRef<number | null>(null);
+
+  useEffect(() => {
+    return () => {
+      if (timerRef.current) window.clearTimeout(timerRef.current);
+      if (exitTimerRef.current) window.clearTimeout(exitTimerRef.current);
+    };
+  }, []);
+
+  const handleSelectCam = (camId: number) => {
+    soundEngine.playUICellPop();
+    setPoppedCam(camId);
+    if (timerRef.current) window.clearTimeout(timerRef.current);
+    timerRef.current = window.setTimeout(() => setPoppedCam(null), 250);
+    onSwitchCam(camId);
+  };
+
+  const handleExit = () => {
+    soundEngine.playUICellPop();
+    setPoppedCam('exit');
+    if (timerRef.current) window.clearTimeout(timerRef.current);
+    if (exitTimerRef.current) window.clearTimeout(exitTimerRef.current);
+    timerRef.current = window.setTimeout(() => setPoppedCam(null), 240);
+    exitTimerRef.current = window.setTimeout(() => onExit(), 140);
+  };
 
   return (
     <div className="absolute inset-0 pointer-events-auto bg-black/40 font-mono text-white select-none flex flex-col justify-between p-6">
@@ -29,7 +57,7 @@ export const CCTVOverlay: React.FC<CCTVOverlayProps> = ({
       {/* TOP HEADER */}
       <div className="relative z-10 flex items-center justify-between border-b border-neutral-700/80 pb-3 bg-neutral-950/80 px-4 py-2 rounded">
         <div className="flex items-center gap-3">
-          <div className="w-3 h-3 rounded-full bg-red-600 animate-pulse" />
+          <div className="w-3 h-3 rounded-full bg-red-600" />
           <span className="font-bold tracking-widest text-red-500 text-sm">{t.rec}</span>
           <span className="text-neutral-400 text-xs">{t.header}</span>
         </div>
@@ -39,8 +67,10 @@ export const CCTVOverlay: React.FC<CCTVOverlayProps> = ({
         </div>
 
         <button
-          onClick={onExit}
-          className="flex items-center gap-1.5 px-3 py-1.5 bg-red-950/80 hover:bg-red-900 border border-red-600/60 rounded text-xs text-red-200 cursor-pointer font-bold transition-colors"
+          onClick={handleExit}
+          className={`flex items-center gap-1.5 px-3 py-1.5 bg-red-950/80 hover:bg-red-900 active:scale-95 border border-red-600/60 rounded text-xs text-red-200 cursor-pointer font-bold transition-all ${
+            poppedCam === 'exit' ? 'animate-cell-pop' : ''
+          }`}
         >
           <X className="w-4 h-4" />
           {t.exitOffice}
@@ -65,8 +95,10 @@ export const CCTVOverlay: React.FC<CCTVOverlayProps> = ({
             return (
               <button
                 key={cam.id}
-                onClick={() => onSwitchCam(cam.id)}
-                className={`flex flex-col text-left p-2.5 rounded border transition-all cursor-pointer ${
+                onClick={() => handleSelectCam(cam.id)}
+                className={`flex flex-col text-left p-2.5 rounded border transition-all cursor-pointer hover:scale-[1.03] active:scale-95 ${
+                  poppedCam === cam.id ? 'animate-cell-pop' : ''
+                } ${
                   isActive
                     ? 'bg-amber-950/80 border-amber-400 text-amber-200 shadow-[0_0_12px_rgba(251,191,36,0.3)]'
                     : 'bg-neutral-900/80 border-neutral-700/60 text-neutral-400 hover:bg-neutral-800 hover:text-neutral-200'

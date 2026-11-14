@@ -6,7 +6,7 @@ export type GameScreen =
   | 'playing'
   | 'cctv'
   | 'night1_complete'
-  | 'night2_teaser'
+  | 'night2_complete'
   | 'credits'
   | 'settings';
 
@@ -41,6 +41,8 @@ export interface PlayerStats {
   hasTrashInHand: boolean;
   hasCardboardInHand: boolean;
   hasFoodInHand?: boolean;
+  hasMopInHand?: boolean;
+  mustDiscardFood?: boolean;
 }
 
 export interface CustomerCar {
@@ -54,6 +56,8 @@ export interface CustomerCar {
   color: number;
 }
 
+export type CustomerBehaviorType = 'standard' | 'friends_group' | 'grumpy_man';
+
 export interface CustomerPerson {
   id: string;
   meshGroup: any; // THREE.Group
@@ -66,6 +70,8 @@ export interface CustomerPerson {
   archetypeIndex: number;
   archetypeName: string;
   archetypeTitle: string;
+  behaviorType?: CustomerBehaviorType;
+  companionMeshes?: any[];
 }
 
 export interface NightState {
@@ -83,6 +89,7 @@ export interface NightState {
   clockedIn: boolean;
   freezerLogged: boolean;
   hallwayMopped: boolean;
+  puddlesMopped?: number;
   cardboardDumped: boolean;
   driveThruInspected: boolean;
   cctvActiveCam: number;
@@ -111,10 +118,12 @@ export interface InteractiveItem {
     | 'clean_table'
     | 'trash_item'
     | 'outdoor_dumpster'
+    | 'trash_bin'
     | 'kitchen_switch'
     | 'storage_clipboard'
     | 'freezer_temp_gauge'
     | 'hallway_spill'
+    | 'mop_tool'
     | 'cardboard_bundle'
     | 'drive_thru_window'
     | 'drive_thru_order_station'
@@ -123,7 +132,8 @@ export interface InteractiveItem {
     | 'seated_customer'
     | 'kitchen_prep_station'
     | 'employee_john'
-    | 'electrical_box';
+    | 'electrical_box'
+    | 'toilet_flush';
   name: string;
   actionText: string;
   position: [number, number, number];

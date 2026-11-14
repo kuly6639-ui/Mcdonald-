@@ -18,6 +18,7 @@ export interface MascotCharacter {
   rightLeg: THREE.Group;
   eyeLights?: THREE.PointLight[];
   updateAnimation: (time: number, speed: number, isChasing: boolean) => void;
+  setPeekPose?: (isPeeking: boolean, time: number, leanDir?: number) => void;
 }
 
 /** 1. Create Mascot 1: The Smiling Jester */
@@ -62,32 +63,37 @@ export function createSmilingJester(): MascotCharacter {
   pelvis.position.set(0, 1.25, 0);
   root.add(pelvis);
 
+  // Waist-pivoted upperBody group so the clown can visibly lean over when peeking around corners
+  const upperBody = new THREE.Group();
+  upperBody.position.set(0, 1.32, 0);
+  root.add(upperBody);
+
   // Torso / Chest (Elongated torso)
   const torso = new THREE.Mesh(new THREE.BoxGeometry(0.48, 0.75, 0.32), suitYellowMat);
-  torso.position.set(0, 1.7, 0);
+  torso.position.set(0, 0.38, 0);
   torso.castShadow = true;
-  root.add(torso);
+  upperBody.add(torso);
 
   // Yellow/Red front zipper & big buttons
   const buttonGeo = new THREE.CylinderGeometry(0.04, 0.04, 0.03, 8);
   const btn1 = new THREE.Mesh(buttonGeo, redAccentsMat);
   btn1.rotation.x = Math.PI / 2;
-  btn1.position.set(0, 1.85, 0.17);
+  btn1.position.set(0, 0.53, 0.17);
   const btn2 = new THREE.Mesh(buttonGeo, redAccentsMat);
   btn2.rotation.x = Math.PI / 2;
-  btn2.position.set(0, 1.6, 0.17);
-  root.add(btn1, btn2);
+  btn2.position.set(0, 0.28, 0.17);
+  upperBody.add(btn1, btn2);
 
   // Clown Neck Ruffle
   const collarMat = new THREE.MeshStandardMaterial({ color: 0xffffff, roughness: 0.8 });
   const collar = new THREE.Mesh(new THREE.TorusGeometry(0.18, 0.08, 8, 16), collarMat);
   collar.rotation.x = Math.PI / 2;
-  collar.position.set(0, 2.1, 0);
-  root.add(collar);
+  collar.position.set(0, 0.78, 0);
+  upperBody.add(collar);
 
   // Head Group (Attached to neck)
   const headGroup = new THREE.Group();
-  headGroup.position.set(0, 2.3, 0);
+  headGroup.position.set(0, 0.98, 0);
 
   // Head Base
   const headMesh = new THREE.Mesh(new THREE.SphereGeometry(0.22, 16, 16), faceMat);
@@ -132,27 +138,27 @@ export function createSmilingJester(): MascotCharacter {
   eyeLight.position.set(0, 0.06, 0.35);
   headGroup.add(eyeLight);
 
-  root.add(headGroup);
+  upperBody.add(headGroup);
 
   // Left Arm
   const leftArm = new THREE.Group();
-  leftArm.position.set(-0.32, 2.0, 0);
+  leftArm.position.set(-0.32, 0.68, 0);
   const armL = new THREE.Mesh(new THREE.CylinderGeometry(0.06, 0.05, 0.85, 8), suitYellowMat);
   armL.position.set(0, -0.4, 0);
   const handL = new THREE.Mesh(new THREE.SphereGeometry(0.08, 8, 8), gloveMat);
   handL.position.set(0, -0.85, 0);
   leftArm.add(armL, handL);
-  root.add(leftArm);
+  upperBody.add(leftArm);
 
   // Right Arm
   const rightArm = new THREE.Group();
-  rightArm.position.set(0.32, 2.0, 0);
+  rightArm.position.set(0.32, 0.68, 0);
   const armR = new THREE.Mesh(new THREE.CylinderGeometry(0.06, 0.05, 0.85, 8), suitYellowMat);
   armR.position.set(0, -0.4, 0);
   const handR = new THREE.Mesh(new THREE.SphereGeometry(0.08, 8, 8), gloveMat);
   handR.position.set(0, -0.85, 0);
   rightArm.add(armR, handR);
-  root.add(rightArm);
+  upperBody.add(rightArm);
 
   // Left Leg
   const leftLeg = new THREE.Group();
@@ -176,9 +182,43 @@ export function createSmilingJester(): MascotCharacter {
   rightLeg.add(legMeshR, shoeR);
   root.add(rightLeg);
 
+  const setPeekPose = (isPeeking: boolean, time: number, leanDir: number = 1) => {
+    if (!isPeeking) {
+      upperBody.rotation.set(0, 0, 0);
+      leftArm.rotation.set(0, 0, 0);
+      rightArm.rotation.set(0, 0, 0);
+      return;
+    }
+
+    // Pronounced sideways and forward lean so the clown cranes around corners/doorframes to spy on Duck
+    upperBody.rotation.z = leanDir * (0.46 + Math.sin(time * 2.1) * 0.035);
+    upperBody.rotation.x = 0.22;
+    upperBody.rotation.y = 0;
+
+    // Counter-tilt head slightly so eyes stay locked onto Duck
+    headGroup.rotation.z = -leanDir * 0.18 + Math.sin(time * 3.0) * 0.05;
+    headGroup.rotation.x = -0.16;
+    headGroup.rotation.y = Math.sin(time * 1.4) * 0.06;
+
+    // Hands bracing/gripping wall edge while peeking
+    leftArm.rotation.x = -0.55;
+    leftArm.rotation.z = 0.22;
+    rightArm.rotation.x = -0.32;
+    rightArm.rotation.z = -0.18;
+
+    leftLeg.rotation.x = 0;
+    rightLeg.rotation.x = 0;
+    root.position.y = 0;
+  };
+
   const updateAnimation = (time: number, speed: number, isChasing: boolean) => {
+    upperBody.rotation.x = isChasing ? 0.14 : 0;
+    upperBody.rotation.z = 0;
+    leftArm.rotation.z = 0;
+    rightArm.rotation.z = 0;
+
     const cycle = time * (isChasing ? 9.0 : 4.5);
-    const amp = isChasing ? 0.65 : 0.38;
+    const amp = speed <= 0.05 ? 0.04 : isChasing ? 0.65 : 0.38;
 
     // Legs swing back and forth
     leftLeg.rotation.x = Math.sin(cycle) * amp;
@@ -195,7 +235,7 @@ export function createSmilingJester(): MascotCharacter {
     headGroup.rotation.x = isChasing ? 0.25 : Math.sin(time * 3) * 0.08;
 
     // Subtle bob
-    root.position.y = Math.abs(Math.sin(cycle * 2)) * 0.08;
+    root.position.y = speed <= 0.05 ? 0 : Math.abs(Math.sin(cycle * 2)) * 0.08;
   };
 
   return {
@@ -208,6 +248,7 @@ export function createSmilingJester(): MascotCharacter {
     rightLeg,
     eyeLights: [eyeLight],
     updateAnimation,
+    setPeekPose,
   };
 }
 

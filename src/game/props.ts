@@ -135,7 +135,7 @@ export function createCustomerCharacter(
     shoeColor = 0x38241b;
     hatColor = 0x473c33;
     accentColor = 0x8a3a34; // burgundy scarf
-  } else {
+  } else if (archetypeIndex === 3) {
     // 3. Big Ray (Highway Long-Hauler): denim vest over red/black flannel, work boots, trucker cap, beard
     jacketColor = 0x2c435c; // denim vest
     pantsColor = 0x1d2e3d;
@@ -144,6 +144,65 @@ export function createCustomerCharacter(
     shoeColor = 0x6e4928; // tan leather work boots
     hatColor = 0xc2410c; // bright trucker cap
     accentColor = 0x8a2020; // flannel sleeves
+  } else if (archetypeIndex === 4) {
+    // 4. Maya Lin (All-Nighter College Student): plum hoodie, dark jeans, burgundy beanie, glasses
+    jacketColor = 0x4c2857;
+    pantsColor = 0x1c2536;
+    hairColor = 0x141215;
+    skinTone = 0xedd3b8;
+    shoeColor = 0xe5e5e5;
+    hatColor = 0x7f1d1d; // knit beanie
+    accentColor = 0xfbbf24; // backpack/college crest detail
+  } else if (archetypeIndex === 5) {
+    // 5. EMT Carter (Night-Shift Paramedic): navy EMS jacket, neon-yellow reflective strip, black boots
+    jacketColor = 0x142642;
+    pantsColor = 0x111827;
+    hairColor = 0x3b2618;
+    skinTone = 0xc6936c;
+    shoeColor = 0x0f0f10;
+    hatColor = 0x0f1e36; // EMS cap
+    accentColor = 0xd9f99d; // hi-vis reflective stripe
+  } else if (archetypeIndex === 7) {
+    // 7. Sam (Friends Group Leader): navy/amber varsity jacket, jeans, white sneakers
+    jacketColor = 0x1e3a5f;
+    pantsColor = 0x1d2c3f;
+    hairColor = 0x2a1b12;
+    skinTone = 0xe6bc98;
+    shoeColor = 0xe5e7eb;
+    hatColor = 0xd97706;
+    accentColor = 0xfbbf24;
+  } else if (archetypeIndex === 701) {
+    // 701. Leo (Friend #2): olive streetwear hoodie, dark joggers
+    jacketColor = 0x3b5239;
+    pantsColor = 0x1f2421;
+    hairColor = 0x171412;
+    skinTone = 0xc99672;
+    shoeColor = 0x222222;
+    accentColor = 0xe2e8f0;
+  } else if (archetypeIndex === 702) {
+    // 702. Mia (Friend #3): burgundy flannel over white tee, dark denim
+    jacketColor = 0x6b1d2f;
+    pantsColor = 0x1e2538;
+    hairColor = 0x3a2015;
+    skinTone = 0xf1ccb0;
+    shoeColor = 0x262626;
+    accentColor = 0xf4f4f5;
+  } else if (archetypeIndex === 8) {
+    // 8. Arthur Crump (Grumpy Man): sour mustard/brown knit cardigan, dark slacks, grey hair
+    jacketColor = 0x5c4628;
+    pantsColor = 0x252320;
+    hairColor = 0x8e9299;
+    skinTone = 0xd6ac8a;
+    shoeColor = 0x241913;
+    accentColor = 0x362c24;
+  } else {
+    // 6. Clara Novak (Lost Highway Traveler): camel/mustard raincoat, teal scarf, dark slacks
+    jacketColor = 0x9c7228;
+    pantsColor = 0x222026;
+    hairColor = 0x6b2c1a; // auburn hair
+    skinTone = 0xf0cbb1;
+    shoeColor = 0x3a241b;
+    accentColor = 0x1b5e63; // teal travel scarf
   }
 
   // Shared Materials
@@ -231,16 +290,72 @@ export function createCustomerCharacter(
       torsoGroup.add(coatBtn);
     }
     torsoGroup.add(scarf, scarfTail);
-  } else {
+  } else if (archetypeIndex === 3) {
     // Big Ray: Plaid shirt showing at center and arms, heavy vest body
     const shirtCenter = new THREE.Mesh(new THREE.BoxGeometry(0.18, 0.36, 0.02), accentMat);
     shirtCenter.position.set(0, 0.35, 0.142);
-    // Vest lapels
     const lapelL = new THREE.Mesh(new THREE.BoxGeometry(0.1, 0.36, 0.03), jacketMat);
     lapelL.position.set(-0.14, 0.35, 0.145);
     const lapelR = new THREE.Mesh(new THREE.BoxGeometry(0.1, 0.36, 0.03), jacketMat);
     lapelR.position.set(0.14, 0.35, 0.145);
     torsoGroup.add(shirtCenter, lapelL, lapelR);
+  } else if (archetypeIndex === 4) {
+    // Maya Lin: Cozy fleece collar & varsity crest
+    const collar = new THREE.Mesh(new THREE.BoxGeometry(0.24, 0.07, 0.25), jacketMat);
+    collar.position.set(0, 0.53, 0);
+    const badge = new THREE.Mesh(new THREE.BoxGeometry(0.06, 0.06, 0.015), accentMat);
+    badge.position.set(0.1, 0.4, 0.145);
+    const pouch = new THREE.Mesh(new THREE.BoxGeometry(0.28, 0.14, 0.05), jacketMat);
+    pouch.position.set(0, 0.2, 0.145);
+    torsoGroup.add(collar, badge, pouch);
+  } else if (archetypeIndex === 5) {
+    // EMT Carter: Hi-vis reflective safety strip + radio mic
+    const stripeFront = new THREE.Mesh(new THREE.BoxGeometry(0.43, 0.06, 0.29), accentMat);
+    stripeFront.position.set(0, 0.28, 0);
+    const radioMic = new THREE.Mesh(new THREE.BoxGeometry(0.05, 0.08, 0.04), rubberMat);
+    radioMic.position.set(-0.14, 0.43, 0.15);
+    torsoGroup.add(stripeFront, radioMic);
+  } else if (archetypeIndex === 7) {
+    // Sam: Varsity stripes & crest
+    const stripe = new THREE.Mesh(new THREE.BoxGeometry(0.425, 0.045, 0.285), accentMat);
+    stripe.position.set(0, 0.15, 0);
+    const crest = new THREE.Mesh(new THREE.BoxGeometry(0.07, 0.07, 0.015), accentMat);
+    crest.position.set(0.11, 0.4, 0.145);
+    torsoGroup.add(stripe, crest);
+  } else if (archetypeIndex === 701) {
+    // Leo: Hoodie pocket & drawstrings
+    const pouch = new THREE.Mesh(new THREE.BoxGeometry(0.28, 0.15, 0.05), jacketMat);
+    pouch.position.set(0, 0.22, 0.145);
+    const strL = new THREE.Mesh(new THREE.CylinderGeometry(0.006, 0.006, 0.16, 6), accentMat);
+    strL.position.set(-0.05, 0.39, 0.15);
+    const strR = new THREE.Mesh(new THREE.CylinderGeometry(0.006, 0.006, 0.16, 6), accentMat);
+    strR.position.set(0.05, 0.39, 0.15);
+    torsoGroup.add(pouch, strL, strR);
+  } else if (archetypeIndex === 702) {
+    // Mia: Open flannel over inner white shirt
+    const tee = new THREE.Mesh(new THREE.BoxGeometry(0.16, 0.36, 0.02), accentMat);
+    tee.position.set(0, 0.35, 0.142);
+    torsoGroup.add(tee);
+  } else if (archetypeIndex === 8) {
+    // Arthur Crump: Cardigan buttons & undershirt
+    const shirtV = new THREE.Mesh(new THREE.BoxGeometry(0.12, 0.16, 0.02), accentMat);
+    shirtV.position.set(0, 0.43, 0.142);
+    torsoGroup.add(shirtV);
+    for (let b = 0; b < 3; b++) {
+      const btn = new THREE.Mesh(new THREE.CylinderGeometry(0.014, 0.014, 0.01, 8), rubberMat);
+      btn.rotation.x = Math.PI / 2;
+      btn.position.set(0, 0.16 + b * 0.09, 0.146);
+      torsoGroup.add(btn);
+    }
+  } else {
+    // Clara Novak: Travel raincoat collar & teal scarf
+    const scarf = new THREE.Mesh(new THREE.CylinderGeometry(0.14, 0.15, 0.09, 12), accentMat);
+    scarf.position.set(0, 0.52, 0);
+    const lapelL = new THREE.Mesh(new THREE.BoxGeometry(0.08, 0.3, 0.025), jacketMat);
+    lapelL.position.set(-0.08, 0.34, 0.145);
+    const lapelR = new THREE.Mesh(new THREE.BoxGeometry(0.08, 0.3, 0.025), jacketMat);
+    lapelR.position.set(0.08, 0.34, 0.145);
+    torsoGroup.add(scarf, lapelL, lapelR);
   }
 
   // 3. Neck & Head
@@ -279,12 +394,21 @@ export function createCustomerCharacter(
   const pupilR = new THREE.Mesh(pupilGeo, pupilMat);
   pupilR.position.set(0.06, 0.11, 0.124);
 
-  // Eyebrows
-  const browMat = archetypeIndex === 2 ? hairMat : new THREE.MeshStandardMaterial({ color: hairColor, roughness: 0.9 });
+  // Eyebrows (Grumpy man gets deeply furrowed scowling brows + frowning mouth)
+  const browMat =
+    archetypeIndex === 2 || archetypeIndex === 8
+      ? hairMat
+      : new THREE.MeshStandardMaterial({ color: hairColor, roughness: 0.9 });
   const browL = new THREE.Mesh(new THREE.BoxGeometry(0.06, 0.018, 0.02), browMat);
   browL.position.set(-0.06, 0.145, 0.13);
   const browR = new THREE.Mesh(new THREE.BoxGeometry(0.06, 0.018, 0.02), browMat);
   browR.position.set(0.06, 0.145, 0.13);
+  if (archetypeIndex === 8) {
+    browL.rotation.z = -0.32;
+    browR.rotation.z = 0.32;
+    browL.position.y = 0.14;
+    browR.position.y = 0.14;
+  }
 
   // Ears
   const earGeo = new THREE.BoxGeometry(0.03, 0.07, 0.05);
@@ -326,17 +450,82 @@ export function createCustomerCharacter(
     const sideHairR = new THREE.Mesh(new THREE.BoxGeometry(0.04, 0.1, 0.14), hairMat);
     sideHairR.position.set(0.125, 0.09, -0.04);
     headGroup.add(newsboy, brim, sideHairL, sideHairR);
-  } else {
+  } else if (archetypeIndex === 3) {
     // Ray Trucker Cap & Beard
     const cap = new THREE.Mesh(new THREE.BoxGeometry(0.26, 0.1, 0.26), new THREE.MeshStandardMaterial({ color: hatColor! }));
     cap.position.set(0, 0.22, 0.02);
     const capVisor = new THREE.Mesh(new THREE.BoxGeometry(0.18, 0.02, 0.12), new THREE.MeshStandardMaterial({ color: 0x222222 }));
     capVisor.position.set(0, 0.17, 0.16);
     capVisor.rotation.x = 0.1;
-    // Beard
     const beard = new THREE.Mesh(new THREE.BoxGeometry(0.2, 0.1, 0.12), hairMat);
     beard.position.set(0, -0.02, 0.08);
     headGroup.add(cap, capVisor, beard);
+  } else if (archetypeIndex === 4) {
+    // Maya Lin: Knit beanie, long dark hair back, & glasses frame
+    const beanie = new THREE.Mesh(new THREE.CylinderGeometry(0.12, 0.145, 0.13, 12), new THREE.MeshStandardMaterial({ color: hatColor! }));
+    beanie.position.set(0, 0.22, 0);
+    const hairBack = new THREE.Mesh(new THREE.BoxGeometry(0.26, 0.24, 0.08), hairMat);
+    hairBack.position.set(0, 0.08, -0.13);
+    const glassL = new THREE.Mesh(new THREE.BoxGeometry(0.075, 0.055, 0.015), rubberMat);
+    glassL.position.set(-0.06, 0.11, 0.132);
+    const glassR = new THREE.Mesh(new THREE.BoxGeometry(0.075, 0.055, 0.015), rubberMat);
+    glassR.position.set(0.06, 0.11, 0.132);
+    const bridge = new THREE.Mesh(new THREE.BoxGeometry(0.04, 0.012, 0.015), rubberMat);
+    bridge.position.set(0, 0.115, 0.132);
+    headGroup.add(beanie, hairBack, glassL, glassR, bridge);
+  } else if (archetypeIndex === 5) {
+    // EMT Carter: Navy paramedic cap with visor & short trimmed hair
+    const emsCap = new THREE.Mesh(new THREE.BoxGeometry(0.25, 0.095, 0.25), new THREE.MeshStandardMaterial({ color: hatColor! }));
+    emsCap.position.set(0, 0.22, 0.01);
+    const visor = new THREE.Mesh(new THREE.BoxGeometry(0.18, 0.02, 0.12), new THREE.MeshStandardMaterial({ color: 0x111111 }));
+    visor.position.set(0, 0.17, 0.155);
+    const badge = new THREE.Mesh(new THREE.BoxGeometry(0.05, 0.04, 0.01), accentMat);
+    badge.position.set(0, 0.22, 0.14);
+    headGroup.add(emsCap, visor, badge);
+  } else if (archetypeIndex === 7) {
+    // Sam: Varsity orange/amber snapback cap + short hair
+    const cap = new THREE.Mesh(new THREE.BoxGeometry(0.25, 0.095, 0.25), new THREE.MeshStandardMaterial({ color: hatColor! }));
+    cap.position.set(0, 0.22, 0);
+    const visor = new THREE.Mesh(new THREE.BoxGeometry(0.17, 0.02, 0.12), new THREE.MeshStandardMaterial({ color: 0x1e293b }));
+    visor.position.set(0, 0.175, 0.15);
+    headGroup.add(cap, visor);
+  } else if (archetypeIndex === 701) {
+    // Leo: Curly/cropped dark hair
+    const hairTop = new THREE.Mesh(new THREE.BoxGeometry(0.26, 0.12, 0.26), hairMat);
+    hairTop.position.set(0, 0.22, 0);
+    headGroup.add(hairTop);
+  } else if (archetypeIndex === 702) {
+    // Mia: Chestnut hair with ponytail
+    const hairTop = new THREE.Mesh(new THREE.BoxGeometry(0.26, 0.1, 0.26), hairMat);
+    hairTop.position.set(0, 0.22, 0);
+    const ponytail = new THREE.Mesh(new THREE.BoxGeometry(0.09, 0.22, 0.09), hairMat);
+    ponytail.position.set(0, 0.1, -0.16);
+    ponytail.rotation.x = 0.18;
+    headGroup.add(hairTop, ponytail);
+  } else if (archetypeIndex === 8) {
+    // Arthur Crump: Greying combed side hair, bushy moustache, deep frown mouth
+    const sideL = new THREE.Mesh(new THREE.BoxGeometry(0.045, 0.1, 0.16), hairMat);
+    sideL.position.set(-0.125, 0.12, -0.02);
+    const sideR = new THREE.Mesh(new THREE.BoxGeometry(0.045, 0.1, 0.16), hairMat);
+    sideR.position.set(0.125, 0.12, -0.02);
+    const hairBack = new THREE.Mesh(new THREE.BoxGeometry(0.25, 0.12, 0.06), hairMat);
+    hairBack.position.set(0, 0.12, -0.12);
+    const moustache = new THREE.Mesh(new THREE.BoxGeometry(0.12, 0.03, 0.03), hairMat);
+    moustache.position.set(0, 0.035, 0.125);
+    const frown = new THREE.Mesh(new THREE.BoxGeometry(0.08, 0.015, 0.015), rubberMat);
+    frown.position.set(0, -0.01, 0.124);
+    headGroup.add(sideL, sideR, hairBack, moustache, frown);
+  } else {
+    // Clara Novak: Auburn bob-cut hair
+    const hairTop = new THREE.Mesh(new THREE.BoxGeometry(0.27, 0.1, 0.27), hairMat);
+    hairTop.position.set(0, 0.22, 0);
+    const hairBack = new THREE.Mesh(new THREE.BoxGeometry(0.26, 0.22, 0.08), hairMat);
+    hairBack.position.set(0, 0.08, -0.13);
+    const sideL = new THREE.Mesh(new THREE.BoxGeometry(0.04, 0.16, 0.18), hairMat);
+    sideL.position.set(-0.13, 0.09, 0.0);
+    const sideR = new THREE.Mesh(new THREE.BoxGeometry(0.04, 0.16, 0.18), hairMat);
+    sideR.position.set(0.13, 0.09, 0.0);
+    headGroup.add(hairTop, hairBack, sideL, sideR);
   }
 
   // 4. Arms & Hands (Pivot at Shoulders)
@@ -1670,7 +1859,6 @@ export function createMopAndBucket(): THREE.Group {
   // 1. Yellow Bucket Tub
   const bucket = new THREE.Mesh(new THREE.BoxGeometry(0.38, 0.32, 0.32), yellowMat);
   bucket.position.set(0, 0.2, 0);
-  bucket.castShadow = true;
   group.add(bucket);
 
   // 2. Black Press Wringer on top
@@ -1698,14 +1886,17 @@ export function createMopAndBucket(): THREE.Group {
     group.add(caster);
   });
 
-  // 5. String Mop leaning inside bucket
+  // 5. String Mop leaning inside bucket (hidden when held by Duck)
+  const mopGroup = new THREE.Group();
   const mopHead = new THREE.Mesh(new THREE.CylinderGeometry(0.04, 0.08, 0.16, 8), mopStrandMat);
   mopHead.position.set(-0.06, 0.24, 0);
 
   const mopStick = new THREE.Mesh(new THREE.CylinderGeometry(0.012, 0.012, 1.25, 8), handleMat);
   mopStick.position.set(-0.16, 0.72, 0);
   mopStick.rotation.z = 0.22; // Natural lean against bucket rim / wall
-  group.add(mopHead, mopStick);
+  mopGroup.add(mopHead, mopStick);
+  group.add(mopGroup);
+  group.userData.mopInBucket = mopGroup;
 
   return group;
 }
@@ -2374,6 +2565,109 @@ export function createFirstPersonHeldMeal(): THREE.Group {
   return group;
 }
 
+/** 21B. First-Person Viewmodel: Held Commercial Mop in Duck's Right Hand */
+export function createFirstPersonHeldMop(): THREE.Group {
+  const group = new THREE.Group();
+
+  const handleMat = new THREE.MeshStandardMaterial({
+    color: 0x4a7c59,
+    metalness: 0.65,
+    roughness: 0.32,
+  });
+  const clampMat = new THREE.MeshStandardMaterial({
+    color: 0x1c1e1f,
+    roughness: 0.55,
+  });
+  const strandMat = new THREE.MeshStandardMaterial({
+    color: 0xe2e2dc,
+    roughness: 0.92,
+  });
+  const duckFeatherMat = new THREE.MeshStandardMaterial({
+    color: 0xffffff,
+    roughness: 0.75,
+  });
+  const duckWebMat = new THREE.MeshStandardMaterial({
+    color: 0xf09000,
+    roughness: 0.6,
+  });
+
+  // Pole extends forward-down from Duck's hand toward floor in front of view
+  const polePivot = new THREE.Group();
+  polePivot.rotation.set(-0.55, 0.12, 0.12);
+  group.add(polePivot);
+
+  const stick = new THREE.Mesh(new THREE.CylinderGeometry(0.014, 0.014, 1.15, 8), handleMat);
+  stick.position.set(0, -0.15, 0);
+  polePivot.add(stick);
+
+  const gripCap = new THREE.Mesh(new THREE.CylinderGeometry(0.018, 0.018, 0.1, 8), clampMat);
+  gripCap.position.set(0, 0.42, 0);
+  polePivot.add(gripCap);
+
+  // Duck's feathered wing/hand & orange fingers wrapped around mop shaft
+  const hand = new THREE.Mesh(new THREE.BoxGeometry(0.055, 0.085, 0.055), duckFeatherMat);
+  hand.position.set(0.01, 0.18, 0.01);
+  const fingers = new THREE.Mesh(new THREE.BoxGeometry(0.042, 0.065, 0.025), duckWebMat);
+  fingers.position.set(-0.01, 0.18, -0.022);
+  polePivot.add(hand, fingers);
+
+  // Mop clamp & thick cotton strands at lower end
+  const clamp = new THREE.Mesh(new THREE.BoxGeometry(0.11, 0.05, 0.055), clampMat);
+  clamp.position.set(0, -0.71, 0);
+  polePivot.add(clamp);
+
+  const mopCore = new THREE.Mesh(new THREE.CylinderGeometry(0.045, 0.095, 0.18, 10), strandMat);
+  mopCore.position.set(0, -0.81, 0);
+  polePivot.add(mopCore);
+
+  return group;
+}
+
+/** Dining Booth Meal Spread for Seated Friends Group (Bucket, 3 Coffee Cups, Fries) */
+export function createBoothMealTray(): THREE.Group {
+  const group = new THREE.Group();
+
+  const trayMat = new THREE.MeshStandardMaterial({ color: 0x1f2124, roughness: 0.55 });
+  const linerMat = new THREE.MeshStandardMaterial({ color: 0xdf382b, roughness: 0.8 });
+  const cupMat = new THREE.MeshStandardMaterial({ color: 0x4a2a1a, roughness: 0.6 });
+  const lidMat = new THREE.MeshStandardMaterial({ color: 0xffffff, roughness: 0.4 });
+  const fryCartonMat = new THREE.MeshStandardMaterial({ color: 0xcc1111, roughness: 0.4 });
+  const fryGoldMat = new THREE.MeshStandardMaterial({ color: 0xf5b800, roughness: 0.6 });
+
+  const tray = new THREE.Mesh(new THREE.BoxGeometry(0.56, 0.016, 0.36), trayMat);
+  tray.castShadow = true;
+  const liner = new THREE.Mesh(new THREE.PlaneGeometry(0.5, 0.3), linerMat);
+  liner.rotation.x = -Math.PI / 2;
+  liner.position.y = 0.009;
+  group.add(tray, liner);
+
+  const bucket = createFriedChickenBucket();
+  bucket.scale.setScalar(0.8);
+  bucket.position.set(0, 0.008, 0);
+  group.add(bucket);
+
+  const cupPositions: [number, number][] = [
+    [-0.19, 0.08],
+    [0.19, 0.08],
+    [-0.17, -0.09],
+  ];
+  for (const [cx, cz] of cupPositions) {
+    const cup = new THREE.Mesh(new THREE.CylinderGeometry(0.036, 0.026, 0.11, 10), cupMat);
+    cup.position.set(cx, 0.06, cz);
+    const lid = new THREE.Mesh(new THREE.CylinderGeometry(0.038, 0.038, 0.012, 10), lidMat);
+    lid.position.set(cx, 0.118, cz);
+    group.add(cup, lid);
+  }
+
+  const carton = new THREE.Mesh(new THREE.BoxGeometry(0.085, 0.085, 0.045), fryCartonMat);
+  carton.position.set(0.18, 0.05, -0.08);
+  const fries = new THREE.Mesh(new THREE.BoxGeometry(0.076, 0.05, 0.036), fryGoldMat);
+  fries.position.set(0.18, 0.095, -0.08);
+  group.add(carton, fries);
+
+  return group;
+}
+
 /** Outgoing McDonald's Crew Employee: John (Shift Handover NPC) */
 export function createEmployeeJohn(): THREE.Group {
   const group = new THREE.Group();
@@ -2925,4 +3219,247 @@ export function createWarehouseSupplyRack(): THREE.Group {
   return group;
 }
 
+/** Porcelain Toilet Stall Enclosure (Partition walls, ajar stall door, bowl, tank, chrome handle, TP dispenser) */
+export function createRestroomToiletStall(): THREE.Group {
+  const group = new THREE.Group();
+
+  const partitionMat = new THREE.MeshStandardMaterial({
+    color: 0x3b444e,
+    roughness: 0.55,
+    metalness: 0.35,
+  });
+  const hardwareMat = new THREE.MeshStandardMaterial({
+    color: 0xcbd5e1,
+    metalness: 0.9,
+    roughness: 0.18,
+  });
+  const porcelainMat = new THREE.MeshStandardMaterial({
+    color: 0xe9eef2,
+    roughness: 0.18,
+    metalness: 0.08,
+  });
+  const seatMat = new THREE.MeshStandardMaterial({
+    color: 0xd8dee4,
+    roughness: 0.32,
+    metalness: 0.05,
+  });
+  const waterMat = new THREE.MeshStandardMaterial({
+    color: 0x2c6e85,
+    roughness: 0.12,
+    metalness: 0.25,
+  });
+  const paperMat = new THREE.MeshStandardMaterial({
+    color: 0xf4f4f0,
+    roughness: 0.9,
+  });
+
+  // 1. Stall Partition Side Panel (Z-axis side divider, elevated on chrome feet)
+  const sidePanel = new THREE.Mesh(new THREE.BoxGeometry(1.55, 1.85, 0.055), partitionMat);
+  sidePanel.position.set(0.05, 1.12, -0.72);
+  sidePanel.castShadow = true;
+  sidePanel.receiveShadow = true;
+  group.add(sidePanel);
+
+  // Stainless support legs under side panel
+  [-0.55, 0.65].forEach((lx) => {
+    const leg = new THREE.Mesh(new THREE.CylinderGeometry(0.025, 0.025, 0.22, 8), hardwareMat);
+    leg.position.set(lx, 0.11, -0.72);
+    group.add(leg);
+  });
+
+  // Front Pilaster Post & Slightly Ajar Stall Door
+  const pilaster = new THREE.Mesh(new THREE.BoxGeometry(0.08, 2.05, 0.18), partitionMat);
+  pilaster.position.set(0.82, 1.025, -0.66);
+  group.add(pilaster);
+
+  const doorPivot = new THREE.Group();
+  doorPivot.position.set(0.82, 0.22, -0.58);
+  doorPivot.rotation.y = 0.55; // Swung partially open so toilet is clearly visible inside
+  const doorLeaf = new THREE.Mesh(new THREE.BoxGeometry(0.045, 1.8, 0.85), partitionMat);
+  doorLeaf.position.set(0, 0.9, 0.425);
+  doorLeaf.castShadow = true;
+  const doorLatch = new THREE.Mesh(new THREE.BoxGeometry(0.07, 0.05, 0.09), hardwareMat);
+  doorLatch.position.set(0, 0.92, 0.78);
+  doorPivot.add(doorLeaf, doorLatch);
+  group.add(doorPivot);
+
+  // 2. Porcelain Toilet Assembly (Centered inside stall, grounded at Y = 0, facing +X)
+  const toiletGroup = new THREE.Group();
+  toiletGroup.position.set(-0.22, 0, 0.05);
+  group.add(toiletGroup);
+
+  // Pedestal Base & Footing
+  const basePlinth = new THREE.Mesh(new THREE.CylinderGeometry(0.18, 0.21, 0.12, 14), porcelainMat);
+  basePlinth.position.y = 0.06;
+  basePlinth.receiveShadow = true;
+  const stem = new THREE.Mesh(new THREE.CylinderGeometry(0.14, 0.16, 0.24, 14), porcelainMat);
+  stem.position.set(-0.04, 0.22, 0);
+  toiletGroup.add(basePlinth, stem);
+
+  // Bowl Basin & Water Inside
+  const bowlOuter = new THREE.Mesh(new THREE.CylinderGeometry(0.24, 0.17, 0.22, 16), porcelainMat);
+  bowlOuter.scale.set(1.18, 1.0, 0.95);
+  bowlOuter.position.set(0.08, 0.36, 0);
+  bowlOuter.castShadow = true;
+  const waterPool = new THREE.Mesh(new THREE.CylinderGeometry(0.16, 0.12, 0.02, 14), waterMat);
+  waterPool.position.set(0.09, 0.43, 0);
+  toiletGroup.add(bowlOuter, waterPool);
+
+  // Toilet Seat Ring & Open/Upright Lid
+  const seatRing = new THREE.Mesh(new THREE.TorusGeometry(0.19, 0.036, 10, 18), seatMat);
+  seatRing.rotation.x = Math.PI / 2;
+  seatRing.scale.set(1.18, 0.92, 1.0);
+  seatRing.position.set(0.08, 0.48, 0);
+
+  const lid = new THREE.Mesh(new THREE.CylinderGeometry(0.21, 0.21, 0.024, 16), seatMat);
+  lid.scale.set(1.0, 1.0, 1.15);
+  lid.rotation.z = Math.PI / 2 - 0.12;
+  lid.position.set(-0.14, 0.70, 0);
+  toiletGroup.add(seatRing, lid);
+
+  // Rear Porcelain Cistern / Water Tank & Chrome Flush Handle
+  const tank = new THREE.Mesh(new THREE.BoxGeometry(0.22, 0.42, 0.46), porcelainMat);
+  tank.position.set(-0.26, 0.68, 0);
+  tank.castShadow = true;
+  const tankCap = new THREE.Mesh(new THREE.BoxGeometry(0.25, 0.04, 0.49), porcelainMat);
+  tankCap.position.set(-0.26, 0.91, 0);
+  const flushStem = new THREE.Mesh(new THREE.BoxGeometry(0.02, 0.02, 0.06), hardwareMat);
+  flushStem.position.set(-0.22, 0.83, 0.25);
+  const flushHandle = new THREE.Mesh(new THREE.BoxGeometry(0.07, 0.022, 0.025), hardwareMat);
+  flushHandle.position.set(-0.18, 0.83, 0.27);
+  toiletGroup.add(tank, tankCap, flushStem, flushHandle);
+
+  // 3. Wall-Mounted Toilet Paper Roll Holder on Partition
+  const tpHolder = new THREE.Mesh(new THREE.BoxGeometry(0.16, 0.14, 0.08), hardwareMat);
+  tpHolder.position.set(0.18, 0.74, -0.65);
+  const tpRoll = new THREE.Mesh(new THREE.CylinderGeometry(0.055, 0.055, 0.11, 12), paperMat);
+  tpRoll.rotation.z = Math.PI / 2;
+  tpRoll.position.set(0.18, 0.73, -0.63);
+  group.add(tpHolder, tpRoll);
+
+  return group;
+}
+
+/** Commercial Restroom Vanity Sink, Chrome Faucet, Mirror & Paper Towel Dispenser */
+export function createRestroomSinkAndMirror(): THREE.Group {
+  const group = new THREE.Group();
+
+  const counterMat = new THREE.MeshStandardMaterial({ color: 0x5d646b, roughness: 0.35, metalness: 0.25 });
+  const porcelainMat = new THREE.MeshStandardMaterial({ color: 0xedf2f5, roughness: 0.18, metalness: 0.08 });
+  const chromeMat = new THREE.MeshStandardMaterial({ color: 0xd8dee6, metalness: 0.92, roughness: 0.14 });
+  const mirrorMat = new THREE.MeshStandardMaterial({ color: 0x9fb8c9, metalness: 0.96, roughness: 0.06 });
+  const darkMetalMat = new THREE.MeshStandardMaterial({ color: 0x1e2226, metalness: 0.65, roughness: 0.4 });
+  const soapMat = new THREE.MeshStandardMaterial({ color: 0x22c55e, roughness: 0.3, transparent: true, opacity: 0.85 });
+
+  // Counter Slab & Apron Bracket
+  const slab = new THREE.Mesh(new THREE.BoxGeometry(1.45, 0.08, 0.56), counterMat);
+  slab.position.set(0, 0.86, 0.28);
+  slab.castShadow = true;
+  slab.receiveShadow = true;
+  const apron = new THREE.Mesh(new THREE.BoxGeometry(1.42, 0.16, 0.06), counterMat);
+  apron.position.set(0, 0.75, 0.52);
+  group.add(slab, apron);
+
+  // Under-sink P-trap Pipes (grounded to floor)
+  const drainPipe = new THREE.Mesh(new THREE.CylinderGeometry(0.025, 0.025, 0.76, 8), chromeMat);
+  drainPipe.position.set(0, 0.38, 0.22);
+  const supplyL = new THREE.Mesh(new THREE.CylinderGeometry(0.012, 0.012, 0.8, 6), chromeMat);
+  supplyL.position.set(-0.18, 0.4, 0.14);
+  const supplyR = new THREE.Mesh(new THREE.CylinderGeometry(0.012, 0.012, 0.8, 6), chromeMat);
+  supplyR.position.set(0.18, 0.4, 0.14);
+  group.add(drainPipe, supplyL, supplyR);
+
+  // Recessed Ceramic Sink Basin & Gooseneck Faucet
+  const basinRim = new THREE.Mesh(new THREE.CylinderGeometry(0.24, 0.18, 0.14, 16), porcelainMat);
+  basinRim.scale.set(1.25, 1.0, 0.95);
+  basinRim.position.set(0, 0.84, 0.3);
+  const drainCap = new THREE.Mesh(new THREE.CylinderGeometry(0.03, 0.03, 0.01, 10), chromeMat);
+  drainCap.position.set(0, 0.78, 0.3);
+
+  const faucetBase = new THREE.Mesh(new THREE.BoxGeometry(0.18, 0.025, 0.05), chromeMat);
+  faucetBase.position.set(0, 0.91, 0.12);
+  const faucetNeck = new THREE.Mesh(new THREE.CylinderGeometry(0.015, 0.018, 0.16, 8), chromeMat);
+  faucetNeck.position.set(0, 0.99, 0.12);
+  const faucetSpout = new THREE.Mesh(new THREE.BoxGeometry(0.025, 0.025, 0.12), chromeMat);
+  faucetSpout.position.set(0, 1.06, 0.17);
+  group.add(basinRim, drainCap, faucetBase, faucetNeck, faucetSpout);
+
+  // Wall Mirror & Steel Frame
+  const mirrorFrame = new THREE.Mesh(new THREE.BoxGeometry(1.25, 0.95, 0.04), darkMetalMat);
+  mirrorFrame.position.set(0, 1.58, 0.02);
+  const mirrorGlass = new THREE.Mesh(new THREE.PlaneGeometry(1.18, 0.88), mirrorMat);
+  mirrorGlass.position.set(0, 1.58, 0.042);
+  group.add(mirrorFrame, mirrorGlass);
+
+  // Soap Dispenser (Left of sink) & Paper Towel Dispenser (Right wall)
+  const soapBody = new THREE.Mesh(new THREE.BoxGeometry(0.1, 0.2, 0.09), darkMetalMat);
+  soapBody.position.set(-0.52, 1.24, 0.05);
+  const soapWindow = new THREE.Mesh(new THREE.BoxGeometry(0.04, 0.08, 0.02), soapMat);
+  soapWindow.position.set(-0.52, 1.24, 0.092);
+  const towelBox = new THREE.Mesh(new THREE.BoxGeometry(0.28, 0.34, 0.14), chromeMat);
+  towelBox.position.set(0.86, 1.38, 0.07);
+  group.add(soapBody, soapWindow, towelBox);
+
+  return group;
+}
+
+/** Illuminated Wall Plaque for Restroom Doorway */
+export function createRestroomDoorSign(): THREE.Group {
+  const group = new THREE.Group();
+  const frame = new THREE.Mesh(
+    new THREE.BoxGeometry(0.54, 0.22, 0.04),
+    new THREE.MeshStandardMaterial({ color: 0x162438, metalness: 0.4, roughness: 0.4 })
+  );
+  const canvas = document.createElement('canvas');
+  canvas.width = 256;
+  canvas.height = 104;
+  const ctx = canvas.getContext('2d')!;
+  ctx.fillStyle = '#0f2744';
+  ctx.fillRect(0, 0, 256, 104);
+  ctx.strokeStyle = '#e2e8f0';
+  ctx.lineWidth = 6;
+  ctx.strokeRect(5, 5, 246, 94);
+  ctx.fillStyle = '#f8fafc';
+  ctx.font = 'bold 34px sans-serif';
+  ctx.textAlign = 'center';
+  ctx.textBaseline = 'middle';
+  ctx.fillText('RESTROOM', 128, 52);
+
+  const tex = new THREE.CanvasTexture(canvas);
+  tex.colorSpace = THREE.SRGBColorSpace;
+  const face = new THREE.Mesh(
+    new THREE.PlaneGeometry(0.5, 0.19),
+    new THREE.MeshBasicMaterial({ map: tex })
+  );
+  face.position.z = 0.022;
+  group.add(frame, face);
+  return group;
+}
+
+/** Indoor Fast-Food Swing-Flap Trash Bin (For discarding spoiled food) */
+export function createIndoorTrashBin(): THREE.Group {
+  const group = new THREE.Group();
+
+  const bodyMat = new THREE.MeshStandardMaterial({ color: 0x26292e, roughness: 0.72, metalness: 0.15 });
+  const redHoodMat = new THREE.MeshStandardMaterial({ color: 0x991b1b, roughness: 0.5 });
+  const flapMat = new THREE.MeshStandardMaterial({ color: 0x15171a, roughness: 0.4, metalness: 0.3 });
+  const trimMat = new THREE.MeshStandardMaterial({ color: 0x9aa0a6, metalness: 0.8, roughness: 0.25 });
+
+  const base = new THREE.Mesh(new THREE.BoxGeometry(0.54, 0.78, 0.48), bodyMat);
+  base.position.y = 0.39;
+  base.receiveShadow = true;
+
+  const hood = new THREE.Mesh(new THREE.BoxGeometry(0.56, 0.28, 0.50), redHoodMat);
+  hood.position.y = 0.92;
+
+  const flapSlot = new THREE.Mesh(new THREE.BoxGeometry(0.38, 0.16, 0.04), flapMat);
+  flapSlot.position.set(0, 0.90, 0.24);
+  flapSlot.rotation.x = 0.15;
+
+  const trim = new THREE.Mesh(new THREE.BoxGeometry(0.57, 0.03, 0.51), trimMat);
+  trim.position.y = 0.78;
+
+  group.add(base, hood, flapSlot, trim);
+  return group;
+}
 
