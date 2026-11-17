@@ -1,4 +1,4 @@
-export type GameNight = 1 | 2;
+export type GameNight = 1 | 2 | 3;
 
 export type GameScreen =
   | 'loading'
@@ -7,6 +7,8 @@ export type GameScreen =
   | 'cctv'
   | 'night1_complete'
   | 'night2_complete'
+  | 'night3_ending'
+  | 'night3_bad_ending'
   | 'credits'
   | 'settings';
 
@@ -41,7 +43,13 @@ export interface PlayerStats {
   hasTrashInHand: boolean;
   hasCardboardInHand: boolean;
   hasFoodInHand?: boolean;
+  hasRawFryItemsInHand?: boolean;
+  hasBigMacInHand?: boolean;
+  hasCoffeeCupInHand?: boolean;
+  hasSodaCupInHand?: boolean;
   hasMopInHand?: boolean;
+  hasChickenTrayInHand?: boolean;
+  hasNoodlesAndDrinkInHand?: boolean;
   mustDiscardFood?: boolean;
 }
 
@@ -56,7 +64,7 @@ export interface CustomerCar {
   color: number;
 }
 
-export type CustomerBehaviorType = 'standard' | 'friends_group' | 'grumpy_man';
+export type CustomerBehaviorType = 'standard' | 'friends_group' | 'grumpy_man' | 'clown_customer';
 
 export interface CustomerPerson {
   id: string;
@@ -122,6 +130,7 @@ export interface InteractiveItem {
     | 'kitchen_switch'
     | 'storage_clipboard'
     | 'freezer_temp_gauge'
+    | 'freezer_chicken_tray'
     | 'hallway_spill'
     | 'mop_tool'
     | 'cardboard_bundle'
@@ -131,12 +140,39 @@ export interface InteractiveItem {
     | 'front_door_exit'
     | 'seated_customer'
     | 'kitchen_prep_station'
+    | 'fryer_machine'
+    | 'kitchen_microwave'
+    | 'coffee_machine'
+    | 'soda_dispenser'
+    | 'serve_table_spot'
     | 'employee_john'
     | 'electrical_box'
-    | 'toilet_flush';
+    | 'toilet_flush'
+    | 'store_67_noodle_stall'
+    | 'store_67_cashier'
+    | 'store_67_car'
+    | 'mcd_duck_car';
   name: string;
   actionText: string;
   position: [number, number, number];
   radius: number;
   completed?: boolean;
 }
+
+export type Night3CarPhase =
+  | 'none'
+  | 'entering_starting'
+  | 'clown_attacking'
+  | 'clown_walking_away'
+  | 'post_attack_dialogue'
+  | 'choice'
+  | 'bad_ending_caught'
+  | 'hiding_using_phone'
+  | 'police_dispatched';
+
+export interface Night3EmergencyProgress {
+  phase: Night3CarPhase;
+  calledPolice: boolean;
+  textedJohn: boolean;
+}
+

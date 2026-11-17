@@ -6,10 +6,6 @@ import {
   HelpCircle,
   Moon,
   Flame,
-  Volume2,
-  VolumeX,
-  Music,
-  Globe,
 } from 'lucide-react';
 import { GameNight, GameSettings, GraphicsQuality } from '../types/game';
 import { McDonaldsLogo } from './McDonaldsLogo';
@@ -21,6 +17,7 @@ interface MainMenuProps {
   settings: GameSettings;
   onUpdateSettings: (s: Partial<GameSettings>) => void;
   night2Unlocked: boolean;
+  night3Unlocked: boolean;
 }
 
 export const MainMenu: React.FC<MainMenuProps> = ({
@@ -28,9 +25,9 @@ export const MainMenu: React.FC<MainMenuProps> = ({
   settings,
   onUpdateSettings,
   night2Unlocked,
+  night3Unlocked,
 }) => {
   const [modal, setModal] = useState<'none' | 'settings' | 'credits' | 'controls'>('none');
-  const [bgmMuted, setBgmMuted] = useState(false);
   const [poppedCell, setPoppedCell] = useState<string | null>(null);
   const popTimerRef = useRef<number | null>(null);
   const actionTimerRef = useRef<number | null>(null);
@@ -69,18 +66,18 @@ export const MainMenu: React.FC<MainMenuProps> = ({
     };
   }, []);
 
-  // Background Music playback for user's attached soundtrack
+  // Background Music playback for menu atmosphere
   useEffect(() => {
     const audio = new Audio('./assets/aistudio/cold_glass_passage_7ecca980.mp4');
     audio.loop = true;
-    audio.volume = bgmMuted ? 0 : Math.max(0, Math.min(1, settings.masterVolume * 0.75));
+    audio.volume = Math.max(0, Math.min(1, settings.masterVolume * 0.75));
     audioRef.current = audio;
 
     const playPromise = audio.play();
     if (playPromise !== undefined) {
       playPromise.catch(() => {
         const onFirstInteraction = () => {
-          if (audioRef.current && !bgmMuted) {
+          if (audioRef.current) {
             audioRef.current.play().catch(() => {});
           }
           window.removeEventListener('click', onFirstInteraction);
@@ -101,9 +98,9 @@ export const MainMenu: React.FC<MainMenuProps> = ({
   // Sync volume with settings
   useEffect(() => {
     if (audioRef.current) {
-      audioRef.current.volume = bgmMuted ? 0 : Math.max(0, Math.min(1, settings.masterVolume * 0.75));
+      audioRef.current.volume = Math.max(0, Math.min(1, settings.masterVolume * 0.75));
     }
-  }, [settings.masterVolume, bgmMuted]);
+  }, [settings.masterVolume]);
 
   const handleStartNight = (night: GameNight) => {
     if (audioRef.current) {
@@ -115,109 +112,42 @@ export const MainMenu: React.FC<MainMenuProps> = ({
   };
 
   return (
-    <div className="absolute inset-0 z-50 flex items-center justify-between p-3 md:p-6 font-mono select-none overflow-hidden bg-gradient-to-r from-black/80 via-black/40 to-transparent">
+    <div className="absolute inset-0 z-50 flex items-center justify-start p-4 md:p-8 font-mono select-none overflow-hidden bg-gradient-to-r from-black/80 via-black/35 to-transparent">
       {/* Subtle vignette highlighting the outside store in 3D */}
-      <div className="absolute inset-0 bg-[radial-gradient(circle_at_75%_50%,transparent_30%,rgba(0,0,0,0.65)_100%)] pointer-events-none" />
+      <div className="absolute inset-0 bg-[radial-gradient(circle_at_72%_50%,transparent_30%,rgba(0,0,0,0.65)_100%)] pointer-events-none" />
 
-      {/* LEFT COLUMN: TITLE & ACTION BUTTONS */}
-      <div className="relative z-10 max-w-[315px] md:max-w-[340px] w-full flex flex-col justify-between max-h-[92vh] py-3 px-4 rounded-xl bg-black/75 border border-neutral-800/90 shadow-2xl overflow-y-auto">
-        <div>
-          {/* Language Quick Switcher */}
-          <div className="flex items-center justify-between gap-1.5 pb-1.5 mb-2 border-b border-neutral-800/90">
-            <span className="flex items-center gap-1 text-[9px] text-neutral-400 uppercase tracking-wider font-bold">
-              <Globe className="w-3 h-3 text-amber-400" />
-              {bundle.languageLabel}
-            </span>
-            <div className="flex items-center gap-1">
-              {LANGUAGE_OPTIONS.map((opt) => {
-                const active = (settings.language || 'en') === opt.code;
-                const cellId = `lang_quick_${opt.code}`;
-                return (
-                  <button
-                    key={opt.code}
-                    onClick={() => triggerCellPop(cellId, () => onUpdateSettings({ language: opt.code }))}
-                    title={opt.label}
-                    className={`px-1.5 py-0.5 rounded text-[9px] font-bold border cursor-pointer transition-all hover:scale-105 active:scale-95 ${
-                      poppedCell === cellId ? 'animate-cell-pop' : ''
-                    } ${
-                      active
-                        ? 'bg-amber-600 text-white border-amber-400'
-                        : 'bg-neutral-900 text-neutral-400 border-neutral-700 hover:bg-neutral-800 hover:text-neutral-200'
-                    }`}
-                  >
-                    {opt.short}
-                  </button>
-                );
-              })}
-            </div>
-          </div>
-
-          {/* Header with authentic McDonald's Logo */}
-          <div className="flex items-center gap-2.5 mb-2">
-            <McDonaldsLogo size="sm" neon={true} />
-            <div>
-              <div className="text-red-500 font-black text-[10px] uppercase tracking-widest flex items-center gap-1">
-                <span>{t.est}</span>
-                <span className="text-neutral-500">•</span>
-                <span className="text-amber-400">{t.nightShift}</span>
-              </div>
-              <div className="text-[9px] text-neutral-400 font-semibold tracking-wider uppercase">
-                {t.survivalHorror}
-              </div>
-            </div>
-          </div>
-
+      {/* CLEAN SIMPLIFIED MENU: TITLE + PLAY + CONTROLS / SETTINGS / CREDITS */}
+      <div className="relative z-10 max-w-[315px] w-full flex flex-col gap-5 py-6 px-5 rounded-xl bg-black/75 border border-neutral-800/90 shadow-2xl">
+        {/* Game Title & Logo */}
+        <div className="flex items-center gap-3.5">
+          <McDonaldsLogo size="sm" neon={true} />
           <h1 className="text-xl md:text-2xl font-black text-amber-400 tracking-tight leading-none drop-shadow-[0_4px_12px_rgba(0,0,0,0.9)]">
-            MCDONALD'S<br />
+            MCDONALD&apos;S
+            <br />
             <span className="text-red-600 font-black tracking-widest text-lg md:text-xl">
               NIGHTFALL
             </span>
           </h1>
-
-          <div className="mt-1.5 inline-flex items-center gap-1.5">
-            <span className="px-1.5 py-0.5 bg-neutral-900 border border-amber-500/40 text-amber-300 text-[9px] font-bold uppercase tracking-wider rounded">
-              {t.outsideClearing}
-            </span>
-            <span className="text-[9px] text-emerald-400 font-mono">
-              {t.storeActive}
-            </span>
-          </div>
-
-          <p className="mt-2 text-[10px] text-neutral-300 leading-snug">
-            {t.description}
-          </p>
-
-          <div className="mt-1.5 px-2 py-1 rounded bg-amber-500/10 border border-amber-500/30 text-[9px] text-amber-300 flex items-center gap-1.5">
-            <Flame className="w-3 h-3 text-red-400 shrink-0" />
-            <span>
-              <strong>{t.tipBefore}</strong>{' '}
-              <kbd className="px-1 py-0 rounded bg-neutral-900 border border-neutral-700 text-white font-bold">
-                Shift
-              </kbd>{' '}
-              {t.tipRun} <strong className="text-white">{bundle.mobile.run}</strong> {t.tipMobile}
-            </span>
-          </div>
         </div>
 
-        {/* Buttons List */}
-        <div className="space-y-1.5 my-3">
+        {/* Play Buttons */}
+        <div className="space-y-2">
           <button
             onClick={() => triggerCellPop('play_n1', () => handleStartNight(1))}
-            className={`w-full flex items-center justify-between px-4 py-2 bg-red-700 hover:bg-red-600 active:scale-95 text-white font-bold text-xs tracking-widest rounded border border-red-500 shadow-[0_0_16px_rgba(220,38,38,0.35)] cursor-pointer transition-all ${
+            className={`w-full flex items-center justify-between px-4 py-2.5 bg-red-700 hover:bg-red-600 active:scale-95 text-white font-bold text-xs tracking-widest rounded border border-red-500 shadow-[0_0_16px_rgba(220,38,38,0.35)] cursor-pointer transition-all ${
               poppedCell === 'play_n1' ? 'animate-cell-pop' : ''
             }`}
           >
-            <span className="flex items-center gap-1.5">
+            <span className="flex items-center gap-2">
               <Play className="w-3.5 h-3.5 fill-white" />
               {t.playNight1}
             </span>
-            <span className="text-[10px] text-amber-300">{t.firstShift}</span>
           </button>
 
           <button
             onClick={() => triggerCellPop('play_n2', () => handleStartNight(2))}
             disabled={!night2Unlocked}
-            className={`w-full flex items-center justify-between px-4 py-2 rounded border text-xs font-bold tracking-widest transition-all ${
+            className={`w-full flex items-center justify-between px-4 py-2.5 rounded border text-xs font-bold tracking-widest transition-all ${
               poppedCell === 'play_n2' ? 'animate-cell-pop' : ''
             } ${
               night2Unlocked
@@ -225,88 +155,66 @@ export const MainMenu: React.FC<MainMenuProps> = ({
                 : 'bg-neutral-950/80 text-neutral-600 border-neutral-800 cursor-not-allowed'
             }`}
           >
-            <span className="flex items-center gap-1.5">
+            <span className="flex items-center gap-2">
               <Moon className="w-3.5 h-3.5" />
               {t.playNight2} {night2Unlocked ? '' : t.locked}
             </span>
-            <span className="text-[10px] text-neutral-500">{t.somethingWrong}</span>
           </button>
 
-          {/* Soundtrack BGM status & toggle */}
-          <div className="flex items-center justify-between px-2 py-1 bg-neutral-950/80 border border-neutral-800 rounded text-[9px] text-neutral-400">
-            <span className="flex items-center gap-1 text-amber-300 font-semibold truncate">
-              <Music className="w-3 h-3 text-amber-400 shrink-0" />
-              <span className="truncate">{t.bgmLabel}</span>
+          <button
+            onClick={() => triggerCellPop('play_n3', () => handleStartNight(3))}
+            disabled={!night3Unlocked}
+            className={`w-full flex items-center justify-between px-4 py-2.5 rounded border text-xs font-bold tracking-widest transition-all ${
+              poppedCell === 'play_n3' ? 'animate-cell-pop' : ''
+            } ${
+              night3Unlocked
+                ? 'bg-neutral-900 hover:bg-neutral-800 active:scale-95 text-red-400 border-red-500/60 cursor-pointer shadow-lg'
+                : 'bg-neutral-950/80 text-neutral-600 border-neutral-800 cursor-not-allowed'
+            }`}
+          >
+            <span className="flex items-center gap-2">
+              <Flame className="w-3.5 h-3.5" />
+              {t.playNight3} {night3Unlocked ? '' : t.locked}
             </span>
-            <button
-              onClick={() => triggerCellPop('bgm_toggle', () => setBgmMuted(!bgmMuted))}
-              className={`flex items-center gap-1 px-1.5 py-0.5 bg-neutral-900 hover:bg-neutral-800 border border-neutral-700 rounded text-[9px] text-neutral-200 font-bold cursor-pointer shrink-0 transition-all active:scale-95 ${
-                poppedCell === 'bgm_toggle' ? 'animate-cell-pop' : ''
-              }`}
-            >
-              {bgmMuted ? (
-                <>
-                  <VolumeX className="w-2.5 h-2.5 text-red-400" />
-                  <span>{t.unmute}</span>
-                </>
-              ) : (
-                <>
-                  <Volume2 className="w-2.5 h-2.5 text-emerald-400" />
-                  <span>{t.musicOn}</span>
-                </>
-              )}
-            </button>
-          </div>
-
-          <div className="grid grid-cols-3 gap-1.5 pt-1">
-            <button
-              onClick={() => triggerCellPop('btn_controls', () => setModal('controls'), 170)}
-              className={`flex items-center justify-center gap-1 px-2 py-1.5 bg-neutral-900 hover:bg-neutral-800 hover:-translate-y-0.5 active:scale-95 border border-neutral-700 rounded text-[10px] text-neutral-300 font-bold cursor-pointer transition-all ${
-                poppedCell === 'btn_controls' ? 'animate-cell-pop' : ''
-              }`}
-            >
-              <HelpCircle className="w-3 h-3" />
-              {t.controls}
-            </button>
-
-            <button
-              onClick={() => triggerCellPop('btn_settings', () => setModal('settings'), 170)}
-              className={`flex items-center justify-center gap-1 px-2 py-1.5 bg-neutral-900 hover:bg-neutral-800 hover:-translate-y-0.5 active:scale-95 border border-neutral-700 rounded text-[10px] text-neutral-300 font-bold cursor-pointer transition-all ${
-                poppedCell === 'btn_settings' ? 'animate-cell-pop' : ''
-              }`}
-            >
-              <SettingsIcon className="w-3 h-3" />
-              {t.settings}
-            </button>
-
-            <button
-              onClick={() => triggerCellPop('btn_credits', () => setModal('credits'), 170)}
-              className={`flex items-center justify-center gap-1 px-2 py-1.5 bg-neutral-900 hover:bg-neutral-800 hover:-translate-y-0.5 active:scale-95 border border-neutral-700 rounded text-[10px] text-neutral-300 font-bold cursor-pointer transition-all ${
-                poppedCell === 'btn_credits' ? 'animate-cell-pop' : ''
-              }`}
-            >
-              <Info className="w-3 h-3" />
-              {t.credits}
-            </button>
-          </div>
+          </button>
         </div>
 
-        {/* Story Directive Badge */}
-        <div className="bg-neutral-950/90 border border-neutral-800 rounded p-2 text-[10px] text-neutral-400 leading-snug">
-          <strong className="text-amber-400">{t.storyRuleLabel}</strong> {t.storyRule}
-        </div>
-      </div>
+        {/* Controls, Settings & Credits */}
+        <div className="grid grid-cols-3 gap-1.5 pt-1 border-t border-neutral-800/80">
+          <button
+            onClick={() => triggerCellPop('btn_controls', () => setModal('controls'), 170)}
+            className={`flex items-center justify-center gap-1 px-2 py-2 bg-neutral-900 hover:bg-neutral-800 hover:-translate-y-0.5 active:scale-95 border border-neutral-700 rounded text-[10px] text-neutral-300 font-bold cursor-pointer transition-all ${
+              poppedCell === 'btn_controls' ? 'animate-cell-pop' : ''
+            }`}
+          >
+            <HelpCircle className="w-3 h-3" />
+            {t.controls}
+          </button>
 
-      {/* RIGHT COLUMN: SHIFT OVERVIEW */}
-      <div className="hidden lg:flex flex-col gap-3 max-w-[260px] relative z-10">
-        <div className="bg-neutral-950/85 border border-neutral-800 rounded-lg p-3.5 shadow-2xl">
-          <div className="text-[10px] text-amber-400 font-bold uppercase tracking-wider mb-1">{t.shiftMemo}</div>
-          <h3 className="text-xs font-bold text-neutral-200 mb-1.5">{t.employeeRoutine}</h3>
-          <ul className="text-[10px] text-neutral-400 space-y-1.5 list-disc list-inside leading-snug">
-            {t.memoItems.map((item, idx) => (
-              <li key={idx}>{item}</li>
-            ))}
-          </ul>
+          <button
+            onClick={() => triggerCellPop('btn_settings', () => setModal('settings'), 170)}
+            className={`flex items-center justify-center gap-1 px-2 py-2 bg-neutral-900 hover:bg-neutral-800 hover:-translate-y-0.5 active:scale-95 border border-neutral-700 rounded text-[10px] text-neutral-300 font-bold cursor-pointer transition-all ${
+              poppedCell === 'btn_settings' ? 'animate-cell-pop' : ''
+            }`}
+          >
+            <SettingsIcon className="w-3 h-3" />
+            {t.settings}
+          </button>
+
+          <button
+            onClick={() => triggerCellPop('btn_credits', () => setModal('credits'), 170)}
+            className={`flex items-center justify-center gap-1 px-2 py-2 bg-neutral-900 hover:bg-neutral-800 hover:-translate-y-0.5 active:scale-95 border border-neutral-700 rounded text-[10px] text-neutral-300 font-bold cursor-pointer transition-all ${
+              poppedCell === 'btn_credits' ? 'animate-cell-pop' : ''
+            }`}
+          >
+            <Info className="w-3 h-3" />
+            {t.credits}
+          </button>
+        </div>
+
+        <div className="flex items-center justify-between text-[10px] text-neutral-400 tracking-wider pt-1 border-t border-neutral-800/60">
+          <span>MCDONALD&apos;S NIGHTFALL</span>
+          <span className="font-bold text-amber-400/90">{t.versionLabel}</span>
         </div>
       </div>
 

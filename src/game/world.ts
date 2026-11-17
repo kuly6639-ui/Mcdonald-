@@ -19,7 +19,9 @@ import {
   createKitchenCounter,
   createDeepFryer,
   createCommercialCoffeeMachine,
+  createSoftDrinkDispenser,
   createFriedChickenVendingMachine,
+  createKitchenMicrowave,
   createFoodPrepTableItems,
   createFriedChickenBucket,
   createSecurityOfficeDesk,
@@ -40,7 +42,10 @@ import {
   createRestroomSinkAndMirror,
   createRestroomDoorSign,
   createIndoorTrashBin,
+  createFreezerChickenTrayPickup,
+  createDriveThruExteriorRig,
 } from './props';
+import { buildSixtySevenElevenArea } from './store67';
 import { InteractiveItem } from '../types/game';
 
 export interface CollisionBox {
@@ -106,8 +111,15 @@ export interface RestaurantWorld {
   kitchenLight: THREE.PointLight;
   employeeJohn: THREE.Group;
   clownStatue: THREE.Group;
+  fryerMachine: THREE.Group;
+  kitchenMicrowave: THREE.Group;
+  coffeeMachine: THREE.Group;
+  sodaDispenser: THREE.Group;
+  duckCar: THREE.Group;
   wallMeshes: THREE.Mesh[];
   mopInBucket: THREE.Object3D | null;
+  store67Group: THREE.Group;
+  store67Clerk: THREE.Group;
 }
 
 export function buildCompactRestaurantWorld(): RestaurantWorld {
@@ -143,18 +155,21 @@ export function buildCompactRestaurantWorld(): RestaurantWorld {
   floorTex.repeat.set(6, 5);
   const floorMat = new THREE.MeshStandardMaterial({
     map: floorTex,
-    roughness: 0.35,
-    metalness: 0.1,
+    flatShading: true,
+    roughness: 0.9,
+    metalness: 0.05,
   });
 
   const wallMat = new THREE.MeshStandardMaterial({
     color: 0x969087,
-    roughness: 0.85,
-    metalness: 0.05,
+    flatShading: true,
+    roughness: 0.9,
+    metalness: 0.0,
   });
 
   const ceilingMat = new THREE.MeshStandardMaterial({
     color: 0x33302d,
+    flatShading: true,
     roughness: 0.9,
   });
 
@@ -162,20 +177,21 @@ export function buildCompactRestaurantWorld(): RestaurantWorld {
   asphaltTex.repeat.set(10, 8);
   const asphaltMat = new THREE.MeshStandardMaterial({
     map: asphaltTex,
-    roughness: 0.2,
-    metalness: 0.4,
+    flatShading: true,
+    roughness: 0.9,
+    metalness: 0.1,
   });
 
   const sidewalkMat = new THREE.MeshStandardMaterial({
     color: 0x6e7378,
-    roughness: 0.75,
+    flatShading: true,
+    roughness: 0.9,
   });
 
-  const glassMat = new THREE.MeshPhysicalMaterial({
+  const glassMat = new THREE.MeshStandardMaterial({
     color: 0x7090a0,
-    transmission: 0.85,
-    roughness: 0.12,
-    ior: 1.5,
+    flatShading: true,
+    roughness: 0.9,
     transparent: true,
     opacity: 0.45,
   });
@@ -219,8 +235,9 @@ export function buildCompactRestaurantWorld(): RestaurantWorld {
   // Cool Slate Restroom Tile Overlay (X: -12 to -8, Z: 0 to 6)
   const restroomTileMat = new THREE.MeshStandardMaterial({
     color: 0x525e68,
-    roughness: 0.3,
-    metalness: 0.08,
+    flatShading: true,
+    roughness: 0.9,
+    metalness: 0.05,
   });
   const restroomFloor = new THREE.Mesh(new THREE.PlaneGeometry(4, 6), restroomTileMat);
   restroomFloor.rotation.x = -Math.PI / 2;
@@ -238,8 +255,9 @@ export function buildCompactRestaurantWorld(): RestaurantWorld {
   // Exterior Tar & Gravel Roof Deck Slab (20.6m wide x 12.6m deep)
   const roofDeckMat = new THREE.MeshStandardMaterial({
     color: 0x1c1e21,
-    roughness: 0.95,
-    metalness: 0.1,
+    flatShading: true,
+    roughness: 0.9,
+    metalness: 0.05,
   });
   const roofDeck = new THREE.Mesh(new THREE.BoxGeometry(20.6, 0.28, 12.6), roofDeckMat);
   roofDeck.position.set(-2, 3.34, 0);
@@ -249,8 +267,9 @@ export function buildCompactRestaurantWorld(): RestaurantWorld {
   // Roof Parapet Walls & Metal Coping
   const parapetMat = new THREE.MeshStandardMaterial({
     color: 0x24282c,
-    roughness: 0.85,
-    metalness: 0.25,
+    flatShading: true,
+    roughness: 0.9,
+    metalness: 0.15,
   });
   const parapetN = new THREE.Mesh(new THREE.BoxGeometry(20.6, 0.45, 0.32), parapetMat);
   parapetN.position.set(-2, 3.65, 6.16);
@@ -265,8 +284,9 @@ export function buildCompactRestaurantWorld(): RestaurantWorld {
   // Classic McDonald's Crimson Mansard Roof Facade Overhang (Angled front roof canopy)
   const mansardMat = new THREE.MeshStandardMaterial({
     color: 0x991b1b, // Signature McDonald's red mansard
-    roughness: 0.45,
-    metalness: 0.3,
+    flatShading: true,
+    roughness: 0.9,
+    metalness: 0.1,
   });
   const frontMansard = new THREE.Mesh(new THREE.BoxGeometry(20.8, 0.95, 0.45), mansardMat);
   frontMansard.position.set(-2, 3.9, 6.25);
@@ -276,19 +296,25 @@ export function buildCompactRestaurantWorld(): RestaurantWorld {
   // Front Entrance Protective Canopy Marquee over sliding doors
   const canopyMat = new THREE.MeshStandardMaterial({
     color: 0x1f2327,
-    roughness: 0.6,
-    metalness: 0.6,
+    flatShading: true,
+    roughness: 0.9,
+    metalness: 0.25,
   });
   const entranceCanopy = new THREE.Mesh(new THREE.BoxGeometry(5.2, 0.18, 1.8), canopyMat);
   entranceCanopy.position.set(0, 3.12, 6.9);
   root.add(entranceCanopy);
 
-  // Canopy Steel Diagonal Support Struts
-  const strutMat = new THREE.MeshStandardMaterial({ color: 0x111111, metalness: 0.8, roughness: 0.3 });
-  const strutL = new THREE.Mesh(new THREE.CylinderGeometry(0.035, 0.035, 1.6, 8), strutMat);
+  // Canopy Steel Diagonal Support Struts (5-sided <= 7 faces)
+  const strutMat = new THREE.MeshStandardMaterial({
+    color: 0x111111,
+    flatShading: true,
+    roughness: 0.9,
+    metalness: 0.3,
+  });
+  const strutL = new THREE.Mesh(new THREE.CylinderGeometry(0.035, 0.035, 1.6, 5, 1), strutMat);
   strutL.position.set(-2.4, 3.65, 6.8);
   strutL.rotation.x = 0.55;
-  const strutR = new THREE.Mesh(new THREE.CylinderGeometry(0.035, 0.035, 1.6, 8), strutMat);
+  const strutR = new THREE.Mesh(new THREE.CylinderGeometry(0.035, 0.035, 1.6, 5, 1), strutMat);
   strutR.position.set(2.4, 3.65, 6.8);
   strutR.rotation.x = 0.55;
   root.add(strutL, strutR);
@@ -296,21 +322,31 @@ export function buildCompactRestaurantWorld(): RestaurantWorld {
   // Commercial Industrial Rooftop HVAC Unit (Steel condenser unit on roof deck)
   const hvacGroup = new THREE.Group();
   hvacGroup.position.set(2.5, 3.48, -1.5);
-  const hvacMat = new THREE.MeshStandardMaterial({ color: 0x717980, metalness: 0.8, roughness: 0.35 });
+  const hvacMat = new THREE.MeshStandardMaterial({
+    color: 0x717980,
+    flatShading: true,
+    roughness: 0.9,
+    metalness: 0.3,
+  });
   const hvacBody = new THREE.Mesh(new THREE.BoxGeometry(2.4, 1.35, 1.8), hvacMat);
   hvacBody.position.y = 0.68;
   hvacGroup.add(hvacBody);
 
-  // Dual Rooftop Fans
-  const fanMat = new THREE.MeshStandardMaterial({ color: 0x222222, metalness: 0.9, roughness: 0.2 });
-  const fan1 = new THREE.Mesh(new THREE.CylinderGeometry(0.45, 0.45, 0.15, 16), fanMat);
+  // Dual Rooftop Fans (5-sided <= 7 faces)
+  const fanMat = new THREE.MeshStandardMaterial({
+    color: 0x222222,
+    flatShading: true,
+    roughness: 0.9,
+    metalness: 0.35,
+  });
+  const fan1 = new THREE.Mesh(new THREE.CylinderGeometry(0.45, 0.45, 0.15, 5, 1), fanMat);
   fan1.position.set(-0.6, 1.42, 0);
-  const fan2 = new THREE.Mesh(new THREE.CylinderGeometry(0.45, 0.45, 0.15, 16), fanMat);
+  const fan2 = new THREE.Mesh(new THREE.CylinderGeometry(0.45, 0.45, 0.15, 5, 1), fanMat);
   fan2.position.set(0.6, 1.42, 0);
   hvacGroup.add(fan1, fan2);
 
-  // HVAC Exhaust Vent Pipe
-  const pipe = new THREE.Mesh(new THREE.CylinderGeometry(0.14, 0.14, 1.8, 12), hvacMat);
+  // HVAC Exhaust Vent Pipe (5-sided <= 7 faces)
+  const pipe = new THREE.Mesh(new THREE.CylinderGeometry(0.14, 0.14, 1.8, 5, 1), hvacMat);
   pipe.position.set(-1.4, 0.9, 0.5);
   pipe.rotation.z = 0.2;
   hvacGroup.add(pipe);
@@ -340,7 +376,7 @@ export function buildCompactRestaurantWorld(): RestaurantWorld {
   storeSignMaterials.push({ mat: adBigMacMat, onColor: 0xffffff });
   const adBigMacFrame = new THREE.Mesh(
     new THREE.BoxGeometry(1.25, 1.85, 0.08),
-    new THREE.MeshStandardMaterial({ color: 0x18181b, metalness: 0.7, roughness: 0.3 })
+    new THREE.MeshStandardMaterial({ color: 0x18181b, flatShading: true, roughness: 0.9 })
   );
   adBigMacFrame.position.set(-2.8, 1.75, 6.18);
   const adBigMacFace = new THREE.Mesh(new THREE.PlaneGeometry(1.15, 1.75), adBigMacMat);
@@ -359,7 +395,7 @@ export function buildCompactRestaurantWorld(): RestaurantWorld {
   storeSignMaterials.push({ mat: adFriesMat, onColor: 0xffffff });
   const adFriesFrame = new THREE.Mesh(
     new THREE.BoxGeometry(1.25, 1.85, 0.08),
-    new THREE.MeshStandardMaterial({ color: 0x18181b, metalness: 0.7, roughness: 0.3 })
+    new THREE.MeshStandardMaterial({ color: 0x18181b, flatShading: true, roughness: 0.9 })
   );
   adFriesFrame.position.set(2.8, 1.75, 6.18);
   const adFriesFace = new THREE.Mesh(new THREE.PlaneGeometry(1.15, 1.75), adFriesMat);
@@ -398,19 +434,71 @@ export function buildCompactRestaurantWorld(): RestaurantWorld {
   createWall(0.3, 0.8, 2.0, 8, 0.4, 0); // Wall under drive-thru window
   createWall(0.3, 0.8, 2.0, 8, 2.8, 0); // Wall above drive-thru window
 
-  // --- DRIVE-THRU SERVICE WINDOW (X = 8.0, Z = 0) ---
-  const dtWindowFrameMat = new THREE.MeshStandardMaterial({ color: 0x1f2328, roughness: 0.4, metalness: 0.7 });
-  const dtFrame = new THREE.Mesh(new THREE.BoxGeometry(0.35, 1.65, 2.05), dtWindowFrameMat);
-  dtFrame.position.set(8.0, 1.6, 0);
-  const dtGlass = new THREE.Mesh(new THREE.BoxGeometry(0.08, 1.5, 1.9), glassMat);
-  dtGlass.position.set(8.0, 1.6, 0);
-  // Stainless steel customer service ledge projecting outside
+  // --- TRANSPARENT DRIVE-THRU SERVICE WINDOW (X = 8.0, Z = 0) ---
+  const dtWindowFrameMat = new THREE.MeshStandardMaterial({
+    color: 0x1f2328,
+    flatShading: true,
+    roughness: 0.9,
+    metalness: 0.25,
+  });
+  const dtClearGlassMat = new THREE.MeshStandardMaterial({
+    color: 0xaad4e6,
+    transparent: true,
+    opacity: 0.20,
+    flatShading: true,
+    roughness: 0.9,
+    depthWrite: false,
+  });
+
+  // 4-sided perimeter aluminum frame (leaves center genuinely open & see-through)
+  const dtTopBar = new THREE.Mesh(new THREE.BoxGeometry(0.34, 0.08, 2.04), dtWindowFrameMat);
+  dtTopBar.position.set(8.0, 2.38, 0);
+  const dtBotBar = new THREE.Mesh(new THREE.BoxGeometry(0.34, 0.08, 2.04), dtWindowFrameMat);
+  dtBotBar.position.set(8.0, 0.82, 0);
+  const dtJambN = new THREE.Mesh(new THREE.BoxGeometry(0.34, 1.64, 0.08), dtWindowFrameMat);
+  dtJambN.position.set(8.0, 1.6, 0.98);
+  const dtJambS = new THREE.Mesh(new THREE.BoxGeometry(0.34, 1.64, 0.08), dtWindowFrameMat);
+  dtJambS.position.set(8.0, 1.6, -0.98);
+  const dtCenterMullion = new THREE.Mesh(new THREE.BoxGeometry(0.08, 1.52, 0.05), dtWindowFrameMat);
+  dtCenterMullion.position.set(8.0, 1.6, 0.0);
+
+  // Transparent glass pane (left half closed glass, right half clear service pass-through)
+  const dtGlass = new THREE.Mesh(new THREE.BoxGeometry(0.03, 1.48, 0.96), dtClearGlassMat);
+  dtGlass.position.set(8.0, 1.6, -0.48);
+  const dtSlideGlass = new THREE.Mesh(new THREE.BoxGeometry(0.03, 1.48, 0.96), dtClearGlassMat);
+  dtSlideGlass.position.set(7.96, 1.6, 0.25);
+
+  // Stainless steel customer service ledge (inside & outside pass-through counter)
   const dtLedge = new THREE.Mesh(
-    new THREE.BoxGeometry(0.65, 0.08, 1.8),
-    new THREE.MeshStandardMaterial({ color: 0x999da0, metalness: 0.85, roughness: 0.25 })
+    new THREE.BoxGeometry(0.88, 0.07, 1.88),
+    new THREE.MeshStandardMaterial({ color: 0x9ca3af, flatShading: true, roughness: 0.9, metalness: 0.25 })
   );
-  dtLedge.position.set(8.25, 0.82, 0);
-  root.add(dtFrame, dtGlass, dtLedge);
+  dtLedge.position.set(8.08, 0.84, 0);
+  root.add(dtTopBar, dtBotBar, dtJambN, dtJambS, dtCenterMullion, dtGlass, dtSlideGlass, dtLedge);
+
+  // Exterior Drive-Thru Canopy, Menu Board & Overhead Window Light
+  const dtExteriorRig = createDriveThruExteriorRig();
+  dtExteriorRig.position.set(8.0, 0, 0);
+  root.add(dtExteriorRig);
+
+  const dtWindowLightOut = new THREE.PointLight(0xfff0cc, 0.9, 6.5);
+  dtWindowLightOut.position.set(9.1, 2.55, 0);
+  root.add(dtWindowLightOut);
+  storeLights.push({ light: dtWindowLightOut, baseIntensity: 0.9 });
+
+  const dtWindowLightIn = new THREE.PointLight(0xfff5e0, 0.52, 4.5);
+  dtWindowLightIn.position.set(7.35, 2.35, 0);
+  root.add(dtWindowLightIn);
+  storeLights.push({ light: dtWindowLightIn, baseIntensity: 0.52 });
+
+  interactiveItems.push({
+    id: 'drive_thru_window',
+    type: 'drive_thru_window',
+    name: 'Drive-Thru Service Window',
+    actionText: 'Inspect Drive-Thru Service Window',
+    position: [7.4, 1.35, 0],
+    radius: 2.1,
+  });
 
   // Exterior South Wall (Z = -6, extending from X = -12 to +8 with doorway at X = 4)
   createWall(15.5, 3.2, 0.3, -4.25, 1.6, -6);
@@ -424,15 +512,16 @@ export function buildCompactRestaurantWorld(): RestaurantWorld {
   // --- LARGE ARCHITECTURAL STOREFRONT WINDOWS WITH ALUMINUM FRAMES & SILLS ---
   const windowFrameMat = new THREE.MeshStandardMaterial({
     color: 0x1b1e22,
-    roughness: 0.35,
-    metalness: 0.75,
+    flatShading: true,
+    roughness: 0.9,
+    metalness: 0.25,
   });
 
   const createWindowAssembly = (xCenter: number) => {
     const wGroup = new THREE.Group();
     wGroup.position.set(xCenter, 1.55, 6.0);
 
-    // Main clear glass panel (high transmission, reveals dark interior)
+    // Main clear glass panel
     const glassPane = new THREE.Mesh(new THREE.BoxGeometry(4.7, 2.3, 0.06), glassMat);
     wGroup.add(glassPane);
 
@@ -459,7 +548,7 @@ export function buildCompactRestaurantWorld(): RestaurantWorld {
     // Exterior projecting window sill ledge
     const sill = new THREE.Mesh(
       new THREE.BoxGeometry(4.9, 0.12, 0.28),
-      new THREE.MeshStandardMaterial({ color: 0x474d54, roughness: 0.8 })
+      new THREE.MeshStandardMaterial({ color: 0x474d54, flatShading: true, roughness: 0.9 })
     );
     sill.position.set(0, -1.2, 0.12);
 
@@ -556,11 +645,11 @@ export function buildCompactRestaurantWorld(): RestaurantWorld {
     radius: 1.8,
   });
 
-  // --- 3. OUTDOOR PARKING LOT & ROAD (North: Z = 6 to 28) ---
-  // Concrete Sidewalk (Z: 6 to 9, X: -22 to 22)
-  const sidewalk = new THREE.Mesh(new THREE.PlaneGeometry(44, 3), sidewalkMat);
+  // --- 3. OUTDOOR PARKING LOT, DEDICATED DRIVE-THRU SERVICE LANE & ROAD ---
+  // Concrete Sidewalk (Z: 6 to 9, X: -22 to 8.3 — stops cleanly before the Drive-Thru lane)
+  const sidewalk = new THREE.Mesh(new THREE.PlaneGeometry(30.3, 3), sidewalkMat);
   sidewalk.rotation.x = -Math.PI / 2;
-  sidewalk.position.set(0, 0.02, 7.5);
+  sidewalk.position.set(-6.85, 0.02, 7.5);
   sidewalk.receiveShadow = true;
   root.add(sidewalk);
 
@@ -571,34 +660,90 @@ export function buildCompactRestaurantWorld(): RestaurantWorld {
   parkingLot.receiveShadow = true;
   root.add(parkingLot);
 
-  // Parking Spaces & Yellow Stall Lines
+  // Separate Asphalt Drive-Thru Service Lane running outside East wall (X: 8.6 to 14.4, Z: -14.5 to 19.5)
+  const dtLaneAsphalt = new THREE.Mesh(new THREE.PlaneGeometry(5.8, 34), asphaltMat);
+  dtLaneAsphalt.rotation.x = -Math.PI / 2;
+  dtLaneAsphalt.position.set(11.5, -0.005, 2.5);
+  dtLaneAsphalt.receiveShadow = true;
+  root.add(dtLaneAsphalt);
+
+  // Drive-Thru Rear Turnaround Pad (Z: -14.5 to -9.0, X: 8.5 to 15.0)
+  const dtTurnPad = new THREE.Mesh(new THREE.PlaneGeometry(6.8, 6.5), asphaltMat);
+  dtTurnPad.rotation.x = -Math.PI / 2;
+  dtTurnPad.position.set(11.8, -0.006, -12.2);
+  dtTurnPad.receiveShadow = true;
+  root.add(dtTurnPad);
+
+  // Drive-Thru Yellow Edge Lines & Window Stopping Box Markings
+  const lineMat = new THREE.MeshBasicMaterial({ color: 0xccaa11 });
+  const dtWhiteLineMat = new THREE.MeshBasicMaterial({ color: 0xd4d4d8 });
+  const dtLineInner = new THREE.Mesh(new THREE.PlaneGeometry(0.14, 30), lineMat);
+  dtLineInner.rotation.x = -Math.PI / 2;
+  dtLineInner.position.set(8.85, 0.012, 3.0);
+  const dtLineOuter = new THREE.Mesh(new THREE.PlaneGeometry(0.14, 30), lineMat);
+  dtLineOuter.rotation.x = -Math.PI / 2;
+  dtLineOuter.position.set(14.1, 0.012, 3.0);
+  const dtStopBar = new THREE.Mesh(new THREE.PlaneGeometry(2.8, 0.18), dtWhiteLineMat);
+  dtStopBar.rotation.x = -Math.PI / 2;
+  dtStopBar.position.set(10.3, 0.013, -1.8);
+  root.add(dtLineInner, dtLineOuter, dtStopBar);
+
+  // Concrete Curb Divider separating main parking lot from Drive-Thru entry lane (X = 8.45, Z: 6.2 to 16.5)
+  const dtCurbMat = new THREE.MeshStandardMaterial({ color: 0x7a8086, flatShading: true, roughness: 0.9 });
+  const dtCurb = new THREE.Mesh(new THREE.BoxGeometry(0.32, 0.16, 10.2), dtCurbMat);
+  dtCurb.position.set(8.45, 0.08, 11.4);
+  root.add(dtCurb);
+  addCollision(8.2, 8.7, 6.2, 16.5);
+
+  // Protective Yellow Bollard Posts outside Drive-Thru Window corners (5-sided <= 7 faces)
+  const bollardMat = new THREE.MeshStandardMaterial({
+    color: 0xeab308,
+    flatShading: true,
+    roughness: 0.9,
+    metalness: 0.1,
+  });
+  [-1.35, 1.35].forEach((bz) => {
+    const bollard = new THREE.Mesh(new THREE.CylinderGeometry(0.08, 0.08, 0.95, 5, 1), bollardMat);
+    bollard.position.set(8.52, 0.475, bz);
+    root.add(bollard);
+  });
+
+  // Parking Spaces & Yellow Stall Lines (Shifted cleanly West so X >= 8.5 belongs exclusively to Drive-Thru lane)
   const parkingSpots: ParkingSpot[] = [
-    { index: 0, position: new THREE.Vector3(-9, 0, 13), rotationY: 0, isOccupied: true }, // Parked Blue Car
-    { index: 1, position: new THREE.Vector3(-4.5, 0, 13), rotationY: 0, isOccupied: false }, // Customer Spot 1
-    { index: 2, position: new THREE.Vector3(0, 0, 13), rotationY: 0, isOccupied: false }, // Customer Spot 2
-    { index: 3, position: new THREE.Vector3(4.5, 0, 13), rotationY: 0, isOccupied: false }, // Customer Spot 3
-    { index: 4, position: new THREE.Vector3(9, 0, 13), rotationY: 0, isOccupied: true }, // Parked Red Car
+    { index: 0, position: new THREE.Vector3(-11, 0, 13), rotationY: 0, isOccupied: true }, // Parked Blue Car
+    { index: 1, position: new THREE.Vector3(-6.5, 0, 13), rotationY: 0, isOccupied: false }, // Customer Spot 1
+    { index: 2, position: new THREE.Vector3(-2, 0, 13), rotationY: 0, isOccupied: false }, // Customer Spot 2
+    { index: 3, position: new THREE.Vector3(2.5, 0, 13), rotationY: 0, isOccupied: false }, // Customer Spot 3
+    { index: 4, position: new THREE.Vector3(6.8, 0, 13), rotationY: 0, isOccupied: true }, // Parked Red Car
   ];
 
   // Draw Yellow Stall Lines
-  const lineMat = new THREE.MeshBasicMaterial({ color: 0xccaa11 });
-  for (let s = -11.25; s <= 11.25; s += 4.5) {
+  for (let s = -13.25; s <= 9.25; s += 4.5) {
     const stallLine = new THREE.Mesh(new THREE.PlaneGeometry(0.15, 5.0), lineMat);
     stallLine.rotation.x = -Math.PI / 2;
     stallLine.position.set(s, 0.01, 13.5);
     root.add(stallLine);
   }
 
-  // Pre-parked Cars (already in spots 0 and 4)
-  const parkedCar1 = createDetailedCar(0x1e3f66); // Dark blue
+  // Pre-parked Cars (spot 0 is Duck's personal roomy blue car; spot 4 is neighboring staff/overflow car)
+  const parkedCar1 = createDetailedCar(0x1e3f66, false, 0, true); // Duck's Roomy Dark Blue Car
   parkedCar1.position.copy(parkingSpots[0].position);
   root.add(parkedCar1);
-  addCollision(-10.0, -8.0, 11.0, 15.0);
+  addCollision(-12.0, -10.0, 11.0, 15.0);
+
+  interactiveItems.push({
+    id: 'mcd_duck_car',
+    type: 'mcd_duck_car',
+    name: "Duck's Car",
+    actionText: 'Get in Car & Drive Straight Home',
+    position: [-11.0, 1.0, 13.0],
+    radius: 3.6,
+  });
 
   const parkedCar2 = createDetailedCar(0x7a221f); // Dark red
   parkedCar2.position.copy(parkingSpots[4].position);
   root.add(parkedCar2);
-  addCollision(8.0, 10.0, 11.0, 15.0);
+  addCollision(5.8, 7.8, 11.0, 15.0);
 
   // Two-Lane Road (Z: 19 to 29, X: -35 to 35)
   const roadMesh = new THREE.Mesh(new THREE.PlaneGeometry(70, 10), asphaltMat);
@@ -615,10 +760,10 @@ export function buildCompactRestaurantWorld(): RestaurantWorld {
     root.add(roadLine);
   }
 
-  // Roadside McDonald's "M" Neon Pole Sign
+  // Roadside McDonald's "M" Neon Pole Sign (5-sided pole + sharp blocky Golden Arches)
   const signPole = new THREE.Mesh(
-    new THREE.CylinderGeometry(0.18, 0.22, 8, 12),
-    new THREE.MeshStandardMaterial({ color: 0x333333, metalness: 0.8, roughness: 0.3 })
+    new THREE.CylinderGeometry(0.18, 0.22, 8, 5, 1),
+    new THREE.MeshStandardMaterial({ color: 0x333333, flatShading: true, roughness: 0.9, metalness: 0.25 })
   );
   signPole.position.set(-14, 4, 18);
   root.add(signPole);
@@ -632,18 +777,20 @@ export function buildCompactRestaurantWorld(): RestaurantWorld {
   signBoard.position.set(-14, 7.5, 18);
   root.add(signBoard);
 
-  // 3D Glowing Golden Arches ("M") atop the roadside totem
+  // 3D Glowing PS1 Blocky Golden Arches ("M") atop the roadside totem (BoxGeometry <= 6 faces each)
   const archMat = new THREE.MeshBasicMaterial({ color: 0xffba00 });
   storeSignMaterials.push({ mat: archMat, onColor: 0xffba00 });
-  const leftArch = new THREE.Mesh(new THREE.TorusGeometry(0.55, 0.08, 8, 20, Math.PI), archMat);
-  leftArch.position.set(-14.48, 8.8, 18);
-  leftArch.rotation.y = 0;
-  root.add(leftArch);
-
-  const rightArch = new THREE.Mesh(new THREE.TorusGeometry(0.55, 0.08, 8, 20, Math.PI), archMat);
-  rightArch.position.set(-13.52, 8.8, 18);
-  rightArch.rotation.y = 0;
-  root.add(rightArch);
+  const archLeftLeg = new THREE.Mesh(new THREE.BoxGeometry(0.18, 0.72, 0.18), archMat);
+  archLeftLeg.position.set(-14.96, 9.08, 18);
+  const archCenterLeg = new THREE.Mesh(new THREE.BoxGeometry(0.18, 0.65, 0.18), archMat);
+  archCenterLeg.position.set(-14.0, 9.05, 18);
+  const archRightLeg = new THREE.Mesh(new THREE.BoxGeometry(0.18, 0.72, 0.18), archMat);
+  archRightLeg.position.set(-13.04, 9.08, 18);
+  const archLeftTop = new THREE.Mesh(new THREE.BoxGeometry(0.95, 0.18, 0.18), archMat);
+  archLeftTop.position.set(-14.48, 9.44, 18);
+  const archRightTop = new THREE.Mesh(new THREE.BoxGeometry(0.95, 0.18, 0.18), archMat);
+  archRightTop.position.set(-13.52, 9.44, 18);
+  root.add(archLeftLeg, archCenterLeg, archRightLeg, archLeftTop, archRightTop);
 
   const signLight = new THREE.PointLight(0xffbb00, 2.0, 18);
   signLight.position.set(-14, 7.5, 16.5);
@@ -670,15 +817,96 @@ export function buildCompactRestaurantWorld(): RestaurantWorld {
   // Generous, clear hallway opening into security office between X: -5.6 and -2.7 (2.9m wide)
   createWall(2.4, 3.2, 0.3, -6.8, 1.6, 0); // Wall left of security hallway
   createWall(4.2, 3.2, 0.3, -0.6, 1.6, 0); // Wall between hallway and cashier counter
-  createWall(1.8, 3.2, 0.3, 7.1, 1.6, 0); // Wall right of counter (leaves wide 1.0m right passage)
+  createWall(1.0, 3.2, 0.3, 7.5, 1.6, 0); // Short East stub (leaves wide 1.7m passage to Drive-Thru Window!)
 
-  // Divider between Kitchen (X: -1 to 8) and Office/Freezer (X: -8 to -1)
-  createWall(0.3, 3.2, 6.0, -1.0, 1.6, -3.0);
+  // Divider between Security Office (X: -8..-1, Z: -3..0) and Kitchen (X: -1..8)
+  createWall(0.3, 3.2, 3.0, -1.0, 1.6, -1.5);
+
+  // Divider between Kitchen and Walk-In Freezer (X = -1, Z: -6..-3) with open 1.6m Freezer Doorway (Z: -5.3..-3.7)
+  createWall(0.3, 3.2, 0.7, -1.0, 1.6, -3.35);
+  createWall(0.3, 3.2, 0.7, -1.0, 1.6, -5.65);
+  createWall(0.3, 0.85, 1.6, -1.0, 2.775, -4.5, wallMat, false);
+
+  // Walk-In Freezer Steel Door Frame & Frost Strip Curtains (pass-through visual)
+  const freezerFrameMat = new THREE.MeshStandardMaterial({
+    color: 0xb0bec5,
+    flatShading: true,
+    roughness: 0.9,
+    metalness: 0.25,
+  });
+  const fPostN = new THREE.Mesh(new THREE.BoxGeometry(0.34, 2.35, 0.08), freezerFrameMat);
+  fPostN.position.set(-1.0, 1.175, -5.28);
+  const fPostS = new THREE.Mesh(new THREE.BoxGeometry(0.34, 2.35, 0.08), freezerFrameMat);
+  fPostS.position.set(-1.0, 1.175, -3.72);
+  const fHeader = new THREE.Mesh(new THREE.BoxGeometry(0.34, 0.1, 1.64), freezerFrameMat);
+  fHeader.position.set(-1.0, 2.35, -4.5);
+  root.add(fPostN, fPostS, fHeader);
+
+  const stripMat = new THREE.MeshStandardMaterial({
+    color: 0xbbe8ff,
+    transparent: true,
+    opacity: 0.26,
+    flatShading: true,
+    roughness: 0.9,
+    depthWrite: false,
+  });
+  for (let s = 0; s < 5; s++) {
+    const strip = new THREE.Mesh(new THREE.BoxGeometry(0.02, 2.25, 0.26), stripMat);
+    strip.position.set(-1.0, 1.15, -5.12 + s * 0.31);
+    root.add(strip);
+  }
+
+  // Walk-In Freezer Frosted Floor & Interior Wall Cladding (X: -8..-1, Z: -6..-3)
+  const freezerWallTex = createFreezerWallTexture();
+  const freezerWallMat = new THREE.MeshStandardMaterial({
+    map: freezerWallTex,
+    flatShading: true,
+    roughness: 0.9,
+    metalness: 0.15,
+  });
+  const freezerFloorMat = new THREE.MeshStandardMaterial({
+    color: 0x6f8799,
+    flatShading: true,
+    roughness: 0.9,
+    metalness: 0.1,
+  });
+  const freezerFloor = new THREE.Mesh(new THREE.PlaneGeometry(7.0, 3.0), freezerFloorMat);
+  freezerFloor.rotation.x = -Math.PI / 2;
+  freezerFloor.position.set(-4.5, 0.005, -4.5);
+  freezerFloor.receiveShadow = true;
+  const freezerBackPanel = new THREE.Mesh(new THREE.PlaneGeometry(6.8, 3.1), freezerWallMat);
+  freezerBackPanel.position.set(-4.5, 1.6, -5.84);
+  root.add(freezerFloor, freezerBackPanel);
+
+  // Freezer Shelving & Chilled Chicken Tray Crate Pickup
+  const fShelf1 = createFreezerShelves();
+  fShelf1.position.set(-6.9, 0, -5.25);
+  fShelf1.rotation.y = Math.PI / 2;
+  const fShelf2 = createFreezerShelves();
+  fShelf2.position.set(-6.9, 0, -3.75);
+  fShelf2.rotation.y = Math.PI / 2;
+  root.add(fShelf1, fShelf2);
+  addCollision(-7.3, -6.4, -5.85, -3.15);
+
+  const freezerChickenCrate = createFreezerChickenTrayPickup();
+  freezerChickenCrate.position.set(-4.2, 0, -4.5);
+  root.add(freezerChickenCrate);
+  addCollision(-4.7, -3.7, -4.85, -4.15);
+  interactiveMeshes.set('freezer_chicken_tray', freezerChickenCrate);
+
+  interactiveItems.push({
+    id: 'freezer_chicken_tray',
+    type: 'freezer_chicken_tray',
+    name: 'Walk-In Freezer Chicken Tray',
+    actionText: 'Retrieve Chicken Tray from Freezer',
+    position: [-4.2, 0.95, -4.5],
+    radius: 2.2,
+  });
 
   // Divider between Security Office (Z: -3 to 0) and Freezer (Z: -6 to -3)
   createWall(7.0, 3.2, 0.3, -4.5, 1.6, -3.0);
 
-  // West Wall of Security Office / Rear Storage at X = -8 (closes off back half behind restroom)
+  // West Wall of Security Office / Walk-In Freezer at X = -8 (closes off back half behind restroom)
   createWall(0.3, 3.2, 6.0, -8.0, 1.6, -3.0);
 
   // --- RESTROOM / TOILET WING (X: -12 to -8, Z: 0 to +6) ---
@@ -724,27 +952,31 @@ export function buildCompactRestaurantWorld(): RestaurantWorld {
   root.add(cashierCounter);
   addCollision(1.6, 5.2, 0.1, 0.9);
 
+  interactiveItems.push({
+    id: 'serve_table_spot',
+    type: 'serve_table_spot',
+    name: 'Serving Counter Table',
+    actionText: 'Place Finished Dish on Table',
+    position: [4.05, 1.12, 0.76],
+    radius: 2.5,
+  });
+
   // --- WAVING CLOWN MASCOT STATUE NEAR CASH REGISTER (Welcoming Pose) ---
   const clownStatue = createWelcomingClownStatue();
   clownStatue.position.set(1.15, 0, 1.15);
   clownStatue.rotation.y = 0.28;
   root.add(clownStatue);
   addCollision(0.75, 1.55, 0.75, 1.55, 'clown_statue');
+  // Relocated West Dining / Restroom Corner collider toggled on during Night 3
+  addCollision(-7.55, -6.75, 4.75, 5.55, 'clown_statue_night3');
+  const n3Box = collisionBoxes.find((b) => b.id === 'clown_statue_night3');
+  if (n3Box) n3Box.enabled = false;
 
-  // --- DRIVE-THRU ORDER STATION (Relocated to right corner of cashier counter) ---
+  // --- DRIVE-THRU ORDER STATION (Counter terminal prop near cashier & drive-thru window) ---
   const driveThruStation = createDriveThruOrderStation();
   driveThruStation.position.set(4.8, 1.08, 0.5);
   root.add(driveThruStation);
   interactiveMeshes.set('drive_thru_order_station', driveThruStation);
-
-  interactiveItems.push({
-    id: 'drive_thru_order_station',
-    type: 'drive_thru_order_station',
-    name: 'Drive-Thru Order Station',
-    actionText: 'Check Drive-Thru Headset & Order Screen',
-    position: [4.8, 1.2, 0.7],
-    radius: 1.8,
-  });
 
   // Employee Time Clock Punch Station
   // Placed in employee-only area beside wall (X: -1.5, Z: 0.18), away from cashier entrance
@@ -839,6 +1071,32 @@ export function buildCompactRestaurantWorld(): RestaurantWorld {
   const coffeeMachine = createCommercialCoffeeMachine();
   coffeeMachine.position.set(2.7, 0.95, -2.5);
   root.add(coffeeMachine);
+  interactiveMeshes.set('coffee_machine', coffeeMachine);
+
+  interactiveItems.push({
+    id: 'coffee_machine',
+    type: 'coffee_machine',
+    name: 'Commercial Coffee Machine',
+    actionText: 'Brew Coffee in Coffee Machine (3s)',
+    position: [2.7, 1.25, -2.38],
+    radius: 2.2,
+  });
+
+  // Commercial Soft Drink Dispenser along the rear kitchen wall
+  const sodaDispenser = createSoftDrinkDispenser();
+  sodaDispenser.position.set(5.45, 0, -5.42);
+  root.add(sodaDispenser);
+  addCollision(5.03, 5.87, -5.74, -5.1);
+  interactiveMeshes.set('soda_dispenser', sodaDispenser);
+
+  interactiveItems.push({
+    id: 'soda_dispenser',
+    type: 'soda_dispenser',
+    name: 'Soft Drink Dispenser',
+    actionText: 'Pour Soda in Dispenser (3s)',
+    position: [5.45, 1.25, -5.15],
+    radius: 2.3,
+  });
 
   // Food Preparation Area Items (Condiment bottles, burger boxes, fry cartons, tongs, wrappers)
   const prepItems = createFoodPrepTableItems();
@@ -851,22 +1109,48 @@ export function buildCompactRestaurantWorld(): RestaurantWorld {
   prepChickenBucket.position.set(4.35, 0.95, -2.4);
   root.add(prepChickenBucket);
 
-  // Commercial Fried Chicken Warming Showcase Machine & Deep Fryer
+  // Commercial Fried Chicken & Potatoes Fryer Machine
   const fryer = createFriedChickenVendingMachine();
   fryer.position.set(6.8, 0, -3.5);
   root.add(fryer);
   addCollision(6.2, 7.4, -4.1, -2.9);
+  interactiveMeshes.set('fryer_machine', fryer);
 
-  // Back-of-House Warehouse Supply Shelving Rack beside rear door corridor
+  interactiveItems.push({
+    id: 'fryer_machine',
+    type: 'fryer_machine',
+    name: 'Fried Chicken & Fries Machine',
+    actionText: 'Fry Chicken & Potatoes (5s)',
+    position: [6.8, 1.0, -3.5],
+    radius: 2.3,
+  });
+
+  // Countertop Commercial Microwave Station (left of prep counter)
+  const microwave = createKitchenMicrowave();
+  microwave.position.set(1.55, 0, -2.5);
+  root.add(microwave);
+  addCollision(1.1, 2.0, -2.95, -2.05);
+  interactiveMeshes.set('kitchen_microwave', microwave);
+
+  interactiveItems.push({
+    id: 'kitchen_microwave',
+    type: 'kitchen_microwave',
+    name: 'Kitchen Microwave',
+    actionText: 'Heat Big Mac in Microwave (5s)',
+    position: [1.55, 1.15, -2.5],
+    radius: 2.2,
+  });
+
+  // Back-of-House Warehouse Supply Shelving Rack beside rear door corridor (keeps freezer doorway clear)
   const warehouseRack = createWarehouseSupplyRack();
-  warehouseRack.position.set(0.2, 0, -5.2);
+  warehouseRack.position.set(0.85, 0, -5.3);
   root.add(warehouseRack);
-  addCollision(-0.65, 1.05, -5.6, -4.8);
+  addCollision(0.0, 1.7, -5.65, -4.95);
 
   // Fryer & Grill power switch
   const switchBox = new THREE.Mesh(
     new THREE.BoxGeometry(0.25, 0.35, 0.08),
-    new THREE.MeshStandardMaterial({ color: 0xcc2222 })
+    new THREE.MeshStandardMaterial({ color: 0xcc2222, flatShading: true, roughness: 0.9 })
   );
   switchBox.position.set(7.85, 1.5, -4.5);
   root.add(switchBox);
@@ -933,7 +1217,7 @@ export function buildCompactRestaurantWorld(): RestaurantWorld {
   // Office auxiliary light breaker switch (Night 2)
   const officeSwitch = new THREE.Mesh(
     new THREE.BoxGeometry(0.15, 0.25, 0.08),
-    new THREE.MeshStandardMaterial({ color: 0xcc2222 })
+    new THREE.MeshStandardMaterial({ color: 0xcc2222, flatShading: true, roughness: 0.9 })
   );
   officeSwitch.position.set(-7.85, 1.5, -1.5);
   root.add(officeSwitch);
@@ -1107,6 +1391,11 @@ export function buildCompactRestaurantWorld(): RestaurantWorld {
     },
   ];
 
+  // --- ISOLATED 67-ELEVEN CONVENIENCE STORE AREA (Z = 140, visible post-shift) ---
+  const store67 = buildSixtySevenElevenArea(addCollision);
+  root.add(store67.group);
+  interactiveItems.push(...store67.interactiveItems);
+
   return {
     scene: root,
     collisionBoxes,
@@ -1126,7 +1415,14 @@ export function buildCompactRestaurantWorld(): RestaurantWorld {
     kitchenLight,
     employeeJohn,
     clownStatue,
+    fryerMachine: fryer,
+    kitchenMicrowave: microwave,
+    coffeeMachine,
+    sodaDispenser,
+    duckCar: parkedCar1,
     wallMeshes,
     mopInBucket,
+    store67Group: store67.group,
+    store67Clerk: store67.clerk,
   };
 }

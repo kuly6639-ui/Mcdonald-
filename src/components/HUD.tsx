@@ -1,6 +1,6 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { ObjectiveStep, PlayerStats, NightState, Language } from '../types/game';
-import { CheckCircle2, ChevronRight } from 'lucide-react';
+import { CheckCircle2, ChevronRight, Smartphone } from 'lucide-react';
 import { getTranslations } from '../i18n/translations';
 import { soundEngine } from '../audio/SoundEngine';
 
@@ -11,6 +11,8 @@ interface HUDProps {
   objectiveCompletedNotice: string | null;
   interactionPrompt: string | null;
   onPauseClick: () => void;
+  onPhoneClick: () => void;
+  isPhoneOpen: boolean;
   language: Language;
 }
 
@@ -21,6 +23,8 @@ export const HUD: React.FC<HUDProps> = ({
   objectiveCompletedNotice,
   interactionPrompt,
   onPauseClick,
+  onPhoneClick,
+  isPhoneOpen,
   language,
 }) => {
   const t = getTranslations(language).hud;
@@ -105,6 +109,21 @@ export const HUD: React.FC<HUDProps> = ({
           </div>
 
           <button
+            onClick={() => {
+              soundEngine.playUICellPop();
+              onPhoneClick();
+            }}
+            className={`pointer-events-auto flex items-center gap-1.5 active:scale-95 border text-xs px-3 py-2 rounded-lg font-bold cursor-pointer transition-all shadow-lg whitespace-nowrap ${
+              isPhoneOpen
+                ? 'bg-amber-500 text-black border-amber-300'
+                : 'bg-neutral-900/90 hover:bg-neutral-800 text-amber-300 border-amber-600/60'
+            }`}
+          >
+            <Smartphone className="w-3.5 h-3.5" />
+            <span>{t.phoneHint}</span>
+          </button>
+
+          <button
             onClick={handlePauseClick}
             className={`pointer-events-auto bg-neutral-900/90 hover:bg-neutral-800 active:scale-95 text-neutral-300 border border-neutral-700 text-xs px-3 py-2 rounded-lg font-bold cursor-pointer transition-all shadow-lg whitespace-nowrap ${
               pausePopped ? 'animate-cell-pop' : ''
@@ -127,12 +146,29 @@ export const HUD: React.FC<HUDProps> = ({
       </div>
 
       {/* BOTTOM CENTER: Carried Inventory Item indicator */}
-      {(stats.hasTrashInHand || stats.hasCardboardInHand || stats.hasFoodInHand || stats.hasMopInHand) && (
+      {(stats.hasTrashInHand ||
+        stats.hasCardboardInHand ||
+        stats.hasFoodInHand ||
+        stats.hasRawFryItemsInHand ||
+        stats.hasBigMacInHand ||
+        stats.hasCoffeeCupInHand ||
+        stats.hasSodaCupInHand ||
+        stats.hasMopInHand ||
+        stats.hasChickenTrayInHand ||
+        stats.hasNoodlesAndDrinkInHand) && (
         <div className="absolute bottom-4 left-4 right-4 flex items-end justify-center pointer-events-none">
           <div
             className={`px-4 py-1.5 rounded text-xs font-bold tracking-wider uppercase shadow-lg text-center border ${
               stats.hasFoodInHand && stats.mustDiscardFood
                 ? 'bg-red-950/90 border-red-500 text-red-200'
+                : stats.hasNoodlesAndDrinkInHand
+                ? 'bg-orange-950/90 border-orange-400 text-orange-100'
+                : stats.hasChickenTrayInHand
+                ? 'bg-sky-950/90 border-sky-400 text-sky-200'
+                : stats.hasCoffeeCupInHand || stats.hasSodaCupInHand
+                ? 'bg-emerald-950/90 border-emerald-400 text-emerald-100'
+                : stats.hasRawFryItemsInHand || stats.hasBigMacInHand
+                ? 'bg-yellow-950/90 border-yellow-400 text-yellow-100'
                 : 'bg-amber-950/90 border-amber-500 text-amber-200'
             }`}
           >
@@ -140,6 +176,18 @@ export const HUD: React.FC<HUDProps> = ({
               ? stats.mustDiscardFood
                 ? t.carryingSpoiledFood
                 : t.carryingFood
+              : stats.hasRawFryItemsInHand
+              ? t.carryingRawFry
+              : stats.hasBigMacInHand
+              ? t.carryingBigMac
+              : stats.hasCoffeeCupInHand
+              ? t.carryingCoffeeCup
+              : stats.hasSodaCupInHand
+              ? t.carryingSodaCup
+              : stats.hasNoodlesAndDrinkInHand
+              ? t.carryingNoodlesAndDrink
+              : stats.hasChickenTrayInHand
+              ? t.carryingChickenTray
               : stats.hasMopInHand
               ? t.carryingMop
               : stats.hasTrashInHand

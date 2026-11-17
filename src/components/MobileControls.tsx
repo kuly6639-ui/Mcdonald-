@@ -1,6 +1,6 @@
 import React, { useRef, useState, useEffect, useCallback } from 'react';
 import { GameEngine } from '../game/GameEngine';
-import { Language, PlayerStats } from '../types/game';
+import { GameNight, Language, PlayerStats } from '../types/game';
 import {
   Flashlight,
   Pause,
@@ -8,6 +8,7 @@ import {
   ChevronDown,
   ChevronUp,
   Flame,
+  Smartphone,
 } from 'lucide-react';
 import { getTranslations } from '../i18n/translations';
 import { soundEngine } from '../audio/SoundEngine';
@@ -15,18 +16,22 @@ import { soundEngine } from '../audio/SoundEngine';
 interface MobileControlsProps {
   engine: GameEngine | null;
   stats: PlayerStats;
+  night: GameNight;
   onPause: () => void;
+  onPhone: () => void;
+  isPhoneOpen: boolean;
   showMobileControls: boolean;
-  onToggleControls: () => void;
   language: Language;
 }
 
 export const MobileControls: React.FC<MobileControlsProps> = ({
   engine,
   stats,
+  night,
   onPause,
+  onPhone,
+  isPhoneOpen,
   showMobileControls,
-  onToggleControls,
   language,
 }) => {
   const t = getTranslations(language).mobile;
@@ -68,14 +73,16 @@ export const MobileControls: React.FC<MobileControlsProps> = ({
   const lastLookPosRef = useRef<{ x: number; y: number }>({ x: 0, y: 0 });
 
   useEffect(() => {
-    if (!showMobileControls && engine) {
-      engine.setMobileMove(0, 0);
+    if ((!showMobileControls || night === 3) && engine) {
       engine.setMobileSprint(false);
-      setKnobPos({ x: 0, y: 0 });
-      setJoystickActive(false);
       setIsSprintingMobile(false);
     }
-  }, [showMobileControls, engine]);
+    if (!showMobileControls && engine) {
+      engine.setMobileMove(0, 0);
+      setKnobPos({ x: 0, y: 0 });
+      setJoystickActive(false);
+    }
+  }, [showMobileControls, night, engine]);
 
   const handleJoystickTouchStart = (e: React.TouchEvent) => {
     e.stopPropagation();
@@ -202,19 +209,7 @@ export const MobileControls: React.FC<MobileControlsProps> = ({
 
   return (
     <>
-      {/* PERSISTENT FLOATING CONTROLS TOGGLE BUTTON (TOP RIGHT) */}
-      <button
-        onClick={() => triggerBtnPop('toggle_controls', onToggleControls)}
-        className={`fixed top-4 right-28 z-50 pointer-events-auto flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-neutral-900/90 hover:bg-neutral-800 border border-neutral-700/80 text-neutral-300 text-[11px] font-mono font-bold shadow-xl cursor-pointer transition-all active:scale-95 ${
-          poppedBtn === 'toggle_controls' ? 'animate-cell-pop' : ''
-        }`}
-      >
-        <span className={showMobileControls ? 'text-amber-400' : 'text-neutral-500'}>
-          {showMobileControls ? t.touchOn : t.pcControls}
-        </span>
-      </button>
-
-      {/* FULL-SCREEN TOUCH CONTROLS OVERLAY */}
+      {/* AUTO-DETECTED FULL-SCREEN TOUCH CONTROLS OVERLAY */}
       {showMobileControls && (
         <div className="fixed inset-0 z-40 pointer-events-none select-none overflow-hidden touch-none">
           {/* RIGHT-SIDE CAMERA LOOK AREA */}
@@ -291,6 +286,20 @@ export const MobileControls: React.FC<MobileControlsProps> = ({
               </button>
 
               <button
+                onClick={() => triggerBtnPop('phone', onPhone)}
+                className={`w-12 h-12 rounded-full border flex flex-col items-center justify-center shadow-lg cursor-pointer active:scale-90 transition-all ${
+                  poppedBtn === 'phone' ? 'animate-cell-pop' : ''
+                } ${
+                  isPhoneOpen
+                    ? 'bg-amber-500 border-amber-300 text-black font-black'
+                    : 'bg-neutral-900/80 border-amber-600/60 text-amber-300'
+                }`}
+              >
+                <Smartphone className="w-4 h-4" />
+                <span className="text-[7px] font-mono font-bold leading-none mt-0.5">{t.phone}</span>
+              </button>
+
+              <button
                 onClick={() => triggerBtnPop('pause', onPause, 130)}
                 className={`w-12 h-12 rounded-full border border-neutral-600 bg-neutral-900/80 text-neutral-300 flex flex-col items-center justify-center shadow-lg cursor-pointer active:scale-90 transition-all ${
                   poppedBtn === 'pause' ? 'animate-cell-pop' : ''
@@ -302,21 +311,23 @@ export const MobileControls: React.FC<MobileControlsProps> = ({
             </div>
 
             <div className="flex items-center gap-3">
-              <button
-                onClick={() => triggerBtnPop('sprint', handleToggleSprint)}
-                className={`w-16 h-16 rounded-full border-2 flex flex-col items-center justify-center shadow-2xl cursor-pointer transition-all active:scale-90 ${
-                  poppedBtn === 'sprint' ? 'animate-cell-pop' : ''
-                } ${
-                  isSprintingMobile || stats.isSprinting
-                    ? 'bg-gradient-to-br from-red-600 to-amber-600 border-amber-300 text-white shadow-[0_0_25px_rgba(239,68,68,0.6)] scale-105'
-                    : 'bg-neutral-900/85 border-amber-500/50 text-amber-300'
-                }`}
-              >
-                <Flame className="w-5 h-5" />
-                <span className="text-[10px] font-mono font-black tracking-wider leading-tight">
-                  {isSprintingMobile ? t.running : t.run}
-                </span>
-              </button>
+              {night !== 3 && (
+                <button
+                  onClick={() => triggerBtnPop('sprint', handleToggleSprint)}
+                  className={`w-16 h-16 rounded-full border-2 flex flex-col items-center justify-center shadow-2xl cursor-pointer transition-all active:scale-90 ${
+                    poppedBtn === 'sprint' ? 'animate-cell-pop' : ''
+                  } ${
+                    isSprintingMobile || stats.isSprinting
+                      ? 'bg-gradient-to-br from-red-600 to-amber-600 border-amber-300 text-white shadow-[0_0_25px_rgba(239,68,68,0.6)] scale-105'
+                      : 'bg-neutral-900/85 border-amber-500/50 text-amber-300'
+                  }`}
+                >
+                  <Flame className="w-5 h-5" />
+                  <span className="text-[10px] font-mono font-black tracking-wider leading-tight">
+                    {isSprintingMobile ? t.running : t.run}
+                  </span>
+                </button>
+              )}
 
               <button
                 onClick={() => triggerBtnPop('action', () => engine?.interact())}

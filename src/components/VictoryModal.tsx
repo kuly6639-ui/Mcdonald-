@@ -8,6 +8,7 @@ import { soundEngine } from '../audio/SoundEngine';
 interface VictoryModalProps {
   night: GameNight;
   onProceedToNight2: () => void;
+  onProceedToNight3: () => void;
   onPlayNight2Again: () => void;
   onPlayAgain: () => void;
   onMainMenu: () => void;
@@ -17,6 +18,7 @@ interface VictoryModalProps {
 export const VictoryModal: React.FC<VictoryModalProps> = ({
   night,
   onProceedToNight2,
+  onProceedToNight3,
   onPlayNight2Again,
   onPlayAgain,
   onMainMenu,
@@ -141,12 +143,22 @@ export const VictoryModal: React.FC<VictoryModalProps> = ({
 
         <div className="space-y-3">
           <button
-            onClick={() => triggerPop('n2_again', onPlayNight2Again)}
+            onClick={() => triggerPop('n3_proceed', onProceedToNight3)}
             className={`w-full flex items-center justify-center gap-2 py-3 bg-red-700 hover:bg-red-600 active:scale-95 text-white font-bold text-xs uppercase tracking-widest rounded border border-red-500 cursor-pointer shadow-[0_0_15px_rgba(220,38,38,0.5)] transition-all ${
+              poppedBtn === 'n3_proceed' ? 'animate-cell-pop' : ''
+            }`}
+          >
+            <Play className="w-4 h-4 fill-white" />
+            {t.beginNight3}
+          </button>
+
+          <button
+            onClick={() => triggerPop('n2_again', onPlayNight2Again)}
+            className={`w-full flex items-center justify-center gap-2 py-2.5 bg-neutral-900 hover:bg-neutral-800 active:scale-95 text-amber-300 font-bold text-xs uppercase tracking-widest rounded border border-amber-500/40 cursor-pointer transition-all ${
               poppedBtn === 'n2_again' ? 'animate-cell-pop' : ''
             }`}
           >
-            <RotateCcw className="w-4 h-4" />
+            <RotateCcw className="w-3.5 h-3.5" />
             {t.playNight2Again}
           </button>
 
