@@ -77,10 +77,17 @@ const audioTracks = [
     channels: '1',
     rate: '22050',
   },
+  {
+    ref: './assets/aistudio/after_the_machine_stops_ee49b18a.mp3',
+    bitrate: '40k',
+    channels: '1',
+    rate: '24000',
+  },
 ];
 
-const assetDataUriMap = {};
-for (const track of audioTracks) {
+const shortKeyByRef = {};
+const shortAssetDataUriMap = {};
+audioTracks.forEach((track, idx) => {
   const srcPath = path.join(rootDir, 'public', track.ref.replace(/^\.\//, ''));
   if (!fs.existsSync(srcPath)) {
     throw new Error(`Missing asset file: ${srcPath}`);
@@ -111,11 +118,13 @@ for (const track of audioTracks) {
   );
 
   const mp3Buf = fs.readFileSync(outMp3);
-  assetDataUriMap[track.ref] = `data:audio/mpeg;base64,${mp3Buf.toString('base64')}`;
+  const shortKey = `a${idx}`;
+  shortKeyByRef[track.ref] = shortKey;
+  shortAssetDataUriMap[shortKey] = `data:audio/mpeg;base64,${mp3Buf.toString('base64')}`;
   console.log(
-    `   - ${baseName}.mp3 (${(mp3Buf.length / 1024).toFixed(1)} KB)`
+    `   - [${shortKey}] ${baseName}.mp3 (${(mp3Buf.length / 1024).toFixed(1)} KB)`
   );
-}
+});
 
 // 3. Bundle all TypeScript/React game modules into one ES module via esbuild,
 // keeping Three.js external so it loads cleanly from the HTML <script type="importmap"> CDN.
@@ -153,25 +162,31 @@ const result = await esbuild.build({
 
 let bundledJs = result.outputFiles[0].text;
 
-// Replace every './assets/aistudio/...' literal with lookup into __EMBEDDED_AUDIO_ASSETS__
-const assetKeys = Object.keys(assetDataUriMap);
-for (const key of assetKeys) {
-  const doubleQuoted = JSON.stringify(key);
-  const singleQuoted = `'${key}'`;
-  const replacement = `__EMBEDDED_AUDIO_ASSETS__[${doubleQuoted}]`;
+// Replace every './assets/aistudio/...' literal with short key lookup into __EMBEDDED_AUDIO_ASSETS__
+for (const [ref, shortKey] of Object.entries(shortKeyByRef)) {
+  const doubleQuoted = JSON.stringify(ref);
+  const singleQuoted = `'${ref}'`;
+  const replacement = `__EMBEDDED_AUDIO_ASSETS__.${shortKey}`;
   bundledJs = bundledJs.split(doubleQuoted).join(replacement);
   bundledJs = bundledJs.split(singleQuoted).join(replacement);
 }
 
 // Verify zero leftover un-inlined ./assets/ references remain
-if (bundledJs.includes('./assets/aistudio/')) {
-  throw new Error('Found un-inlined ./assets/aistudio/ reference in bundled JS!');
+if (bundledJs.includes('./assets/aistudio/') || bundledJs.includes('assets/aistudio/')) {
+  throw new Error('Found un-inlined assets/aistudio/ reference in bundled JS!');
 }
 
+// Place __EMBEDDED_AUDIO_ASSETS__ right after leading ES module import statements
+const leadingImportRegex =
+  /^(?:\s*import\s+(?:(?:\*\s+as\s+[\w$]+|\{[^}]*\}|[\w$]+(?:\s*,\s*(?:\{[^}]*\}|\*\s+as\s+[\w$]+))?)\s+from\s+)?["'][^"']+["']\s*;?)+/;
+const importMatch = bundledJs.match(leadingImportRegex);
+const importPrefix = importMatch ? `${importMatch[0]}\n` : '';
+const bodyWithoutImports = importMatch ? bundledJs.slice(importMatch[0].length) : bundledJs;
+
 // Escape literal </script inside JS strings/comments so inline <script type="module"> cannot terminate early
-const safeInlineJs = `const __EMBEDDED_AUDIO_ASSETS__=${JSON.stringify(
-  assetDataUriMap
-)};\n${bundledJs}`.replace(/<\/script/gi, '<\\/script');
+const safeInlineJs = `${importPrefix}const __EMBEDDED_AUDIO_ASSETS__=${JSON.stringify(
+  shortAssetDataUriMap
+)};\n${bodyWithoutImports}`.replace(/<\/script/gi, '<\\/script');
 
 // 4. Assemble final standalone single-file HTML
 console.log('4/4 Writing standalone/index.html...');

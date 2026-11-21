@@ -1,6 +1,6 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { ObjectiveStep, PlayerStats, NightState, Language } from '../types/game';
-import { CheckCircle2, ChevronRight, Smartphone } from 'lucide-react';
+import { CheckCircle2, ChevronRight, Smartphone, Music } from 'lucide-react';
 import { getTranslations } from '../i18n/translations';
 import { soundEngine } from '../audio/SoundEngine';
 
@@ -29,11 +29,23 @@ export const HUD: React.FC<HUDProps> = ({
 }) => {
   const t = getTranslations(language).hud;
   const [pausePopped, setPausePopped] = useState(false);
+  const [musicVis, setMusicVis] = useState(() => soundEngine.getMusicVisualizerState(14));
   const popTimerRef = useRef<number | null>(null);
   const actionTimerRef = useRef<number | null>(null);
 
   useEffect(() => {
+    let rafId = 0;
+    let lastTick = 0;
+    const loop = (now: number) => {
+      if (now - lastTick >= 45) {
+        lastTick = now;
+        setMusicVis(soundEngine.getMusicVisualizerState(14));
+      }
+      rafId = requestAnimationFrame(loop);
+    };
+    rafId = requestAnimationFrame(loop);
     return () => {
+      cancelAnimationFrame(rafId);
       if (popTimerRef.current) window.clearTimeout(popTimerRef.current);
       if (actionTimerRef.current) window.clearTimeout(actionTimerRef.current);
     };
@@ -57,6 +69,64 @@ export const HUD: React.FC<HUDProps> = ({
     <div className="absolute inset-0 pointer-events-none select-none overflow-hidden font-mono text-white">
       {/* Subtle CRT Vignette */}
       <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_center,transparent_45%,rgba(0,0,0,0.7)_100%)] pointer-events-none" />
+
+      {/* Audio-Reactive Music Edge Glow Effect (Visible on music entry & chase sequences) */}
+      {musicVis.active && (
+        <div
+          className="absolute inset-0 pointer-events-none transition-opacity duration-300"
+          style={{
+            boxShadow:
+              musicVis.mode === 'chase'
+                ? `inset 0 0 ${70 + musicVis.intensity * 65}px rgba(220, 38, 38, ${
+                    0.22 + musicVis.intensity * 0.34
+                  })`
+                : `inset 0 0 ${48 + musicVis.intensity * 42}px rgba(245, 158, 11, ${
+                    (0.06 + musicVis.intensity * 0.14) * Math.max(0.35, musicVis.entryBannerAlpha)
+                  })`,
+          }}
+        />
+      )}
+
+      {/* Prominent Soundtrack Entry Banner with Animated Equalizer when entering the game / music starts */}
+      {musicVis.active && musicVis.entryBannerAlpha > 0.02 && (
+        <div
+          className="absolute top-20 left-1/2 -translate-x-1/2 z-20 pointer-events-none"
+          style={{
+            opacity: musicVis.entryBannerAlpha,
+            transform: `translate(-50%, ${(1 - musicVis.entryBannerAlpha) * -10}px)`,
+          }}
+        >
+          <div
+            className={`flex items-center gap-3 px-4 py-2 rounded-lg border backdrop-blur-sm shadow-2xl ${
+              musicVis.mode === 'chase'
+                ? 'bg-red-950/85 border-red-500/80 text-red-100 shadow-[0_0_24px_rgba(220,38,38,0.45)]'
+                : 'bg-black/85 border-amber-500/60 text-amber-100 shadow-[0_0_20px_rgba(245,158,11,0.28)]'
+            }`}
+          >
+            <Music
+              className={`w-3.5 h-3.5 shrink-0 animate-pulse ${
+                musicVis.mode === 'chase' ? 'text-red-400' : 'text-amber-400'
+              }`}
+            />
+            <span className="text-[10px] font-bold uppercase tracking-[0.2em] whitespace-nowrap">
+              {musicVis.trackTitle}
+            </span>
+            <div className="flex items-end gap-[2px] h-4 w-16">
+              {musicVis.bars.map((val, idx) => (
+                <div
+                  key={idx}
+                  className={`flex-1 rounded-t-sm transition-[height] duration-75 ${
+                    musicVis.mode === 'chase'
+                      ? 'bg-gradient-to-t from-red-600 to-amber-300'
+                      : 'bg-gradient-to-t from-amber-600 to-amber-300'
+                  }`}
+                  style={{ height: `${Math.round(val * 100)}%` }}
+                />
+              ))}
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* TOP BAR: Compact Single Active Sequential Objective & Digital Clock */}
       <div className="absolute top-3 left-3 right-3 flex items-start justify-between gap-2">
@@ -96,10 +166,25 @@ export const HUD: React.FC<HUDProps> = ({
           </div>
         )}
 
-        {/* Top Right: Digital Shift Clock & Pause */}
+        {/* Top Right: Digital Shift Clock, Compact Equalizer & Pause */}
         <div className="flex items-center gap-2.5 shrink-0">
           <div className="bg-black/85 border border-neutral-700/80 rounded-lg px-3.5 py-1.5 text-right shadow-xl">
-            <div className="text-[9px] text-neutral-400 uppercase tracking-widest">{t.shiftClock}</div>
+            <div className="flex items-center justify-end gap-2">
+              {musicVis.active && (
+                <div className="flex items-end gap-[2px] h-2.5 w-8 opacity-85">
+                  {musicVis.bars.slice(0, 7).map((val, idx) => (
+                    <div
+                      key={idx}
+                      className={`flex-1 rounded-t-xs ${
+                        musicVis.mode === 'chase' ? 'bg-red-500' : 'bg-amber-400'
+                      }`}
+                      style={{ height: `${Math.round(val * 100)}%` }}
+                    />
+                  ))}
+                </div>
+              )}
+              <div className="text-[9px] text-neutral-400 uppercase tracking-widest">{t.shiftClock}</div>
+            </div>
             <div className="text-lg font-black text-amber-400 tabular-nums tracking-wider leading-tight">
               {timeString}
             </div>

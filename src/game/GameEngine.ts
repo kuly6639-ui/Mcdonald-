@@ -394,11 +394,13 @@ export class GameEngine {
     progress: number;
     customerIndex: number;
   } | null = null;
-  private readonly night1QueueIndices = [0, 1, 2, 3];
+  private readonly night1QueueIndices = [0, 1, 2, 3, 4];
   private readonly night2QueueIndices = [0, 7, 2, 8, 3];
   private readonly night3QueueIndices = [0, 1, 2, 3];
   private readonly night1ArrivalQueue: ('regular' | 'drive_thru')[] = [
     'regular',
+    'regular',
+    'drive_thru',
     'regular',
     'drive_thru',
     'regular',
@@ -417,6 +419,10 @@ export class GameEngine {
   ];
   private readonly night3ArrivalQueue: ('regular' | 'drive_thru' | 'clown')[] = [
     'regular',
+    'regular',
+    'drive_thru',
+    'regular',
+    'drive_thru',
     'regular',
     'drive_thru',
     'clown',
@@ -1420,8 +1426,8 @@ export class GameEngine {
     if (this.nightState.night === 3) {
       return this.night3ClownServed;
     }
-    const driveThruQuota = this.nightState.night === 1 ? 2 : 3;
-    const lobbyQuota = this.nightState.night === 1 ? 4 : 5;
+    const driveThruQuota = 3;
+    const lobbyQuota = 5;
     const lobbyDone =
       this.nightState.night === 1
         ? this.night1GuestsServed >= lobbyQuota
@@ -1915,6 +1921,7 @@ export class GameEngine {
     soundEngine.stopNightMusic();
     soundEngine.stopChaseMusic();
     soundEngine.stopClownLaughs();
+    soundEngine.stopCreditsMusic();
 
     this.emitStatsIfChanged(true);
 
@@ -2282,6 +2289,7 @@ export class GameEngine {
       }
       if (screen === 'menu') {
         soundEngine.stopChaseMusic();
+        soundEngine.stopCreditsMusic();
       }
     }
   }
@@ -2387,8 +2395,16 @@ export class GameEngine {
     // 3:00 AM Electrical Box Inspection (Restore Power, Hide Clown Statue & Spawn Leaning Clown)
     if (item.type === 'electrical_box' && this.powerOutageActive) {
       this.powerOutageActive = false;
+      this.nightMusicCutByOutage = false;
+      this.nightMusicStartedInside = false;
+      this.nightMusicInsideActive = false;
       this.setStorePower(true);
       soundEngine.playPowerRestore();
+      if (this.isInsideMcDonaldsInterior()) {
+        this.nightMusicStartedInside = true;
+        this.nightMusicInsideActive = true;
+        soundEngine.playNightMusic(this.nightState.night);
+      }
       this.callbacks.onObjectiveCompletedNotice(t.notices.powerRestored);
       window.setTimeout(() => this.callbacks.onObjectiveCompletedNotice(null), 3500);
 
@@ -3673,11 +3689,12 @@ export class GameEngine {
       if (!this.night3ClownDisappearedFromShop) {
         this.clownActor.group.visible = true;
 
-        // As Duck goes out the front door, Clown sprints after him for 2 seconds with chase music (never kills/jumpscares Duck before getting into the car!)
-        if (!this.night3ClownChaseStarted && !this.dialogueState.active && this.playerPos.z >= 6.0) {
+        // As Duck exits toward the front door, Clown ALWAYS sprints after him with chase music (never kills/jumpscares before car)
+        if (!this.night3ClownChaseStarted && !this.dialogueState.active && this.playerPos.z >= 4.8) {
           this.night3ClownChaseStarted = true;
-          this.night3ClownChaseTimer = 2.0;
+          this.night3ClownChaseTimer = 2.6;
           this.nightMusicInsideActive = false;
+          soundEngine.stopClownLaughs();
           soundEngine.stopNightMusic();
           soundEngine.playChaseMusic();
         }
@@ -3692,7 +3709,7 @@ export class GameEngine {
           const lookYaw = Math.atan2(dx, dz);
           this.clownActor.group.rotation.y = this.dampAngle(this.clownActor.group.rotation.y, lookYaw, 10, dt);
 
-          const chaseSpeed = 3.1;
+          const chaseSpeed = 3.25;
           if (dist > 2.35) {
             this.clownActor.group.position.x = cx + (dx / dist) * chaseSpeed * dt;
             this.clownActor.group.position.z = cz + (dz / dist) * chaseSpeed * dt;
@@ -3708,11 +3725,10 @@ export class GameEngine {
           this.clownActor.group.rotation.y = this.dampAngle(this.clownActor.group.rotation.y, lookYaw, 6, dt);
           this.clownActor.updateAnimation(timeSec, 0, false);
 
-          // Clown disappears as soon as he is out of Duck's sight (after dialogue / after 2s chase)
-          if (!this.dialogueState.active && !this.isLookingAtClown(26, 0.16)) {
+          // After the chase finishes, clown disappears once out of Duck's sight
+          if (this.night3ClownChaseStarted && !this.dialogueState.active && !this.isLookingAtClown(26, 0.16)) {
             this.night3ClownOutOfSightTimer += dt;
-            const hideDelay = this.night3ClownChaseStarted ? 0.18 : 0.45;
-            if (this.night3ClownOutOfSightTimer >= hideDelay) {
+            if (this.night3ClownOutOfSightTimer >= 0.18) {
               this.night3ClownDisappearedFromShop = true;
               this.clownActor.group.visible = false;
               soundEngine.stopClownLaughs();
@@ -5919,7 +5935,7 @@ export class GameEngine {
 
     soundEngine.stopNightMusic();
     soundEngine.stopClownLaughs();
-    soundEngine.fadeOutChaseMusic(1.4);
+    soundEngine.fadeOutChaseMusic(2.2);
     soundEngine.playCarDoorClose();
     soundEngine.playCarOutOfGasCrank();
 
@@ -5955,7 +5971,7 @@ export class GameEngine {
       this.night3CarCrackShake = Math.max(0, this.night3CarCrackShake - dt);
     }
 
-    // Steer camera directly out driver front window (-10.25, 1.24, 13.24) while clown charges and slams head 3x
+    // Steer camera directly out driver front window (-10.25, 1.24, 13.24) while clown charges and slams head repeatedly (8x)
     if (this.night3CarPhase === 'clown_attacking' && !this.dialogueState.active) {
       const targetWindowYaw = Math.atan2(-0.41, -0.32); // -2.234 rad, looking straight out driver front glass
       this.yaw = this.dampAngle(this.yaw, targetWindowYaw, 7.5, dt);
@@ -5977,27 +5993,27 @@ export class GameEngine {
             soundEngine.playHideousClownLaugh();
           }
 
-          // Drop into hunched window-height stance outside driver window (y = -0.82 puts face at y ~ 1.34m)
+          // Drop into hunched window-height stance outside driver window and slam head 8 times (0.48s/bang)
           const attackT = this.night3CarPhaseTimer - 0.85;
           this.clownActor.group.rotation.y = -Math.PI / 2;
 
-          if (attackT < 1.8) {
-            const cycleIdx = Math.min(2, Math.floor(attackT / 0.6));
-            const localT = attackT - cycleIdx * 0.6;
+          if (attackT < 3.84) {
+            const cycleIdx = Math.min(7, Math.floor(attackT / 0.48));
+            const localT = attackT - cycleIdx * 0.48;
             let lean = 0.14;
             let headPitch = -0.25;
             let cx = -9.64;
 
-            if (localT < 0.28) {
-              const wind = localT / 0.28;
+            if (localT < 0.19) {
+              const wind = localT / 0.19;
               lean = THREE.MathUtils.lerp(0.18, 0.06, wind);
-              headPitch = THREE.MathUtils.lerp(-0.1, -0.36, wind);
+              headPitch = THREE.MathUtils.lerp(-0.1, -0.38, wind);
               cx = -9.62;
-            } else if (localT < 0.46) {
-              const slam = (localT - 0.28) / 0.18;
-              lean = THREE.MathUtils.lerp(0.06, 0.62, slam);
-              headPitch = THREE.MathUtils.lerp(-0.36, 0.68, slam);
-              cx = THREE.MathUtils.lerp(-9.62, -9.96, slam);
+            } else if (localT < 0.34) {
+              const slam = (localT - 0.19) / 0.15;
+              lean = THREE.MathUtils.lerp(0.06, 0.64, slam);
+              headPitch = THREE.MathUtils.lerp(-0.38, 0.70, slam);
+              cx = THREE.MathUtils.lerp(-9.62, -9.97, slam);
 
               if (slam >= 0.72 && this.night3ClownAttackStrikeCount <= cycleIdx) {
                 this.night3ClownAttackStrikeCount = cycleIdx + 1;
@@ -6009,14 +6025,14 @@ export class GameEngine {
 
                 // Blood gushes from the clown's split forehead & stains the cracked driver window
                 this.clownActor.setHeadBloodied?.(true);
-                this.night3HeadBloodTimer = 3.5;
+                this.night3HeadBloodTimer = 4.0;
                 this.spawnNight3HeadBloodGush(18, true);
 
                 const bloodMesh = this.world.duckCar?.userData?.driverWindowBlood as THREE.Mesh | undefined;
                 if (bloodMesh) {
                   bloodMesh.visible = true;
                   const mat = bloodMesh.material as THREE.MeshBasicMaterial;
-                  mat.opacity = cycleIdx === 0 ? 0.62 : cycleIdx === 1 ? 0.84 : 0.98;
+                  mat.opacity = Math.min(1.0, 0.44 + cycleIdx * 0.08);
                 }
 
                 if (cycleIdx === 0) {
@@ -6028,10 +6044,10 @@ export class GameEngine {
                 }
               }
             } else {
-              const rebound = (localT - 0.46) / 0.14;
-              lean = THREE.MathUtils.lerp(0.62, 0.16, rebound);
-              headPitch = THREE.MathUtils.lerp(0.68, -0.14, rebound);
-              cx = THREE.MathUtils.lerp(-9.96, -9.64, rebound);
+              const rebound = (localT - 0.34) / 0.14;
+              lean = THREE.MathUtils.lerp(0.64, 0.16, rebound);
+              headPitch = THREE.MathUtils.lerp(0.70, -0.14, rebound);
+              cx = THREE.MathUtils.lerp(-9.97, -9.64, rebound);
             }
 
             this.clownActor.group.position.set(cx, -0.82, 13.24);
@@ -6042,7 +6058,7 @@ export class GameEngine {
           }
         }
 
-        if (this.night3CarPhaseTimer >= 2.85) {
+        if (this.night3CarPhaseTimer >= 4.95) {
           this.clownActor.group.position.y = 0;
           this.clownActor.head.rotation.set(0, 0, 0);
           this.clownActor.updateAnimation(timeSec, 0, false);

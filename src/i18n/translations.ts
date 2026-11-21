@@ -509,7 +509,7 @@ export const TRANSLATIONS: Record<Language, TranslationBundle> = {
         { label: 'Story Direction', value: 'Uncover what happened to the missing former night-shift worker.' },
       ],
       returnMenu: 'Return to Menu',
-      versionLabel: 'Version 1.4.0',
+      versionLabel: 'Version 1.5.0',
     },
     hud: {
       nightShiftEmployee: (night) => `Night ${night} Shift — Employee: Duck`,
@@ -695,9 +695,10 @@ export const TRANSLATIONS: Record<Language, TranslationBundle> = {
         { role: 'Created & Directed By', name: 'Nguyen Duck' },
         { role: '3D World & Engine', name: 'Three.js WebGL Architecture' },
         { role: 'Audio & Horror Ambience', name: 'Web Audio Synthesis & Shift OST' },
+        { role: 'Credits Theme', name: 'After the Machine Stops' },
         { role: 'Character Cast', name: 'Duck, John, Nurse Ramirez, Big Ray, Baby Leopards & The Clown' },
       ],
-      thankYouNote: 'Thank you for playing the McDonald’s Nightfall Demo. Full shifts coming soon.',
+      thankYouNote: 'Thank you for playing the game...',
       returnToMenu: 'Return to Main Menu',
     },
     engine: {
@@ -1574,7 +1575,7 @@ export const TRANSLATIONS: Record<Language, TranslationBundle> = {
         { label: 'Hướng truyện', value: 'Tìm hiểu chuyện đã xảy ra với cựu nhân viên ca đêm mất tích.' },
       ],
       returnMenu: 'Quay Lại Menu',
-      versionLabel: 'Phiên bản 1.4.0',
+      versionLabel: 'Phiên bản 1.5.0',
     },
     hud: {
       nightShiftEmployee: (night) => `Ca Đêm ${night} — Nhân viên: Duck`,
@@ -1757,9 +1758,10 @@ export const TRANSLATIONS: Record<Language, TranslationBundle> = {
         { role: 'Sáng Tạo & Đạo Diễn', name: 'Nguyen Duck' },
         { role: 'Thế Giới 3D & Engine', name: 'Three.js WebGL Architecture' },
         { role: 'Âm Thanh & Nhạc Nền', name: 'Web Audio Synthesis & Shift OST' },
+        { role: 'Nhạc Kết (Credits)', name: 'After the Machine Stops' },
         { role: 'Nhân Vật Trong Game', name: 'Duck, John, Y tá Ramirez, Big Ray, Hội Báo Con & Chú Hề' },
       ],
-      thankYouNote: 'Cảm ơn bạn đã trải nghiệm bản Demo McDonald’s Nightfall.',
+      thankYouNote: 'Cảm ơn bạn đã chơi trò chơi...',
       returnToMenu: 'Quay Lại Menu Chính',
     },
     engine: {
@@ -2636,7 +2638,7 @@ export const TRANSLATIONS: Record<Language, TranslationBundle> = {
         { label: 'Сюжет', value: 'Узнайте, что случилось с пропавшим бывшим сотрудником ночной смены.' },
       ],
       returnMenu: 'Назад в меню',
-      versionLabel: 'Версия 1.4.0',
+      versionLabel: 'Версия 1.5.0',
     },
     hud: {
       nightShiftEmployee: (night) => `Ночь ${night} — Сотрудник: Дак`,
@@ -2819,9 +2821,10 @@ export const TRANSLATIONS: Record<Language, TranslationBundle> = {
         { role: 'Автор и режиссёр', name: 'Nguyen Duck' },
         { role: '3D-мир и движок', name: 'Three.js WebGL Architecture' },
         { role: 'Звук и музыка', name: 'Web Audio Synthesis & Shift OST' },
+        { role: 'Музыка титров', name: 'After the Machine Stops' },
         { role: 'Персонажи', name: 'Дак, Джон, Медсестра Рамирес, Большой Рэй, Детёныши леопарда и Клоун' },
       ],
-      thankYouNote: 'Спасибо за игру в демо-версию McDonald’s Nightfall.',
+      thankYouNote: 'Спасибо за игру...',
       returnToMenu: 'В главное меню',
     },
     engine: {
@@ -3698,7 +3701,7 @@ export const TRANSLATIONS: Record<Language, TranslationBundle> = {
         { label: 'Arah Cerita', value: 'Ungkap apa yang terjadi pada mantan pekerja shift malam yang hilang.' },
       ],
       returnMenu: 'Kembali ke Menu',
-      versionLabel: 'Versi 1.4.0',
+      versionLabel: 'Versi 1.5.0',
     },
     hud: {
       nightShiftEmployee: (night) => `Shift Malam ${night} — Karyawan: Duck`,
@@ -3881,9 +3884,10 @@ export const TRANSLATIONS: Record<Language, TranslationBundle> = {
         { role: 'Dibuat & Disutradarai Oleh', name: 'Nguyen Duck' },
         { role: 'Dunia 3D & Mesin', name: 'Three.js WebGL Architecture' },
         { role: 'Audio & Musik Horor', name: 'Web Audio Synthesis & Shift OST' },
+        { role: 'Lagu Kredit', name: 'After the Machine Stops' },
         { role: 'Pemeran Karakter', name: 'Duck, John, Perawat Ramirez, Big Ray, Macan Muda & Sang Badut' },
       ],
-      thankYouNote: 'Terima kasih sudah memainkan Demo McDonald’s Nightfall.',
+      thankYouNote: 'Terima kasih telah memainkan game ini...',
       returnToMenu: 'Kembali ke Menu Utama',
     },
     engine: {

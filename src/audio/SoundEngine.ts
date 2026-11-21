@@ -47,9 +47,22 @@ export class SoundEngine {
   private isRestaurantLaughPlaying: boolean = false;
   private jumpscareBuffersLoading: boolean = false;
   private chaseMusicAudio: HTMLAudioElement | null = null;
+  private chaseMusicBuffer: AudioBuffer | null = null;
+  private chaseMusicStartOffset: number = 0.28;
+  private activeChaseSource: AudioBufferSourceNode | null = null;
+  private activeChaseGain: GainNode | null = null;
+  private isChasePlaying: boolean = false;
   private chaseFadeRaf: number | null = null;
   private isChasePaused: boolean = false;
   private isChaseFadingOut: boolean = false;
+  private creditsMusicAudio: HTMLAudioElement | null = null;
+  private creditsFadeRaf: number | null = null;
+  private isCreditsMusicPlaying: boolean = false;
+  private nightMusicFadeRaf: number | null = null;
+  private musicAnalyser: AnalyserNode | null = null;
+  private musicAnalyserData: Uint8Array<ArrayBuffer> | null = null;
+  private musicEntryStartedAt: number = 0;
+  private currentMusicTrackTitle: string = '';
   private lastWoodCreakVariant: number = -1;
 
   constructor() {}
@@ -202,6 +215,10 @@ export class SoundEngine {
         this.restaurantClownLaughStartOffset = Math.max(0, onset);
       }
     );
+    void loadBuffer('./assets/aistudio/chasesound_a0aed555.mp4', (buf, onset) => {
+      this.chaseMusicBuffer = buf;
+      this.chaseMusicStartOffset = onset > 0.05 ? onset : 0.28;
+    });
   }
 
   private ensureChaseMusicAudio(): HTMLAudioElement | null {
@@ -210,7 +227,7 @@ export class SoundEngine {
       const audio = new Audio('./assets/aistudio/chasesound_a0aed555.mp4');
       audio.loop = true;
       audio.preload = 'auto';
-      audio.volume = this.isMuted ? 0 : Math.min(1, this.masterVolume * 0.72);
+      audio.volume = this.isMuted ? 0 : Math.min(1, this.masterVolume * 0.85);
       this.chaseMusicAudio = audio;
     }
     return this.chaseMusicAudio;
@@ -234,6 +251,12 @@ export class SoundEngine {
       this.masterGain.gain.setValueAtTime(this.masterVolume, this.ctx.currentTime);
       this.masterGain.connect(this.ctx.destination);
 
+      this.musicAnalyser = this.ctx.createAnalyser();
+      this.musicAnalyser.fftSize = 64;
+      this.musicAnalyser.smoothingTimeConstant = 0.78;
+      this.musicAnalyser.connect(this.masterGain);
+      this.musicAnalyserData = new Uint8Array(this.musicAnalyser.frequencyBinCount);
+
       this.preloadJumpscareBuffers();
       this.startRainAndDrone();
       this.startCricketAmbience();
@@ -253,8 +276,8 @@ export class SoundEngine {
     if (this.masterGain && this.ctx) {
       this.masterGain.gain.setValueAtTime(this.isMuted ? 0 : this.masterVolume, this.ctx.currentTime);
     }
-    if (this.nightBgmAudio) {
-      this.nightBgmAudio.volume = this.isMuted ? 0 : Math.min(1, this.masterVolume * 0.52);
+    if (this.nightBgmAudio && this.nightMusicFadeRaf === null) {
+      this.nightBgmAudio.volume = this.isMuted ? 0 : Math.min(1, this.masterVolume * 0.66);
     }
     if (this.clownJumpscareAudio) {
       this.clownJumpscareAudio.volume = this.isMuted ? 0 : Math.min(1, this.masterVolume * 0.98);
@@ -269,8 +292,47 @@ export class SoundEngine {
       this.restaurantClownLaughAudio.volume = this.isMuted ? 0 : Math.min(1, this.masterVolume * 0.92);
     }
     if (this.chaseMusicAudio && !this.isChaseFadingOut) {
-      this.chaseMusicAudio.volume = this.isMuted ? 0 : Math.min(1, this.masterVolume * 0.72);
+      this.chaseMusicAudio.volume = this.isMuted ? 0 : Math.min(1, this.masterVolume * 0.85);
     }
+    if (this.activeChaseGain && this.ctx && !this.isChaseFadingOut) {
+      this.activeChaseGain.gain.setTargetAtTime(
+        this.isMuted ? 0 : 0.85,
+        this.ctx.currentTime,
+        0.04
+      );
+    }
+    if (this.creditsMusicAudio && this.creditsFadeRaf === null) {
+      this.creditsMusicAudio.volume = this.isMuted ? 0 : Math.min(1, this.masterVolume * 0.84);
+    }
+  }
+
+  private playMusicEntrySwell(variant: 'night' | 'credits') {
+    if (!this.ctx || !this.masterGain || this.isMuted) return;
+    const now = this.ctx.currentTime;
+    const dest = this.musicAnalyser || this.masterGain;
+    const freqs = variant === 'credits' ? [110, 164.81, 220, 277.18] : [98, 146.83, 196];
+    freqs.forEach((f, idx) => {
+      if (!this.ctx) return;
+      const osc = this.ctx.createOscillator();
+      const filter = this.ctx.createBiquadFilter();
+      const gain = this.ctx.createGain();
+      osc.type = idx === 0 ? 'triangle' : 'sine';
+      osc.frequency.setValueAtTime(f, now);
+      filter.type = 'lowpass';
+      filter.frequency.setValueAtTime(variant === 'credits' ? 540 : 420, now);
+      filter.frequency.linearRampToValueAtTime(variant === 'credits' ? 1150 : 780, now + 1.4);
+
+      const peak = variant === 'credits' ? 0.055 : 0.04;
+      gain.gain.setValueAtTime(0.0005, now);
+      gain.gain.linearRampToValueAtTime(peak, now + 0.85);
+      gain.gain.exponentialRampToValueAtTime(0.0005, now + 2.8);
+
+      osc.connect(filter);
+      filter.connect(gain);
+      gain.connect(dest);
+      osc.start(now);
+      osc.stop(now + 2.85);
+    });
   }
 
   public playNightMusic(night: 1 | 2 | 3) {
@@ -282,26 +344,59 @@ export class SoundEngine {
     this.stopNightMusic();
     this.currentNightTrack = night;
     this.isMusicPaused = false;
+    this.musicEntryStartedAt = performance.now();
+    this.currentMusicTrackTitle =
+      night === 1
+        ? 'NIGHT 1 — THE CLOSING SHIFT OST'
+        : `NIGHT ${night} — THE CLOSING SHIFT OST`;
+
+    this.playMusicEntrySwell('night');
 
     const audio = new Audio(trackSrc);
     audio.loop = true;
-    audio.volume = this.isMuted ? 0 : Math.min(1, this.masterVolume * 0.52);
+    audio.volume = 0;
     audio.preload = 'auto';
     this.nightBgmAudio = audio;
 
+    const fadeStart = performance.now();
+    const fadeInStep = (now: number) => {
+      if (this.nightBgmAudio !== audio || this.isMusicPaused) {
+        this.nightMusicFadeRaf = null;
+        return;
+      }
+      const p = Math.min(1, (now - fadeStart) / 2200);
+      const targetVol = this.isMuted ? 0 : Math.min(1, this.masterVolume * 0.66);
+      audio.volume = targetVol * p;
+      if (p < 1) {
+        this.nightMusicFadeRaf = requestAnimationFrame(fadeInStep);
+      } else {
+        this.nightMusicFadeRaf = null;
+      }
+    };
+
     const tryPlay = () => {
       if (this.nightBgmAudio !== audio || this.isMusicPaused) return;
-      audio.play().catch(() => {
-        const retry = () => {
-          window.removeEventListener('pointerdown', retry);
-          window.removeEventListener('keydown', retry);
-          if (this.nightBgmAudio === audio && !this.isMusicPaused) {
-            audio.play().catch(() => {});
-          }
-        };
-        window.addEventListener('pointerdown', retry, { once: true });
-        window.addEventListener('keydown', retry, { once: true });
-      });
+      audio
+        .play()
+        .then(() => {
+          this.nightMusicFadeRaf = requestAnimationFrame(fadeInStep);
+        })
+        .catch(() => {
+          const retry = () => {
+            window.removeEventListener('pointerdown', retry);
+            window.removeEventListener('keydown', retry);
+            if (this.nightBgmAudio === audio && !this.isMusicPaused) {
+              audio
+                .play()
+                .then(() => {
+                  this.nightMusicFadeRaf = requestAnimationFrame(fadeInStep);
+                })
+                .catch(() => {});
+            }
+          };
+          window.addEventListener('pointerdown', retry, { once: true });
+          window.addEventListener('keydown', retry, { once: true });
+        });
     };
     tryPlay();
   }
@@ -310,14 +405,22 @@ export class SoundEngine {
     this.isMusicPaused = paused;
     if (!this.nightBgmAudio) return;
     if (paused) {
+      if (this.nightMusicFadeRaf !== null) {
+        cancelAnimationFrame(this.nightMusicFadeRaf);
+        this.nightMusicFadeRaf = null;
+      }
       this.nightBgmAudio.pause();
     } else {
-      this.nightBgmAudio.volume = this.isMuted ? 0 : Math.min(1, this.masterVolume * 0.52);
+      this.nightBgmAudio.volume = this.isMuted ? 0 : Math.min(1, this.masterVolume * 0.66);
       this.nightBgmAudio.play().catch(() => {});
     }
   }
 
   public stopNightMusic() {
+    if (this.nightMusicFadeRaf !== null) {
+      cancelAnimationFrame(this.nightMusicFadeRaf);
+      this.nightMusicFadeRaf = null;
+    }
     this.currentNightTrack = null;
     this.isMusicPaused = false;
     if (this.nightBgmAudio) {
@@ -330,6 +433,83 @@ export class SoundEngine {
     }
   }
 
+  public playCreditsMusic() {
+    this.stopNightMusic();
+    this.stopChaseMusic();
+    this.stopCreditsMusic();
+    this.init();
+    this.resume();
+
+    this.isCreditsMusicPlaying = true;
+    this.musicEntryStartedAt = performance.now();
+    this.currentMusicTrackTitle = 'AFTER THE MACHINE STOPS — CREDITS THEME';
+    this.playMusicEntrySwell('credits');
+
+    const audio = new Audio('./assets/aistudio/after_the_machine_stops_ee49b18a.mp3');
+    audio.loop = true;
+    audio.volume = 0;
+    audio.preload = 'auto';
+    this.creditsMusicAudio = audio;
+
+    const fadeStart = performance.now();
+    const fadeStep = (now: number) => {
+      if (this.creditsMusicAudio !== audio || !this.isCreditsMusicPlaying) {
+        this.creditsFadeRaf = null;
+        return;
+      }
+      const p = Math.min(1, (now - fadeStart) / 2000);
+      const targetVol = this.isMuted ? 0 : Math.min(1, this.masterVolume * 0.84);
+      audio.volume = targetVol * p;
+      if (p < 1) {
+        this.creditsFadeRaf = requestAnimationFrame(fadeStep);
+      } else {
+        this.creditsFadeRaf = null;
+      }
+    };
+
+    const startAudio = () => {
+      if (this.creditsMusicAudio !== audio) return;
+      audio
+        .play()
+        .then(() => {
+          this.creditsFadeRaf = requestAnimationFrame(fadeStep);
+        })
+        .catch(() => {
+          const retry = () => {
+            window.removeEventListener('pointerdown', retry);
+            window.removeEventListener('keydown', retry);
+            if (this.creditsMusicAudio === audio && this.isCreditsMusicPlaying) {
+              audio
+                .play()
+                .then(() => {
+                  this.creditsFadeRaf = requestAnimationFrame(fadeStep);
+                })
+                .catch(() => {});
+            }
+          };
+          window.addEventListener('pointerdown', retry, { once: true });
+          window.addEventListener('keydown', retry, { once: true });
+        });
+    };
+    startAudio();
+  }
+
+  public stopCreditsMusic() {
+    if (this.creditsFadeRaf !== null) {
+      cancelAnimationFrame(this.creditsFadeRaf);
+      this.creditsFadeRaf = null;
+    }
+    this.isCreditsMusicPlaying = false;
+    if (this.creditsMusicAudio) {
+      try {
+        this.creditsMusicAudio.pause();
+        this.creditsMusicAudio.currentTime = 0;
+        this.creditsMusicAudio.src = '';
+      } catch (e) {}
+      this.creditsMusicAudio = null;
+    }
+  }
+
   public playChaseMusic() {
     if (this.chaseFadeRaf !== null) {
       cancelAnimationFrame(this.chaseFadeRaf);
@@ -337,35 +517,91 @@ export class SoundEngine {
     }
     this.isChaseFadingOut = false;
     this.isChasePaused = false;
+    this.isChasePlaying = true;
+    this.musicEntryStartedAt = performance.now();
+    this.currentMusicTrackTitle = 'CLOWN PURSUIT — RUN!';
+    this.init();
+    this.resume();
+
+    if (this.ctx && this.masterGain && this.chaseMusicBuffer) {
+      try {
+        if (this.activeChaseSource) {
+          this.activeChaseSource.stop();
+          this.activeChaseSource.disconnect();
+          this.activeChaseSource = null;
+        }
+        const now = this.ctx.currentTime;
+        const src = this.ctx.createBufferSource();
+        const gain = this.ctx.createGain();
+        src.buffer = this.chaseMusicBuffer;
+        src.loop = true;
+        src.loopStart = Math.min(this.chaseMusicStartOffset, Math.max(0, this.chaseMusicBuffer.duration - 0.5));
+        src.loopEnd = this.chaseMusicBuffer.duration;
+        gain.gain.setValueAtTime(0.01, now);
+        gain.gain.linearRampToValueAtTime(this.isMuted ? 0 : 0.88, now + 0.14);
+        src.connect(gain);
+        gain.connect(this.musicAnalyser || this.masterGain);
+        src.start(now, this.chaseMusicStartOffset);
+        this.activeChaseSource = src;
+        this.activeChaseGain = gain;
+        return;
+      } catch (e) {}
+    }
+
     const audio = this.ensureChaseMusicAudio();
     if (!audio) return;
     try {
-      audio.currentTime = 0;
+      audio.currentTime = this.chaseMusicStartOffset || 0.28;
     } catch (e) {}
-    audio.volume = this.isMuted ? 0 : Math.min(1, this.masterVolume * 0.72);
+    audio.volume = this.isMuted ? 0 : Math.min(1, this.masterVolume * 0.85);
     audio.play().catch(() => {});
   }
 
   public setChaseMusicPaused(paused: boolean) {
     this.isChasePaused = paused;
+    if (this.activeChaseGain && this.ctx && !this.isChaseFadingOut) {
+      this.activeChaseGain.gain.setTargetAtTime(
+        paused || this.isMuted ? 0 : 0.88,
+        this.ctx.currentTime,
+        0.04
+      );
+    }
     if (!this.chaseMusicAudio) return;
     if (paused) {
       this.chaseMusicAudio.pause();
-    } else if (!this.isChaseFadingOut && this.chaseMusicAudio.currentTime > 0) {
-      this.chaseMusicAudio.volume = this.isMuted ? 0 : Math.min(1, this.masterVolume * 0.72);
+    } else if (!this.isChaseFadingOut && this.isChasePlaying && !this.activeChaseSource) {
+      this.chaseMusicAudio.volume = this.isMuted ? 0 : Math.min(1, this.masterVolume * 0.85);
       this.chaseMusicAudio.play().catch(() => {});
     }
   }
 
-  public fadeOutChaseMusic(durationSec: number = 2.8) {
+  public fadeOutChaseMusic(durationSec: number = 2.4) {
+    if (this.chaseFadeRaf !== null) {
+      cancelAnimationFrame(this.chaseFadeRaf);
+      this.chaseFadeRaf = null;
+    }
+    if (this.activeChaseGain && this.activeChaseSource && this.ctx) {
+      this.isChaseFadingOut = true;
+      const now = this.ctx.currentTime;
+      const dur = Math.max(0.4, durationSec);
+      const srcToStop = this.activeChaseSource;
+      try {
+        this.activeChaseGain.gain.cancelScheduledValues(now);
+        this.activeChaseGain.gain.setValueAtTime(this.activeChaseGain.gain.value, now);
+        this.activeChaseGain.gain.linearRampToValueAtTime(0.0001, now + dur);
+      } catch (e) {}
+      window.setTimeout(() => {
+        if (this.activeChaseSource === srcToStop) {
+          this.stopChaseMusic();
+        }
+      }, dur * 1000 + 60);
+      return;
+    }
+
     const audio = this.chaseMusicAudio;
     if (!audio || audio.paused) {
       this.stopChaseMusic();
       return;
-    }
-    if (this.chaseFadeRaf !== null) {
-      cancelAnimationFrame(this.chaseFadeRaf);
-      this.chaseFadeRaf = null;
     }
     this.isChaseFadingOut = true;
     const startVol = audio.volume;
@@ -383,6 +619,7 @@ export class SoundEngine {
       } else {
         this.chaseFadeRaf = null;
         this.isChaseFadingOut = false;
+        this.isChasePlaying = false;
         try {
           audio.pause();
           audio.currentTime = 0;
@@ -400,12 +637,122 @@ export class SoundEngine {
     }
     this.isChaseFadingOut = false;
     this.isChasePaused = false;
+    this.isChasePlaying = false;
+    if (this.activeChaseSource) {
+      try {
+        this.activeChaseSource.stop();
+        this.activeChaseSource.disconnect();
+      } catch (e) {}
+      this.activeChaseSource = null;
+      this.activeChaseGain = null;
+    }
     if (this.chaseMusicAudio) {
       try {
         this.chaseMusicAudio.pause();
         this.chaseMusicAudio.currentTime = 0;
       } catch (e) {}
     }
+  }
+
+  public getMusicVisualizerState(barCount: number = 16): {
+    active: boolean;
+    mode: 'none' | 'night' | 'chase' | 'credits';
+    trackTitle: string;
+    entryBannerAlpha: number;
+    bars: number[];
+    intensity: number;
+  } {
+    const now = performance.now();
+    const isNightPlaying =
+      !!this.nightBgmAudio && !this.nightBgmAudio.paused && !this.isMusicPaused;
+    const isChaseActive =
+      this.isChasePlaying &&
+      !this.isChasePaused &&
+      (!!this.activeChaseSource ||
+        (!!this.chaseMusicAudio && !this.chaseMusicAudio.paused));
+    const isCreditsActive =
+      this.isCreditsMusicPlaying &&
+      !!this.creditsMusicAudio &&
+      !this.creditsMusicAudio.paused;
+
+    const mode: 'none' | 'night' | 'chase' | 'credits' = isChaseActive
+      ? 'chase'
+      : isCreditsActive
+      ? 'credits'
+      : isNightPlaying
+      ? 'night'
+      : 'none';
+
+    if (mode === 'none' || this.isMuted || this.masterVolume <= 0.01) {
+      return {
+        active: false,
+        mode: 'none',
+        trackTitle: '',
+        entryBannerAlpha: 0,
+        bars: new Array(barCount).fill(0),
+        intensity: 0,
+      };
+    }
+
+    const elapsedSinceEntry = Math.max(0, (now - this.musicEntryStartedAt) / 1000);
+    const entryBannerAlpha =
+      elapsedSinceEntry < 0.5
+        ? elapsedSinceEntry / 0.5
+        : elapsedSinceEntry < 5.5
+        ? 1
+        : elapsedSinceEntry < 7.0
+        ? Math.max(0, 1 - (elapsedSinceEntry - 5.5) / 1.5)
+        : 0;
+
+    let analyserMax = 0;
+    if (this.musicAnalyser && this.musicAnalyserData) {
+      this.musicAnalyser.getByteFrequencyData(this.musicAnalyserData);
+      for (let i = 0; i < this.musicAnalyserData.length; i++) {
+        if (this.musicAnalyserData[i] > analyserMax) {
+          analyserMax = this.musicAnalyserData[i];
+        }
+      }
+    }
+
+    const t =
+      mode === 'credits' && this.creditsMusicAudio
+        ? this.creditsMusicAudio.currentTime
+        : mode === 'night' && this.nightBgmAudio
+        ? this.nightBgmAudio.currentTime
+        : now / 1000;
+
+    const tempo = mode === 'chase' ? 6.2 : mode === 'credits' ? 2.4 : 1.75;
+    const bars: number[] = [];
+    let sum = 0;
+    for (let i = 0; i < barCount; i++) {
+      const bandPos = i / Math.max(1, barCount - 1);
+      const pulseA = 0.5 + 0.5 * Math.sin(t * tempo * Math.PI + i * 0.72);
+      const pulseB = 0.5 + 0.5 * Math.cos(t * (tempo * 1.61) * Math.PI - i * 0.48);
+      const subBeat = 0.5 + 0.5 * Math.sin(t * tempo * 0.5 * Math.PI + bandPos * 2.1);
+      let v = 0.16 + 0.52 * pulseA * (0.45 + 0.55 * pulseB) + 0.24 * subBeat;
+
+      if (analyserMax > 6 && this.musicAnalyserData) {
+        const binIdx = Math.min(
+          this.musicAnalyserData.length - 1,
+          Math.floor(bandPos * (this.musicAnalyserData.length * 0.7))
+        );
+        const fftVal = this.musicAnalyserData[binIdx] / 255;
+        v = Math.max(v * 0.55, fftVal * 0.95 + 0.12);
+      }
+
+      const clamped = Math.max(0.08, Math.min(1, v * (0.6 + 0.4 * this.masterVolume)));
+      bars.push(clamped);
+      sum += clamped;
+    }
+
+    return {
+      active: true,
+      mode,
+      trackTitle: this.currentMusicTrackTitle,
+      entryBannerAlpha,
+      bars,
+      intensity: sum / barCount,
+    };
   }
 
   public setTensionLevel(level: number) {
@@ -2429,6 +2776,7 @@ export class SoundEngine {
   public dispose() {
     this.stopNightMusic();
     this.stopChaseMusic();
+    this.stopCreditsMusic();
     if (this.ctx) {
       try {
         this.ctx.close();

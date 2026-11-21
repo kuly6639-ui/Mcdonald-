@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { Home, ChevronRight } from 'lucide-react';
+import { Home, ChevronRight, Music } from 'lucide-react';
 import { Language } from '../types/game';
 import { getTranslations } from '../i18n/translations';
 import { soundEngine } from '../audio/SoundEngine';
@@ -24,9 +24,12 @@ export const Night3EndingScreen: React.FC<Night3EndingScreenProps> = ({
   const [messageDone, setMessageDone] = useState(false);
   const [creditsVisible, setCreditsVisible] = useState(false);
   const [poppedBtn, setPoppedBtn] = useState<string | null>(null);
+  const [musicVis, setMusicVis] = useState(() => soundEngine.getMusicVisualizerState(28));
 
   const typingCompletedAtRef = useRef<number>(0);
   const autoAdvanceTimerRef = useRef<number | null>(null);
+  const creditsScrollRef = useRef<HTMLDivElement | null>(null);
+  const userScrolledRef = useRef<boolean>(false);
 
   // Smooth typewriter scrolling message on pure black screen
   useEffect(() => {
@@ -34,6 +37,7 @@ export const Night3EndingScreen: React.FC<Night3EndingScreenProps> = ({
     setDisplayedCount(0);
     setMessageDone(false);
     setCreditsVisible(false);
+    userScrolledRef.current = false;
   }, [fullMessage]);
 
   useEffect(() => {
@@ -75,7 +79,7 @@ export const Night3EndingScreen: React.FC<Night3EndingScreenProps> = ({
     return () => window.clearTimeout(timer);
   }, [phase, messageDone, displayedCount, fullMessage]);
 
-  // Smoothly auto-transition to "THE DEMO IS OVER" + Credits after finishing the scrolling message
+  // Smoothly auto-transition to Credits after finishing the scrolling message
   useEffect(() => {
     if (phase !== 'message' || !messageDone) return;
     autoAdvanceTimerRef.current = window.setTimeout(() => {
@@ -89,19 +93,56 @@ export const Night3EndingScreen: React.FC<Night3EndingScreenProps> = ({
     };
   }, [phase, messageDone]);
 
-  // Fade in credits smoothly on black screen
+  // Fade in credits, play uploaded credits music, auto-scroll slowly downward, & animate live audio visualizer
   useEffect(() => {
     if (phase !== 'credits') return;
-    const raf = requestAnimationFrame(() => {
+
+    soundEngine.playCreditsMusic();
+    userScrolledRef.current = false;
+
+    const rafFade = requestAnimationFrame(() => {
       setCreditsVisible(true);
+      if (creditsScrollRef.current) {
+        creditsScrollRef.current.scrollTop = 0;
+      }
     });
-    return () => cancelAnimationFrame(raf);
+
+    let rafLoop = 0;
+    let lastTime = performance.now();
+    let lastVisTick = 0;
+    let exactScrollTop = 0;
+
+    const tick = (now: number) => {
+      const dt = Math.min(0.08, (now - lastTime) / 1000);
+      lastTime = now;
+
+      if (creditsScrollRef.current && !userScrolledRef.current) {
+        const el = creditsScrollRef.current;
+        const maxScroll = Math.max(0, el.scrollHeight - el.clientHeight);
+        if (maxScroll > 2 && exactScrollTop < maxScroll) {
+          exactScrollTop = Math.min(maxScroll, exactScrollTop + dt * 24);
+          el.scrollTop = exactScrollTop;
+        }
+      }
+
+      if (now - lastVisTick >= 40) {
+        lastVisTick = now;
+        setMusicVis(soundEngine.getMusicVisualizerState(28));
+      }
+      rafLoop = requestAnimationFrame(tick);
+    };
+    rafLoop = requestAnimationFrame(tick);
+
+    return () => {
+      cancelAnimationFrame(rafFade);
+      cancelAnimationFrame(rafLoop);
+      soundEngine.stopCreditsMusic();
+    };
   }, [phase]);
 
   const handleMessageAdvance = () => {
     if (phase !== 'message') return;
     if (!messageDone) {
-      // Only finish the scrolling text cleanly without skipping to credits prematurely
       setDisplayedCount(fullMessage.length);
       setMessageDone(true);
       typingCompletedAtRef.current = performance.now();
@@ -129,6 +170,7 @@ export const Night3EndingScreen: React.FC<Night3EndingScreenProps> = ({
 
   const handleMenuReturn = () => {
     soundEngine.playUICellPop();
+    soundEngine.stopCreditsMusic();
     setPoppedBtn('menu');
     window.setTimeout(() => {
       onReturnToMenu();
@@ -192,54 +234,131 @@ export const Night3EndingScreen: React.FC<Night3EndingScreenProps> = ({
   }
 
   return (
-    <div className="absolute inset-0 z-50 bg-black flex flex-col items-center justify-center p-6 font-mono select-none overflow-y-auto">
+    <div className="absolute inset-0 z-50 bg-black font-mono select-none overflow-hidden">
+      {/* Audio-Reactive Ambient Glow on Pure Black Background */}
       <div
-        className={`max-w-lg w-full bg-neutral-950/90 border border-neutral-800 rounded-xl p-7 md:p-9 text-center shadow-2xl transition-all duration-1000 ease-out ${
-          creditsVisible ? 'opacity-100 translate-y-0 scale-100' : 'opacity-0 translate-y-5 scale-95'
+        className="absolute inset-0 pointer-events-none transition-opacity duration-700"
+        style={{
+          background: `radial-gradient(circle at 50% 34%, rgba(220,38,38,${
+            0.09 + musicVis.intensity * 0.16
+          }) 0%, rgba(245,158,11,${0.04 + musicVis.intensity * 0.08}) 26%, rgba(0,0,0,1) 70%)`,
+          opacity: creditsVisible ? 1 : 0,
+        }}
+      />
+
+      {/* Audio-Reactive Bottom Equalizer Spectrum Bars (Makes Credits Music Visually Alive) */}
+      <div
+        className={`absolute bottom-0 left-0 right-0 h-20 flex items-end justify-center gap-1 px-4 sm:px-12 pb-2 pointer-events-none transition-opacity duration-1000 ${
+          creditsVisible ? 'opacity-70' : 'opacity-0'
         }`}
       >
-        <McDonaldsLogo size="sm" neon={true} className="mb-3 mx-auto" />
+        {musicVis.bars.map((val, idx) => (
+          <div
+            key={idx}
+            className="flex-1 max-w-[14px] rounded-t-sm bg-gradient-to-t from-red-800/80 via-amber-500/75 to-amber-200/90 transition-[height] duration-75"
+            style={{
+              height: `${Math.max(8, Math.round(val * 100))}%`,
+              boxShadow:
+                val > 0.55 ? '0 0 12px rgba(245, 158, 11, 0.45)' : 'none',
+            }}
+          />
+        ))}
+      </div>
 
-        <div className="text-red-500 font-black text-xs uppercase tracking-[0.28em] mb-1">
-          {t.demoOverSubtitle}
-        </div>
+      {/* Top Fade & Track Badge */}
+      <div className="absolute top-0 left-0 right-0 h-16 bg-gradient-to-b from-black to-transparent z-20 pointer-events-none flex items-start justify-center pt-4">
+        {musicVis.active && (
+          <div
+            className="flex items-center gap-2 px-3 py-1 rounded-full bg-black/80 border border-amber-500/35 text-[10px] uppercase tracking-[0.22em] text-amber-300/90 shadow-[0_0_16px_rgba(245,158,11,0.2)]"
+            style={{ opacity: Math.max(0.55, musicVis.entryBannerAlpha) }}
+          >
+            <Music className="w-3 h-3 text-amber-400 animate-pulse" />
+            <span>{musicVis.trackTitle || 'AFTER THE MACHINE STOPS'}</span>
+          </div>
+        )}
+      </div>
 
-        <h1 className="text-3xl md:text-4xl font-black text-amber-400 tracking-wider uppercase mb-5">
-          {t.demoOverTitle}
-        </h1>
-
-        <div className="border-t border-b border-neutral-800 py-5 mb-5 space-y-3 text-left">
-          <div className="text-center text-[11px] font-bold uppercase tracking-[0.25em] text-neutral-400 mb-3">
-            — {t.creditsHeading} —
+      {/* Slow Downward-Scrolling Pure Black Credits Container */}
+      <div
+        ref={creditsScrollRef}
+        onWheel={() => {
+          userScrolledRef.current = true;
+        }}
+        onTouchStart={() => {
+          userScrolledRef.current = true;
+        }}
+        className={`relative z-10 w-full h-full overflow-y-auto px-6 py-24 flex flex-col items-center transition-opacity duration-1000 ${
+          creditsVisible ? 'opacity-100' : 'opacity-0'
+        }`}
+      >
+        <div className="max-w-xl w-full flex flex-col items-center text-center">
+          {/* McDonald's Nightfall Logo & Title */}
+          <div
+            className="mb-4 transition-transform duration-300"
+            style={{
+              transform: `scale(${1 + musicVis.intensity * 0.045})`,
+              filter: `drop-shadow(0 0 ${14 + musicVis.intensity * 22}px rgba(245,158,11,0.45))`,
+            }}
+          >
+            <McDonaldsLogo size="md" neon={true} className="mx-auto" />
           </div>
 
-          {t.creditRows.map((row, idx) => (
-            <div
-              key={idx}
-              className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-1 text-xs border-b border-neutral-900 pb-2 last:border-b-0 last:pb-0"
-            >
-              <span className="text-neutral-500 uppercase tracking-wider text-[10px]">
-                {row.role}
-              </span>
-              <span className="text-neutral-200 font-bold">{row.name}</span>
-            </div>
-          ))}
+          <h1 className="text-3xl sm:text-5xl font-black tracking-tight leading-none mb-2 text-amber-400 drop-shadow-[0_0_24px_rgba(245,158,11,0.35)]">
+            MCDONALD&apos;S{' '}
+            <span className="text-red-600 tracking-widest">NIGHTFALL</span>
+          </h1>
+
+          <div className="text-red-500/90 font-bold text-xs sm:text-sm uppercase tracking-[0.34em] mb-10">
+            {t.demoOverSubtitle}
+          </div>
+
+          <div className="w-24 h-px bg-gradient-to-r from-transparent via-amber-500/60 to-transparent mb-10" />
+
+          <h2 className="text-xl sm:text-2xl font-black text-amber-300 tracking-[0.28em] uppercase mb-10">
+            — {t.creditsHeading} —
+          </h2>
+
+          {/* Spacious Scrolling Credit Rows */}
+          <div className="w-full space-y-9 mb-16">
+            {t.creditRows.map((row, idx) => (
+              <div key={idx} className="space-y-1.5">
+                <div className="text-[11px] uppercase tracking-[0.3em] text-neutral-500">
+                  {row.role}
+                </div>
+                <div className="text-base sm:text-lg font-bold text-neutral-100 tracking-wide">
+                  {row.name}
+                </div>
+              </div>
+            ))}
+          </div>
+
+          <div className="w-24 h-px bg-gradient-to-r from-transparent via-red-600/60 to-transparent my-8" />
+
+          {/* Final Line */}
+          <p className="text-lg sm:text-2xl font-bold text-amber-200 italic tracking-wide mt-6 mb-10 drop-shadow-[0_0_18px_rgba(245,158,11,0.3)]">
+            {t.thankYouNote}
+          </p>
+
+          <button
+            onClick={handleMenuReturn}
+            className={`inline-flex items-center justify-center gap-2 px-7 py-3 mb-24 bg-red-700 hover:bg-red-600 active:scale-95 text-white font-bold text-xs uppercase tracking-widest rounded border border-red-500 cursor-pointer shadow-[0_0_20px_rgba(220,38,38,0.5)] transition-all ${
+              poppedBtn === 'menu' ? 'animate-cell-pop' : ''
+            }`}
+          >
+            <Home className="w-4 h-4" />
+            {t.returnToMenu}
+          </button>
         </div>
-
-        <p className="text-xs text-neutral-400 italic mb-6 leading-relaxed">
-          {t.thankYouNote}
-        </p>
-
-        <button
-          onClick={handleMenuReturn}
-          className={`w-full flex items-center justify-center gap-2 py-3 bg-red-700 hover:bg-red-600 active:scale-95 text-white font-bold text-xs uppercase tracking-widest rounded border border-red-500 cursor-pointer shadow-[0_0_16px_rgba(220,38,38,0.45)] transition-all ${
-            poppedBtn === 'menu' ? 'animate-cell-pop' : ''
-          }`}
-        >
-          <Home className="w-4 h-4" />
-          {t.returnToMenu}
-        </button>
       </div>
+
+      {/* Subtle corner return button so players can exit early anytime */}
+      <button
+        onClick={handleMenuReturn}
+        className="absolute bottom-5 right-5 z-30 flex items-center gap-1.5 px-3.5 py-2 rounded bg-neutral-950/85 hover:bg-neutral-900 border border-neutral-800 text-[10px] font-bold uppercase tracking-widest text-neutral-300 hover:text-white cursor-pointer transition-all"
+      >
+        <Home className="w-3.5 h-3.5 text-red-400" />
+        <span>{t.returnToMenu}</span>
+      </button>
     </div>
   );
 };
