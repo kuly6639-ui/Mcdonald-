@@ -1,5 +1,7 @@
 import * as THREE from 'three';
 import {
+  TextureLibrary,
+  PS1BillboardAdVariant,
   createStainlessSteelTexture,
   createWarningSignTexture,
   createPOSTouchScreenTexture,
@@ -11,7 +13,6 @@ import {
   createPS1NameTagTexture,
   createPS1CRTGreenTexture,
   createRestroomSignTexture,
-  createPS1ClownFaceTexture,
   createPS1WelcomeClownFaceTexture,
   createPS1HumanFaceTexture,
   createPS1EmployeeLogoTexture,
@@ -33,6 +34,21 @@ import {
 function ps1Mat(params: THREE.MeshStandardMaterialParameters): THREE.MeshStandardMaterial {
   return new THREE.MeshStandardMaterial({
     ...params,
+    flatShading: true,
+    roughness: 0.9,
+  });
+}
+
+/** PS1 character fabric/skin material with subtle self-lit map so details never collapse to dark voids */
+function ps1CharacterMat(
+  map: THREE.Texture,
+  emissiveIntensity: number = 0.16
+): THREE.MeshStandardMaterial {
+  return new THREE.MeshStandardMaterial({
+    map,
+    emissiveMap: map,
+    emissive: 0xffffff,
+    emissiveIntensity,
     flatShading: true,
     roughness: 0.9,
   });
@@ -159,7 +175,7 @@ export function buildSculptedPS1HeadGeometry(
 /** Unified flat-shaded PS1 head material (seamless 360-degree texture wrap, no sticker seam) */
 export function createPS1HeadMaterial(
   texture: THREE.Texture,
-  emissiveIntensity: number = 0.26
+  emissiveIntensity: number = 0.34
 ): THREE.MeshStandardMaterial {
   return new THREE.MeshStandardMaterial({
     map: texture,
@@ -180,11 +196,134 @@ export function createPS1NoseMesh(radius: number, material: THREE.Material): THR
   return nose;
 }
 
+/**
+ * Outdoor PS1 Pole-Mounted Digitized Photo Billboard (Bangs/H-Frame + Steel Struts + Spotlights)
+ * Places a vivid 128x128 NearestFilter promotional ad high in the parking lot/roadside.
+ * Exposes `group.userData.adMaterial` & `group.userData.billboardLight` for power-outage control.
+ */
+export function createPS1Billboard(options: {
+  variant?: PS1BillboardAdVariant;
+  boardWidth?: number;
+  boardHeight?: number;
+  poleHeight?: number;
+  doubleSided?: boolean;
+  lightColor?: number;
+  lightIntensity?: number;
+} = {}): THREE.Group {
+  const {
+    variant = 'bigmac',
+    boardWidth = 4.2,
+    boardHeight = 2.6,
+    poleHeight = 3.2,
+    doubleSided = true,
+    lightColor = 0xfff1cc,
+    lightIntensity = 1.4,
+  } = options;
+
+  const group = new THREE.Group();
+  group.name = `PS1_Billboard_${variant}`;
+
+  const steelMat = ps1Mat({
+    map: TextureLibrary.getStainlessSteelTexture(false),
+    color: 0x3b424d,
+    metalness: 0.25,
+  });
+  const concreteMat = ps1Mat({
+    map: TextureLibrary.getSidewalkTexture(),
+    color: 0x7a8088,
+  });
+  const adTex = TextureLibrary.getBillboardAdTexture(variant, 'wide');
+  const adMat = new THREE.MeshBasicMaterial({ map: adTex });
+
+  // Twin vertical structural posts + concrete footings
+  const postOffsetX = boardWidth * 0.34;
+  [-postOffsetX, postOffsetX].forEach((px) => {
+    const footing = new THREE.Mesh(new THREE.BoxGeometry(0.46, 0.28, 0.46), concreteMat);
+    footing.position.set(px, 0.14, 0);
+    const pole = new THREE.Mesh(
+      new THREE.CylinderGeometry(0.11, 0.13, poleHeight + boardHeight * 0.5, 5, 1),
+      steelMat
+    );
+    pole.position.set(px, (poleHeight + boardHeight * 0.5) * 0.5, -0.06);
+    pole.castShadow = false;
+    group.add(footing, pole);
+  });
+
+  // Cross-beam tie between poles
+  const crossBeam = new THREE.Mesh(
+    new THREE.BoxGeometry(postOffsetX * 2 + 0.3, 0.12, 0.12),
+    steelMat
+  );
+  crossBeam.position.set(0, poleHeight * 0.55, -0.06);
+  group.add(crossBeam);
+
+  // Billboard frame & backlit digitized ad face
+  const boardCenterY = poleHeight + boardHeight * 0.45;
+  const backing = new THREE.Mesh(
+    new THREE.BoxGeometry(boardWidth + 0.18, boardHeight + 0.18, 0.16),
+    steelMat
+  );
+  backing.position.set(0, boardCenterY, 0);
+  backing.castShadow = false;
+  group.add(backing);
+
+  const frontFace = new THREE.Mesh(new THREE.PlaneGeometry(boardWidth, boardHeight), adMat);
+  frontFace.position.set(0, boardCenterY, 0.088);
+  group.add(frontFace);
+
+  if (doubleSided) {
+    const backFace = new THREE.Mesh(new THREE.PlaneGeometry(boardWidth, boardHeight), adMat);
+    backFace.position.set(0, boardCenterY, -0.088);
+    backFace.rotation.y = Math.PI;
+    group.add(backFace);
+  }
+
+  // Overhanging gooseneck billboard lights + warm illumination
+  const bulbMat = new THREE.MeshBasicMaterial({ color: lightColor });
+  [-boardWidth * 0.28, boardWidth * 0.28].forEach((lx) => {
+    const arm = new THREE.Mesh(new THREE.BoxGeometry(0.06, 0.06, 0.65), steelMat);
+    arm.position.set(lx, boardCenterY + boardHeight * 0.5 + 0.05, 0.32);
+    const hood = new THREE.Mesh(new THREE.ConeGeometry(0.14, 0.14, 5, 1), steelMat);
+    hood.position.set(lx, boardCenterY + boardHeight * 0.5 - 0.01, 0.62);
+    const bulb = new THREE.Mesh(new THREE.BoxGeometry(0.08, 0.05, 0.08), bulbMat);
+    bulb.position.set(lx, boardCenterY + boardHeight * 0.5 - 0.06, 0.62);
+    group.add(arm, hood, bulb);
+  });
+
+  const light = new THREE.PointLight(lightColor, lightIntensity, 11);
+  light.position.set(0, boardCenterY + 0.3, 1.35);
+  group.add(light);
+
+  group.userData.adMaterial = adMat;
+  group.userData.billboardLight = light;
+  return group;
+}
+
+/** Framed Wall-Mounted PS1 Digitized Ad Poster (for Restaurant & Convenience Walls) */
+export function createPS1WallAdPoster(
+  variant: PS1BillboardAdVariant = 'bigmac',
+  width: number = 1.35,
+  height: number = 1.35
+): THREE.Group {
+  const group = new THREE.Group();
+  const frameMat = ps1Mat({ color: 0x181b20 });
+  const adMat = new THREE.MeshBasicMaterial({
+    map: TextureLibrary.getBillboardAdTexture(variant),
+  });
+
+  const frame = new THREE.Mesh(new THREE.BoxGeometry(width + 0.1, height + 0.1, 0.05), frameMat);
+  const face = new THREE.Mesh(new THREE.PlaneGeometry(width, height), adMat);
+  face.position.z = 0.028;
+  group.add(frame, face);
+  group.userData.adMaterial = adMat;
+  return group;
+}
+
 /** Watertight PS1 Crumpled Black Garbage Bag (vertex-hashed IcosahedronGeometry + pinched 6-sided knot) */
 export function createPS1CrumpledTrashBag(radius: number = 0.35, seed: number = 1): THREE.Group {
   const group = new THREE.Group();
   const bagMat = new THREE.MeshStandardMaterial({
-    color: 0x15171a,
+    map: TextureLibrary.getTrashBagTexture(),
     flatShading: true,
     roughness: 0.48,
     metalness: 0.14,
@@ -230,8 +369,8 @@ export function createPS1CrumpledTrashBag(radius: number = 0.35, seed: number = 
 
   const body = new THREE.Mesh(geo, bagMat);
   body.position.y = radius * 0.55;
-  body.castShadow = true;
-  body.receiveShadow = true;
+  body.castShadow = false;
+  body.receiveShadow = false;
 
   // Pinched tie neck & flared plastic bag knot
   const neck = new THREE.Mesh(
@@ -254,8 +393,8 @@ export function createPS1CrumpledTrashBag(radius: number = 0.35, seed: number = 
 
 function createPS1BurgerMesh(): THREE.Group {
   const burger = new THREE.Group();
-  const bunMat = ps1Mat({ color: 0xd48b28 });
-  const pattyMat = ps1Mat({ color: 0x451a03 });
+  const bunMat = ps1Mat({ map: TextureLibrary.getBurgerBunTexture() });
+  const pattyMat = ps1Mat({ map: TextureLibrary.getBurgerPattyTexture() });
   const cheeseMat = ps1Mat({ color: 0xfacc15 });
   const lettuceMat = ps1Mat({ color: 0x4d7c0f });
 
@@ -278,8 +417,8 @@ function createPS1BurgerMesh(): THREE.Group {
 
 function createPS1FriesMesh(): THREE.Group {
   const fries = new THREE.Group();
-  const redBoxMat = ps1Mat({ color: 0xcc1414 });
-  const fryMat = ps1Mat({ color: 0xf5b800 });
+  const redBoxMat = ps1Mat({ map: TextureLibrary.getFryCartonTexture() });
+  const fryMat = ps1Mat({ map: TextureLibrary.getPotatoFryTexture() });
 
   // 4-sided red container
   const carton = new THREE.Mesh(new THREE.CylinderGeometry(0.046, 0.032, 0.088, 4, 1), redBoxMat);
@@ -306,7 +445,7 @@ function createPS1FriesMesh(): THREE.Group {
 
 function createPS1DrinkCupMesh(cupColor: number = 0xb91c1c, lidColor: number = 0xf4f4f5): THREE.Group {
   const drink = new THREE.Group();
-  const cupMat = ps1Mat({ color: cupColor });
+  const cupMat = ps1Mat({ map: TextureLibrary.getDrinkCupTexture(cupColor) });
   const lidMat = ps1Mat({ color: lidColor });
   const strawMat = ps1Mat({ color: 0xef4444 });
 
@@ -335,7 +474,7 @@ function createPS1DrumstickMesh(
   const meat = new THREE.Mesh(new THREE.CylinderGeometry(0.012, 0.038, 0.095, 5, 1), meatMat);
   meat.rotation.z = -Math.PI / 2;
   meat.position.x = 0.004;
-  meat.castShadow = true;
+  meat.castShadow = false;
 
   // Crispy low-poly batter chunk (8-face Octahedron)
   const crunch = new THREE.Mesh(new THREE.OctahedronGeometry(0.026, 0), batterMat);
@@ -367,27 +506,32 @@ export function createProtagonistCar(
   const group = new THREE.Group();
   group.name = 'PS1_ProtagonistCar';
 
-  const paintMat = ps1Mat({ color: bodyColor });
+  const paintMat = ps1Mat({
+    map: TextureLibrary.getCarPaintTexture(bodyColor),
+    roughness: 0.58,
+    metalness: 0.18,
+  });
   const darkTrimMat = ps1Mat({ color: 0x16181c });
   const hasInterior = withVisibleDriver || withRoomyInterior;
   const glassMat = hasInterior
     ? ps1Mat({
-        color: 0x1c3140,
+        color: 0xaecad8,
+        map: TextureLibrary.getGlassSmudgeTexture(),
         transparent: true,
         opacity: withRoomyInterior ? 0.24 : 0.3,
         depthWrite: false,
         side: THREE.DoubleSide,
       })
-    : ps1Mat({ color: 0x101822 });
-  const headlightMat = new THREE.MeshBasicMaterial({ color: 0xfff5cc });
-  const taillightMat = new THREE.MeshBasicMaterial({ color: 0xcc1111 });
-  const rimMat = ps1Mat({ color: 0x9ca3af });
-  const tireMat = ps1Mat({ color: 0x18181b });
+    : ps1Mat({ color: 0x2f4356, map: TextureLibrary.getGlassSmudgeTexture() });
+  const headlightMat = new THREE.MeshBasicMaterial({ map: TextureLibrary.getCarHeadlightTexture() });
+  const taillightMat = new THREE.MeshBasicMaterial({ map: TextureLibrary.getCarTaillightTexture() });
+  const rimMat = ps1Mat({ map: TextureLibrary.getCarRimTexture(), metalness: 0.25, roughness: 0.55 });
+  const tireMat = ps1Mat({ map: TextureLibrary.getCarTireTexture() });
 
   // Sharp boxy lower chassis + hood/trunk profile
   const lowerBody = new THREE.Mesh(new THREE.BoxGeometry(1.8, 0.58, 4.2), paintMat);
   lowerBody.position.set(0, 0.5, 0);
-  lowerBody.castShadow = true;
+  lowerBody.castShadow = false;
   group.add(lowerBody);
 
   if (hasInterior) {
@@ -527,10 +671,21 @@ export function createProtagonistCar(
       const driverGroup = new THREE.Group();
       driverGroup.position.set(0.34, 0.78, -0.02);
 
-      const coatMat = ps1Mat({ color: pal.jacket });
-      const skinMat = ps1Mat({ color: pal.skin });
-      const driverHeadMat = createPS1HeadMaterial(createPS1HumanFaceTexture(pal.skin, 'tired'));
-      const hairMat = ps1Mat({ color: pal.hair });
+      const coatMat = ps1CharacterMat(
+        TextureLibrary.getWrappedFabricTexture(pal.jacket, 'jacket', 10 + driverVariant)
+      );
+      const skinMat = ps1CharacterMat(
+        TextureLibrary.getWrappedFabricTexture(pal.skin, 'skin_hand', 10 + driverVariant)
+      );
+      const driverHeadMat = createPS1HeadMaterial(
+        createPS1HumanFaceTexture(
+          pal.skin,
+          'tired',
+          pal.hair,
+          pal.hat !== null ? 'cap' : 'short'
+        ),
+        0.34
+      );
 
       const torso = new THREE.Mesh(new THREE.CylinderGeometry(0.2, 0.16, 0.38, 8, 1), coatMat);
       torso.scale.set(1.02, 1.0, 0.72);
@@ -552,18 +707,20 @@ export function createProtagonistCar(
       cranium.position.set(0, 0.12, 0);
       const driverNose = createPS1NoseMesh(0.136, skinMat);
       driverNose.position.y += 0.12;
-      const hairTop = new THREE.Mesh(new THREE.CylinderGeometry(0.105, 0.12, 0.07, 6, 1), hairMat);
-      hairTop.scale.set(1.0, 1.0, 0.95);
-      hairTop.position.set(0, 0.24, -0.015);
-      headGroup.add(cranium, driverNose, hairTop);
+      headGroup.add(cranium, driverNose);
 
       if (pal.hat !== null) {
-        const capMat = ps1Mat({ color: pal.hat });
+        const capMat = ps1CharacterMat(
+          TextureLibrary.getWrappedFabricTexture(pal.hat, 'hoodie', 14)
+        );
         const capDome = new THREE.Mesh(new THREE.BoxGeometry(0.21, 0.07, 0.22), capMat);
         capDome.position.set(0, 0.255, 0);
         const capBrim = new THREE.Mesh(new THREE.BoxGeometry(0.19, 0.02, 0.12), capMat);
         capBrim.position.set(0, 0.215, 0.125);
         headGroup.add(capDome, capBrim);
+        attachPS1NeatHairUnderCap(headGroup, pal.hair, 0, 0.12);
+      } else {
+        attachPS1StyledShortHair(headGroup, pal.hair, 0, 0.12);
       }
 
       driverGroup.add(headGroup);
@@ -582,7 +739,7 @@ export function createProtagonistCar(
     // Retro boxy cabin with tinted dark windshield & windows
     const cabin = new THREE.Mesh(new THREE.BoxGeometry(1.5, 0.62, 2.15), glassMat);
     cabin.position.set(0, 1.09, -0.2);
-    cabin.castShadow = true;
+    cabin.castShadow = false;
     group.add(cabin);
 
     const roof = new THREE.Mesh(new THREE.BoxGeometry(1.48, 0.08, 1.85), paintMat);
@@ -590,12 +747,17 @@ export function createProtagonistCar(
     group.add(roof);
   }
 
-  // Sharp boxy bumpers
+  // Sharp boxy bumpers & textured radiator grille
   const frontBumper = new THREE.Mesh(new THREE.BoxGeometry(1.84, 0.22, 0.18), darkTrimMat);
   frontBumper.position.set(0, 0.34, 2.12);
   const rearBumper = new THREE.Mesh(new THREE.BoxGeometry(1.84, 0.22, 0.18), darkTrimMat);
   rearBumper.position.set(0, 0.34, -2.12);
-  group.add(frontBumper, rearBumper);
+  const grille = new THREE.Mesh(
+    new THREE.PlaneGeometry(0.76, 0.16),
+    ps1Mat({ map: TextureLibrary.getCarGrilleTexture() })
+  );
+  grille.position.set(0, 0.56, 2.105);
+  group.add(frontBumper, rearBumper, grille);
 
   // Glowing yellowish-white headlights (low-poly planes/boxes) & red taillights
   const headL = new THREE.Mesh(new THREE.BoxGeometry(0.35, 0.14, 0.05), headlightMat);
@@ -623,7 +785,7 @@ export function createProtagonistCar(
     const tire = new THREE.Mesh(tireGeo, tireMat);
     tire.rotation.z = Math.PI / 2;
     tire.position.set(wx, wy, wz);
-    tire.castShadow = true;
+    tire.castShadow = false;
 
     const rim = new THREE.Mesh(rimGeo, rimMat);
     rim.rotation.z = Math.PI / 2;
@@ -687,7 +849,7 @@ function attachPS1ShoulderBlocksAndArms(
     );
     shoulderBlock.position.set(side * (shoulderWidthX - 0.042), shoulderHeightY + 0.02, 0);
     shoulderBlock.rotation.z = side * -0.26;
-    shoulderBlock.castShadow = true;
+    shoulderBlock.castShadow = false;
     torsoGroup.add(shoulderBlock);
 
     // Arm pivot seated directly inside shoulder block so zero gap appears during animation
@@ -707,7 +869,7 @@ function attachPS1ShoulderBlocksAndArms(
       upperArmMat
     );
     upperArm.position.set(0, -upperArmLength * 0.5 - 0.02, 0);
-    upperArm.castShadow = true;
+    upperArm.castShadow = false;
 
     const forearm = new THREE.Mesh(
       new THREE.CylinderGeometry(0.055, 0.042, forearmLength, 6, 1),
@@ -812,7 +974,7 @@ function createPS1SplitTorsoAndPelvis(
   );
   waistMesh.scale.set(waistScaleX, 1.0, 0.68);
   waistMesh.position.set(0, 0.125, 0);
-  waistMesh.castShadow = true;
+  waistMesh.castShadow = false;
   torsoGroup.add(beltSeam, waistMesh);
 
   // 3. Broader Upper Chest & Shoulders Subgroup pivoted cleanly at the waist break (y = 0.23)
@@ -827,7 +989,7 @@ function createPS1SplitTorsoAndPelvis(
   );
   chestMesh.scale.set(chestWidthScaleX, 1.0, 0.72);
   chestMesh.position.set(0, 0.17, 0);
-  chestMesh.castShadow = true;
+  chestMesh.castShadow = false;
   upperChestGroup.add(chestMesh);
 
   // Compute exact world-space top of the upper chest for flush neck/head connection
@@ -1083,160 +1245,117 @@ function buildHollowPS1HoodGeometry(headZOffset: number = 0.032): THREE.BufferGe
 }
 
 /**
- * Low-Poly PS1 Hair Helpers (5-8 segments, flatShading: true, 32x32 NearestFilter hair texture).
+ * Low-Poly PS1 Hair Helpers (5-8 segments, flatShading: true, NearestFilter hair texture).
  * Zero clipping through forehead or eyes.
  */
 function createPS1HairMaterial(hairColor: number): THREE.MeshStandardMaterial {
+  const hairTex = createPS1HairTexture(hairColor);
   return new THREE.MeshStandardMaterial({
-    map: createPS1HairTexture(hairColor),
+    map: hairTex,
+    emissiveMap: hairTex,
+    emissive: 0xffffff,
+    emissiveIntensity: 0.15,
     flatShading: true,
     roughness: 0.9,
   });
 }
 
-function attachPS1NeatHairUnderCap(
-  headGroup: THREE.Group,
-  hairColor: number,
-  options: { withFrontPart?: boolean; headZOffset?: number } = {}
-) {
-  const { withFrontPart = true, headZOffset = 0 } = options;
-  const hairMat = createPS1HairMaterial(hairColor);
-
-  // Snug 6-sided nape/back hair tucked cleanly beneath cap rim (y <= 0.194)
-  const hairBack = new THREE.Mesh(
-    new THREE.CylinderGeometry(0.118, 0.094, 0.125, 6, 1),
-    hairMat
-  );
-  hairBack.scale.set(1.02, 1.0, 0.54);
-  hairBack.position.set(0, 0.132, headZOffset - 0.082);
-
-  // Angular temple/sideburn wedges hugging temples under cap rim
-  const sideL = new THREE.Mesh(new THREE.BoxGeometry(0.036, 0.082, 0.095), hairMat);
-  sideL.position.set(-0.112, 0.15, headZOffset - 0.022);
-  sideL.rotation.set(0.08, 0, -0.06);
-
-  const sideR = new THREE.Mesh(new THREE.BoxGeometry(0.036, 0.082, 0.095), hairMat);
-  sideR.position.set(0.112, 0.15, headZOffset - 0.022);
-  sideR.rotation.set(0.08, 0, 0.06);
-
-  headGroup.add(hairBack, sideL, sideR);
-
-  if (withFrontPart) {
-    // Neat parted low-poly fringe peeking right beneath cap visor & above eyebrows
-    const partL = new THREE.Mesh(new THREE.BoxGeometry(0.07, 0.024, 0.044), hairMat);
-    partL.position.set(-0.048, 0.194, headZOffset + 0.128);
-    partL.rotation.set(0.18, -0.2, 0.24);
-
-    const partR = new THREE.Mesh(new THREE.BoxGeometry(0.068, 0.024, 0.044), hairMat);
-    partR.position.set(0.048, 0.194, headZOffset + 0.128);
-    partR.rotation.set(0.18, 0.2, -0.24);
-
-    headGroup.add(partL, partR);
-  }
-}
-
+/** Messy spiky 3D PS1 low-poly hair (crown cap, nape back, and angular spiky tufts above brow) */
 function attachPS1SpikyHair(
   headGroup: THREE.Group,
   hairColor: number,
-  options: { headZOffset?: number; bangsOnly?: boolean } = {}
+  headZOffset: number = 0,
+  centerY: number = 0.11
 ) {
-  const { headZOffset = 0, bangsOnly = false } = options;
   const hairMat = createPS1HairMaterial(hairColor);
 
-  if (!bangsOnly) {
-    // Snug 6-sided faceted hair skull cap (sits slightly above sculpted forehead & crown)
-    const hairCrown = new THREE.Mesh(
-      new THREE.CylinderGeometry(0.104, 0.13, 0.092, 6, 1),
-      hairMat
-    );
-    hairCrown.rotation.y = Math.PI / 6;
-    hairCrown.scale.set(1.02, 1.0, 1.06);
-    hairCrown.position.set(0, 0.246, headZOffset - 0.008);
+  const crown = new THREE.Mesh(new THREE.CylinderGeometry(0.102, 0.128, 0.078, 8, 1), hairMat);
+  crown.scale.set(1.02, 1.0, 1.1);
+  crown.position.set(0, centerY + 0.125, headZOffset - 0.012);
 
-    const hairBack = new THREE.Mesh(
-      new THREE.CylinderGeometry(0.124, 0.098, 0.145, 6, 1),
-      hairMat
-    );
-    hairBack.scale.set(1.02, 1.0, 0.56);
-    hairBack.position.set(0, 0.138, headZOffset - 0.08);
+  const nape = new THREE.Mesh(new THREE.BoxGeometry(0.185, 0.14, 0.075), hairMat);
+  nape.position.set(0, centerY + 0.03, headZOffset - 0.095);
 
-    const sideL = new THREE.Mesh(new THREE.BoxGeometry(0.036, 0.096, 0.1), hairMat);
-    sideL.position.set(-0.118, 0.158, headZOffset - 0.018);
-    sideL.rotation.set(0.06, 0, -0.06);
-
-    const sideR = new THREE.Mesh(new THREE.BoxGeometry(0.036, 0.096, 0.1), hairMat);
-    sideR.position.set(0.118, 0.158, headZOffset - 0.018);
-    sideR.rotation.set(0.06, 0, 0.06);
-
-    headGroup.add(hairCrown, hairBack, sideL, sideR);
-
-    // Messy spiky low-poly crown & rear clusters (5-sided cones anchored cleanly inside cap)
-    const crownSpikes: [number, number, number, number, number, number, number, number][] = [
-      // [x, y, z, rx, ry, rz, radius, height]
-      [0, 0.31, headZOffset + 0.02, 0.35, 0.2, 0.08, 0.052, 0.105],
-      [-0.062, 0.296, headZOffset + 0.01, 0.22, 0.0, 0.58, 0.048, 0.095],
-      [0.062, 0.296, headZOffset + 0.01, 0.22, 0.0, -0.58, 0.048, 0.095],
-      [-0.045, 0.292, headZOffset - 0.06, -0.52, 0.0, 0.38, 0.05, 0.1],
-      [0.045, 0.292, headZOffset - 0.06, -0.52, 0.0, -0.38, 0.05, 0.1],
-      [0, 0.265, headZOffset - 0.105, -0.98, 0.0, 0.0, 0.052, 0.1],
-      [-0.092, 0.225, headZOffset - 0.06, -0.45, 0.0, 0.95, 0.042, 0.082],
-      [0.092, 0.225, headZOffset - 0.06, -0.45, 0.0, -0.95, 0.042, 0.082],
-    ];
-    for (const [sx, sy, sz, rx, ry, rz, rad, h] of crownSpikes) {
-      const spike = new THREE.Mesh(new THREE.ConeGeometry(rad, h, 5, 1), hairMat);
-      spike.position.set(sx, sy, sz);
-      spike.rotation.set(rx, ry, rz);
-      headGroup.add(spike);
-    }
-  }
-
-  // Forward-swept spiky low-poly bangs clearing forehead & eyebrows (y >= 0.214, z forward)
-  const frontSpikes: [number, number, number, number, number, number, number, number][] = [
-    [0, 0.236, headZOffset + 0.125, 1.88, 0.0, 0.08, 0.032, 0.078],
-    [-0.056, 0.232, headZOffset + 0.118, 1.78, 0.18, 0.42, 0.03, 0.072],
-    [0.056, 0.232, headZOffset + 0.118, 1.78, -0.18, -0.42, 0.03, 0.072],
+  const spikeGeo = new THREE.ConeGeometry(0.042, 0.095, 4, 1);
+  const tufts: [number, number, number, number, number, number][] = [
+    [0.0, centerY + 0.165, headZOffset + 0.068, 0.62, 0, 0],
+    [-0.06, centerY + 0.16, headZOffset + 0.056, 0.52, 0, 0.36],
+    [0.06, centerY + 0.16, headZOffset + 0.056, 0.52, 0, -0.36],
+    [-0.095, centerY + 0.135, headZOffset + 0.015, 0.18, 0, 0.68],
+    [0.095, centerY + 0.135, headZOffset + 0.015, 0.18, 0, -0.68],
+    [0.0, centerY + 0.175, headZOffset - 0.025, -0.35, 0, 0],
+    [-0.065, centerY + 0.155, headZOffset - 0.055, -0.58, 0, 0.38],
+    [0.065, centerY + 0.155, headZOffset - 0.055, -0.58, 0, -0.38],
   ];
-  for (const [fx, fy, fz, rx, ry, rz, rad, h] of frontSpikes) {
-    const bang = new THREE.Mesh(new THREE.ConeGeometry(rad, h, 5, 1), hairMat);
-    bang.position.set(fx, fy, fz);
-    bang.rotation.set(rx, ry, rz);
-    headGroup.add(bang);
-  }
+
+  headGroup.add(crown, nape);
+  tufts.forEach(([x, y, z, rx, ry, rz]) => {
+    const t = new THREE.Mesh(spikeGeo, hairMat);
+    t.position.set(x, y, z);
+    t.rotation.set(rx, ry, rz);
+    headGroup.add(t);
+  });
 }
 
+/** Clean, fitted low-poly short hair sweeping crown, temples, and nape cleanly behind ears */
 function attachPS1StyledShortHair(
   headGroup: THREE.Group,
   hairColor: number,
-  headZOffset: number = 0
+  headZOffset: number = 0,
+  centerY: number = 0.11
 ) {
   const hairMat = createPS1HairMaterial(hairColor);
+  const topCap = new THREE.Mesh(new THREE.CylinderGeometry(0.098, 0.124, 0.072, 8, 1), hairMat);
+  topCap.scale.set(1.0, 1.0, 1.08);
+  topCap.position.set(0, centerY + 0.122, headZOffset - 0.012);
 
-  const hairCrown = new THREE.Mesh(
-    new THREE.CylinderGeometry(0.104, 0.128, 0.088, 6, 1),
-    hairMat
-  );
-  hairCrown.rotation.y = Math.PI / 6;
-  hairCrown.scale.set(1.01, 1.0, 1.04);
-  hairCrown.position.set(0, 0.244, headZOffset - 0.01);
+  const backHair = new THREE.Mesh(new THREE.BoxGeometry(0.19, 0.14, 0.072), hairMat);
+  backHair.position.set(0, centerY + 0.028, headZOffset - 0.095);
 
-  const hairBack = new THREE.Mesh(
-    new THREE.CylinderGeometry(0.122, 0.096, 0.145, 6, 1),
-    hairMat
-  );
-  hairBack.scale.set(1.01, 1.0, 0.54);
-  hairBack.position.set(0, 0.135, headZOffset - 0.08);
+  const bangSweep = new THREE.Mesh(new THREE.BoxGeometry(0.145, 0.032, 0.065), hairMat);
+  bangSweep.position.set(0, centerY + 0.118, headZOffset + 0.072);
+  bangSweep.rotation.x = 0.25;
 
-  const sideL = new THREE.Mesh(new THREE.BoxGeometry(0.032, 0.09, 0.09), hairMat);
-  sideL.position.set(-0.116, 0.155, headZOffset - 0.02);
-  const sideR = new THREE.Mesh(new THREE.BoxGeometry(0.032, 0.09, 0.09), hairMat);
-  sideR.position.set(0.116, 0.155, headZOffset - 0.02);
+  const sideL = new THREE.Mesh(new THREE.BoxGeometry(0.032, 0.095, 0.068), hairMat);
+  sideL.position.set(-0.108, centerY + 0.055, headZOffset - 0.025);
+  const sideR = new THREE.Mesh(new THREE.BoxGeometry(0.032, 0.095, 0.068), hairMat);
+  sideR.position.set(0.108, centerY + 0.055, headZOffset - 0.025);
 
-  // Clean faceted front hairline wedge above brow ridge
-  const frontFringe = new THREE.Mesh(new THREE.BoxGeometry(0.16, 0.026, 0.045), hairMat);
-  frontFringe.position.set(0, 0.222, headZOffset + 0.112);
-  frontFringe.rotation.x = 0.22;
+  headGroup.add(topCap, backHair, bangSweep, sideL, sideR);
+}
 
-  headGroup.add(hairCrown, hairBack, sideL, sideR, frontFringe);
+/** Neat temples & nape hair peeking cleanly beneath a fitted employee/customer cap */
+function attachPS1NeatHairUnderCap(
+  headGroup: THREE.Group,
+  hairColor: number,
+  headZOffset: number = 0,
+  centerY: number = 0.11
+) {
+  const hairMat = createPS1HairMaterial(hairColor);
+  const napeHair = new THREE.Mesh(new THREE.BoxGeometry(0.175, 0.088, 0.052), hairMat);
+  napeHair.position.set(0, centerY + 0.015, headZOffset - 0.098);
+  const templeL = new THREE.Mesh(new THREE.BoxGeometry(0.028, 0.075, 0.062), hairMat);
+  templeL.position.set(-0.105, centerY + 0.04, headZOffset - 0.02);
+  const templeR = new THREE.Mesh(new THREE.BoxGeometry(0.028, 0.075, 0.062), hairMat);
+  templeR.position.set(0.105, centerY + 0.04, headZOffset - 0.02);
+  headGroup.add(napeHair, templeL, templeR);
+}
+
+/** Front spiky bangs tucked neatly under a hollow hood opening (never clipping eyes or hood) */
+function attachPS1HoodBangs(
+  headGroup: THREE.Group,
+  hairColor: number,
+  headZOffset: number = 0,
+  centerY: number = 0.11
+) {
+  const hairMat = createPS1HairMaterial(hairColor);
+  const spikeGeo = new THREE.ConeGeometry(0.034, 0.075, 4, 1);
+  [-0.045, 0, 0.045].forEach((bx, i) => {
+    const tuft = new THREE.Mesh(spikeGeo, hairMat);
+    tuft.position.set(bx, centerY + 0.118, headZOffset + 0.088);
+    tuft.rotation.set(1.05, 0, (i - 1) * -0.25);
+    headGroup.add(tuft);
+  });
 }
 
 /**
@@ -1311,10 +1430,12 @@ function attachPS1FoldedHoodDownCollar(
   torsoGroup.add(pouch);
 
   if (withBackpack) {
-    const packMat = ps1Mat({ color: backpackColor });
+    const packMat = ps1Mat({
+      map: TextureLibrary.getWrappedFabricTexture(backpackColor, 'backpack', 18),
+    });
     const packMain = new THREE.Mesh(new THREE.BoxGeometry(0.275, 0.32, 0.14), packMat);
     packMain.position.set(0, 0.07, -0.195);
-    packMain.castShadow = true;
+    packMain.castShadow = false;
 
     const packLid = new THREE.Mesh(new THREE.BoxGeometry(0.29, 0.08, 0.155), packMat);
     packLid.position.set(0, 0.225, -0.192);
@@ -1402,7 +1523,7 @@ function attachPS1DrapedHoodAndAccessories(
 
   // 2. Hollow Open-Front Faceted Hood Shell + Rear Draped 5-Sided Fold Point
   const hoodShell = new THREE.Mesh(buildHollowPS1HoodGeometry(headZOffset), hoodieMat);
-  hoodShell.castShadow = true;
+  hoodShell.castShadow = false;
 
   const hoodRearPoint = new THREE.Mesh(
     new THREE.ConeGeometry(0.128, 0.145, 5, 1),
@@ -1440,10 +1561,12 @@ function attachPS1DrapedHoodAndAccessories(
 
   // 4. Optional Blocky Low-Poly Backpack + Shoulder Straps
   if (withBackpack) {
-    const packMat = ps1Mat({ color: backpackColor });
+    const packMat = ps1Mat({
+      map: TextureLibrary.getWrappedFabricTexture(backpackColor, 'backpack', 19),
+    });
     const packMain = new THREE.Mesh(new THREE.BoxGeometry(0.275, 0.34, 0.145), packMat);
     packMain.position.set(0, 0.1, -0.175);
-    packMain.castShadow = true;
+    packMain.castShadow = false;
 
     const packLid = new THREE.Mesh(new THREE.BoxGeometry(0.29, 0.085, 0.16), packMat);
     packLid.position.set(0, 0.265, -0.172);
@@ -1496,11 +1619,22 @@ export function createCustomer(hoodieColor?: number): THREE.Group {
   const skinHex = 0xc5b29e;
   const faceVariant =
     CUSTOMER_FACE_VARIANTS[Math.floor(Math.random() * CUSTOMER_FACE_VARIANTS.length)];
-  const hoodieMat = ps1Mat({ color: chosenHoodie });
-  const pantsMat = ps1Mat({ color: 0x15171c });
-  const skinMat = ps1Mat({ color: skinHex });
-  const headMat = createPS1HeadMaterial(createPS1HumanFaceTexture(skinHex, faceVariant));
-  const shoeMat = ps1Mat({ color: 0x0e0f12 });
+  const hoodieMat = ps1CharacterMat(
+    TextureLibrary.getWrappedFabricTexture(chosenHoodie, 'hoodie', 21)
+  );
+  const pantsMat = ps1CharacterMat(
+    TextureLibrary.getWrappedFabricTexture(0x15171c, 'pants', 22)
+  );
+  const skinMat = ps1CharacterMat(
+    TextureLibrary.getWrappedFabricTexture(skinHex, 'skin_hand', 23)
+  );
+  const headMat = createPS1HeadMaterial(
+    createPS1HumanFaceTexture(skinHex, faceVariant, 0x1c1512, 'hooded'),
+    0.34
+  );
+  const shoeMat = ps1CharacterMat(
+    TextureLibrary.getWrappedFabricTexture(0x0e0f12, 'shoes', 24)
+  );
   const darkTrimMat = ps1Mat({ color: 0x111318 });
   const zipperPullMat = ps1Mat({ color: 0x9ca3af });
 
@@ -1750,15 +1884,45 @@ export function createCustomerCharacter(
     : archetypeIndex === 3
     ? 'bigray'
     : CUSTOMER_FACE_VARIANTS[Math.floor(Math.random() * CUSTOMER_FACE_VARIANTS.length)];
-  const skinMat = ps1Mat({ color: skinTone });
-  const headMat = createPS1HeadMaterial(
-    createPS1HumanFaceTexture(skinTone, faceVariant)
+  const wrappedHairStyle = isHooded
+    ? 'hooded'
+    : hatColor !== null
+    ? 'cap'
+    : isSpikyHair
+    ? 'spiky'
+    : 'short';
+  const skinMat = ps1CharacterMat(
+    TextureLibrary.getWrappedFabricTexture(skinTone, 'skin_hand', archetypeIndex + 30)
   );
-  const jacketMat = ps1Mat({ color: jacketColor });
-  const pantsMat = ps1Mat({ color: pantsColor });
-  const shoeMat = ps1Mat({ color: shoeColor });
+  const headMat = createPS1HeadMaterial(
+    createPS1HumanFaceTexture(skinTone, faceVariant, hairColor, wrappedHairStyle),
+    0.34
+  );
+  const jacketMat = ps1CharacterMat(
+    TextureLibrary.getWrappedFabricTexture(
+      jacketColor,
+      isHooded || hasHoodDown ? 'hoodie' : archetypeIndex === 3 ? 'denim' : 'jacket',
+      archetypeIndex + 40
+    )
+  );
+  const pantsMat = ps1CharacterMat(
+    TextureLibrary.getWrappedFabricTexture(
+      pantsColor,
+      archetypeIndex === 3 ? 'denim' : 'pants',
+      archetypeIndex + 50
+    )
+  );
+  const shoeMat = ps1CharacterMat(
+    TextureLibrary.getWrappedFabricTexture(shoeColor, 'shoes', archetypeIndex + 60)
+  );
   const whiteMat = ps1Mat({ color: 0xeaeaea });
-  const accentMat = ps1Mat({ color: accentColor });
+  const accentMat = ps1CharacterMat(
+    TextureLibrary.getWrappedFabricTexture(
+      accentColor,
+      archetypeIndex === 3 ? 'polo' : 'hoodie',
+      archetypeIndex + 70
+    )
+  );
   const darkMat = ps1Mat({ color: 0x18181b });
 
   // Split Upper Chest + Narrow Tapered Waist (slight waist hunch for customers) + Flared Pelvis/Hip Block
@@ -1877,11 +2041,12 @@ export function createCustomerCharacter(
     torsoGroup.add(waistZipper);
   }
 
-  // Low-poly Hats & Hair per archetype
+  // Sculpted PS1 3D Low-Poly Hair & Low-poly Hats (never clipping eyes or faces)
   if (archetypeIndex === 202) {
-    // Deputy Sheriff Vance: Campaign Hat + neat short hair underneath
-    attachPS1NeatHairUnderCap(headGroup, hairColor, { withFrontPart: false, headZOffset });
-    const hatMat = ps1Mat({ color: hatColor! });
+    // Deputy Sheriff Vance: Campaign Hat over neat short hair
+    const hatMat = ps1CharacterMat(
+      TextureLibrary.getWrappedFabricTexture(hatColor!, 'jacket', 202)
+    );
     const brim = new THREE.Mesh(new THREE.CylinderGeometry(0.24, 0.24, 0.02, 6, 1), hatMat);
     brim.position.set(0, 0.23, 0);
     const crown = new THREE.Mesh(new THREE.ConeGeometry(0.14, 0.14, 4, 1), hatMat);
@@ -1890,10 +2055,13 @@ export function createCustomerCharacter(
     const band = new THREE.Mesh(new THREE.CylinderGeometry(0.13, 0.135, 0.025, 6, 1), accentMat);
     band.position.set(0, 0.245, 0);
     headGroup.add(brim, crown, band);
+    attachPS1NeatHairUnderCap(headGroup, hairColor, headZOffset, 0.11);
   } else if (hatColor !== null && !isHooded) {
-    attachPS1NeatHairUnderCap(headGroup, hairColor, { withFrontPart: false, headZOffset });
-    const capMat = ps1Mat({ color: hatColor });
+    const capMat = ps1CharacterMat(
+      TextureLibrary.getWrappedFabricTexture(hatColor, 'hoodie', archetypeIndex + 80)
+    );
     attachPS1FittedPeakedCap(headGroup, capMat, { headZOffset });
+    attachPS1NeatHairUnderCap(headGroup, hairColor, headZOffset, 0.11);
     if (archetypeIndex === 3) {
       // Big Ray's crisp upper-lip plumber mustache seated right beneath the nose & cleanly above the smile
       const mustacheMat = createPS1HairMaterial(hairColor);
@@ -1905,23 +2073,24 @@ export function createCustomerCharacter(
       stacheR.rotation.z = -0.14;
       headGroup.add(stacheL, stacheR);
     }
-  } else if (isHooded) {
-    if (isSpikyHair) {
-      // Spiky front bangs peeking cleanly out of the hollow hood opening
-      attachPS1SpikyHair(headGroup, hairColor, { headZOffset, bangsOnly: true });
-    }
-    if (hatColor !== null) {
-      // Cap visor peeking cleanly under the hood opening without clipping face or hood shell
-      const capMat = ps1Mat({ color: hatColor });
-      const capBrim = new THREE.Mesh(new THREE.BoxGeometry(0.18, 0.018, 0.115), capMat);
-      capBrim.position.set(0, 0.214, headZOffset + 0.145);
-      capBrim.rotation.x = 0.14;
-      headGroup.add(capBrim);
-    }
-  } else if (isSpikyHair) {
-    attachPS1SpikyHair(headGroup, hairColor, { headZOffset, bangsOnly: false });
-  } else {
-    attachPS1StyledShortHair(headGroup, hairColor, headZOffset);
+  } else if (isHooded && hatColor !== null) {
+    // Cap visor peeking cleanly under the hollow hood opening without clipping face or hood shell
+    const capMat = ps1CharacterMat(
+      TextureLibrary.getWrappedFabricTexture(hatColor, 'hoodie', archetypeIndex + 85)
+    );
+    const capBrim = new THREE.Mesh(new THREE.BoxGeometry(0.18, 0.018, 0.115), capMat);
+    capBrim.position.set(0, 0.214, headZOffset + 0.145);
+    capBrim.rotation.x = 0.14;
+    headGroup.add(capBrim);
+  } else if (isHooded && isSpikyHair) {
+    // Sam (701): Front spiky bangs peeking cleanly out from under hood opening
+    attachPS1HoodBangs(headGroup, hairColor, headZOffset, 0.11);
+  } else if (!isHooded && isSpikyHair) {
+    // Tyler (1), Báo Con Leo (7), Báo Con Mia (702): Messy spiky PS1 low-poly hair
+    attachPS1SpikyHair(headGroup, hairColor, headZOffset, 0.11);
+  } else if (!isHooded) {
+    // Maya (0), Silas (8), Hall (9), Zoe (10): Clean low-poly styled short hair
+    attachPS1StyledShortHair(headGroup, hairColor, headZOffset, 0.11);
   }
 
   // Seamless Angular Shoulder Blocks + Tapered 6-sided Arms (welded to upperChestGroup)
@@ -1984,22 +2153,27 @@ export function createStoreClerk(uniformColor: number = 0x14532d): THREE.Group {
   group.name = 'PS1_StoreClerk';
 
   const skinHex = 0xcdd3d8;
-  const vestMat = ps1Mat({ color: uniformColor });
-  const shirtMat = ps1Mat({ color: 0x262b33 });
-  const pantsMat = ps1Mat({ color: 0x16181e });
-  const skinMat = ps1Mat({ color: skinHex });
-  const headMat = createPS1HeadMaterial(createPS1HumanFaceTexture(skinHex, 'clerk'));
-  const shoeMat = ps1Mat({ color: 0x101113 });
-  const nameTagMat = new THREE.MeshStandardMaterial({
-    map: createPS1NameTagTexture(),
-    flatShading: true,
-    roughness: 0.9,
-  });
-  const capLogoMat = new THREE.MeshStandardMaterial({
-    map: createPS1StoreClerkCapLogoTexture(uniformColor),
-    flatShading: true,
-    roughness: 0.9,
-  });
+  const vestMat = ps1CharacterMat(
+    TextureLibrary.getWrappedFabricTexture(uniformColor, 'apron', 31)
+  );
+  const shirtMat = ps1CharacterMat(
+    TextureLibrary.getWrappedFabricTexture(0x262b33, 'polo', 32)
+  );
+  const pantsMat = ps1CharacterMat(
+    TextureLibrary.getWrappedFabricTexture(0x16181e, 'pants', 33)
+  );
+  const skinMat = ps1CharacterMat(
+    TextureLibrary.getWrappedFabricTexture(skinHex, 'skin_hand', 34)
+  );
+  const headMat = createPS1HeadMaterial(
+    createPS1HumanFaceTexture(skinHex, 'clerk', 0x1e1916, 'cap'),
+    0.34
+  );
+  const shoeMat = ps1CharacterMat(
+    TextureLibrary.getWrappedFabricTexture(0x101113, 'shoes', 35)
+  );
+  const nameTagMat = ps1CharacterMat(createPS1NameTagTexture(), 0.18);
+  const capLogoMat = ps1CharacterMat(createPS1StoreClerkCapLogoTexture(uniformColor), 0.18);
 
   // Split Upper Chest + Narrow Tapered Waist (tired slouch) + Flared Pelvis/Hip Block
   const waistLean = 0.08;
@@ -2027,7 +2201,7 @@ export function createStoreClerk(uniformColor: number = 0x14532d): THREE.Group {
   torsoGroup.add(apronWaist);
   upperChestGroup.add(nameTag);
 
-  // Sculpted Angular PS1 Head + Fitted Low-Poly Peaked Cap + 4-Sided Nose
+  // Sculpted Angular PS1 Head + Fitted Low-Poly Peaked Cap + Hair + 4-Sided Nose
   const headGroup = new THREE.Group();
   headGroup.position.set(0, headMountY + 0.01, headMountZ);
   headGroup.rotation.x = 0.1;
@@ -2040,8 +2214,8 @@ export function createStoreClerk(uniformColor: number = 0x14532d): THREE.Group {
   clerkNose.position.y += 0.11;
 
   headGroup.add(neck, cranium, clerkNose);
-  attachPS1NeatHairUnderCap(headGroup, 0x1e1916, { withFrontPart: false });
   attachPS1FittedPeakedCap(headGroup, vestMat, { logoMat: capLogoMat });
+  attachPS1NeatHairUnderCap(headGroup, 0x1e1916, 0, 0.11);
 
   // Seamless Angular Shoulder Blocks + Tapered 6-sided Arms (mounted to upperChestGroup)
   const { armL, armR } = attachPS1ShoulderBlocksAndArms(upperChestGroup, {
@@ -2104,22 +2278,27 @@ export function createJohn(): THREE.Group {
   group.name = 'PS1_EmployeeJohn';
 
   const skinHex = 0xdbb594;
-  const poloMat = ps1Mat({ color: 0x7f1d1d });
-  const collarMat = ps1Mat({ color: 0x5c1111 });
-  const pantsMat = ps1Mat({ color: 0x16181e });
-  const skinMat = ps1Mat({ color: skinHex });
-  const headMat = createPS1HeadMaterial(createPS1HumanFaceTexture(skinHex, 'john'));
-  const shoeMat = ps1Mat({ color: 0x0f1013 });
-  const nameTagMat = new THREE.MeshStandardMaterial({
-    map: createPS1NameTagTexture(),
-    flatShading: true,
-    roughness: 0.9,
-  });
-  const logoBadgeMat = new THREE.MeshStandardMaterial({
-    map: createPS1EmployeeLogoTexture(),
-    flatShading: true,
-    roughness: 0.9,
-  });
+  const poloMat = ps1CharacterMat(
+    TextureLibrary.getWrappedFabricTexture(0x7f1d1d, 'polo', 41)
+  );
+  const collarMat = ps1CharacterMat(
+    TextureLibrary.getWrappedFabricTexture(0x5c1111, 'polo', 42)
+  );
+  const pantsMat = ps1CharacterMat(
+    TextureLibrary.getWrappedFabricTexture(0x16181e, 'pants', 43)
+  );
+  const skinMat = ps1CharacterMat(
+    TextureLibrary.getWrappedFabricTexture(skinHex, 'skin_hand', 44)
+  );
+  const headMat = createPS1HeadMaterial(
+    createPS1HumanFaceTexture(skinHex, 'john', 0x261a12, 'cap'),
+    0.34
+  );
+  const shoeMat = ps1CharacterMat(
+    TextureLibrary.getWrappedFabricTexture(0x0f1013, 'shoes', 45)
+  );
+  const nameTagMat = ps1CharacterMat(createPS1NameTagTexture(), 0.18);
+  const logoBadgeMat = ps1CharacterMat(createPS1EmployeeLogoTexture(), 0.18);
 
   // Split Upper Chest + Narrow Tapered Polo Waist + Flared Pelvis/Hip Block (normal upright proportions)
   const beltMat = ps1Mat({ color: 0x0b0c10 });
@@ -2165,8 +2344,8 @@ export function createJohn(): THREE.Group {
   johnNose.position.y += 0.11;
 
   headGroup.add(neck, cranium, johnNose);
-  attachPS1NeatHairUnderCap(headGroup, 0x261a12, { withFrontPart: true });
   attachPS1FittedPeakedCap(headGroup, poloMat, { logoMat: logoBadgeMat });
+  attachPS1NeatHairUnderCap(headGroup, 0x261a12, 0, 0.11);
 
   // Seamless Angular Shoulder Blocks + Short-sleeved Polo Arms (welded to upperChestGroup)
   const { armL, armR } = attachPS1ShoulderBlocksAndArms(upperChestGroup, {
@@ -2233,7 +2412,7 @@ export function createFastFoodProps(): THREE.Group {
   group.name = 'PS1_FastFoodProps';
 
   const trayMat = ps1Mat({ color: 0x1f2124 });
-  const linerMat = ps1Mat({ color: 0xc8231d });
+  const linerMat = ps1Mat({ map: TextureLibrary.getFoodTrayLinerTexture() });
   const tray = new THREE.Mesh(new THREE.BoxGeometry(0.42, 0.015, 0.3), trayMat);
   tray.position.y = 0.0075;
   const liner = new THREE.Mesh(new THREE.PlaneGeometry(0.38, 0.26), linerMat);
@@ -2282,7 +2461,32 @@ export function createSlidingGlassDoors(): {
   const rightGlass = new THREE.Mesh(new THREE.BoxGeometry(0.95, 2.5, 0.05), glassMat);
   rightGlass.position.set(0.48, 1.25, 0);
 
-  group.add(header, sensorBox, sensorLed, postL, postR, leftGlass, rightGlass);
+  // Fixed outer glass sidelights + aluminum mullions & bottom track so no gap borders the sliding leaves
+  const sidelightL = new THREE.Mesh(new THREE.BoxGeometry(0.56, 2.5, 0.05), glassMat);
+  sidelightL.position.set(-1.22, 1.25, -0.05);
+  const sidelightR = new THREE.Mesh(new THREE.BoxGeometry(0.56, 2.5, 0.05), glassMat);
+  sidelightR.position.set(1.22, 1.25, -0.05);
+  const mullionL = new THREE.Mesh(new THREE.BoxGeometry(0.06, 2.5, 0.14), frameMat);
+  mullionL.position.set(-0.96, 1.25, -0.02);
+  const mullionR = new THREE.Mesh(new THREE.BoxGeometry(0.06, 2.5, 0.14), frameMat);
+  mullionR.position.set(0.96, 1.25, -0.02);
+  const sillTrack = new THREE.Mesh(new THREE.BoxGeometry(3.16, 0.04, 0.22), frameMat);
+  sillTrack.position.set(0, 0.02, 0);
+
+  group.add(
+    header,
+    sensorBox,
+    sensorLed,
+    postL,
+    postR,
+    sidelightL,
+    sidelightR,
+    mullionL,
+    mullionR,
+    sillTrack,
+    leftGlass,
+    rightGlass
+  );
   return { group, leftGlass, rightGlass };
 }
 
@@ -2350,9 +2554,9 @@ export function createDetailedCashRegisterModel(
 /** 4B. Compact Fast-Food Cashier Counter */
 export function createCompactCashierCounter(useGreenCRT: boolean = false): THREE.Group {
   const group = new THREE.Group();
-  const woodMat = ps1Mat({ color: 0x4a2a22 });
-  const topMat = ps1Mat({ color: 0xd9cca8 });
-  const trayMat = ps1Mat({ color: 0xb0b5ba });
+  const woodMat = ps1Mat({ map: TextureLibrary.getWoodGrainTexture(0x4a2a22) });
+  const topMat = ps1Mat({ map: TextureLibrary.getFormicaTableTexture() });
+  const trayMat = ps1Mat({ map: TextureLibrary.getStainlessSteelTexture(false) });
 
   const base = new THREE.Mesh(new THREE.BoxGeometry(3.6, 1.05, 0.75), woodMat);
   base.position.set(0, 0.525, 0);
@@ -2406,15 +2610,15 @@ export function createTimeClockPunch(): THREE.Group {
 /** 6. Outdoor Blocky Green/Rusty Metal Dumpster with Angled Lids (Model 7 Back Trash Area) */
 export function createOutdoorDumpster(): THREE.Group {
   const group = new THREE.Group();
-  const dumpsterMat = ps1Mat({ color: 0x1f4728 });
-  const rustMat = ps1Mat({ color: 0x4f301e });
+  const dumpsterMat = ps1Mat({ map: TextureLibrary.getDumpsterTexture(false) });
+  const rustMat = ps1Mat({ map: TextureLibrary.getDumpsterTexture(true) });
   const lidMat = ps1Mat({ color: 0x1a1c1d });
   const casterMat = ps1Mat({ color: 0x111111 });
 
   const tub = new THREE.Mesh(new THREE.BoxGeometry(2.4, 1.25, 1.4), dumpsterMat);
   tub.position.set(0, 0.72, 0);
-  tub.castShadow = true;
-  tub.receiveShadow = true;
+  tub.castShadow = false;
+  tub.receiveShadow = false;
   group.add(tub);
 
   const rustBand = new THREE.Mesh(new THREE.BoxGeometry(2.44, 0.16, 1.44), rustMat);
@@ -2450,7 +2654,11 @@ export function createOutdoorDumpster(): THREE.Group {
 export function createRearServiceDoor(): { group: THREE.Group; doorLeaf: THREE.Mesh } {
   const group = new THREE.Group();
   const frameMat = ps1Mat({ color: 0x242424 });
-  const doorMat = ps1Mat({ color: 0x4a4f52 });
+  const doorMat = ps1Mat({
+    map: TextureLibrary.getRearDoorTexture(),
+    roughness: 0.72,
+    metalness: 0.25,
+  });
   const barMat = ps1Mat({ color: 0xcccccc });
 
   const frameL = new THREE.Mesh(new THREE.BoxGeometry(0.1, 2.3, 0.2), frameMat);
@@ -2475,7 +2683,7 @@ export function createRearServiceDoor(): { group: THREE.Group; doorLeaf: THREE.M
 /** 8. Cardboard Waste Bundle */
 export function createCardboardBundle(): THREE.Group {
   const group = new THREE.Group();
-  const cardMat = ps1Mat({ color: 0x8a633c });
+  const cardMat = ps1Mat({ map: TextureLibrary.getCardboardTexture() });
   const twineMat = ps1Mat({ color: 0xe0d7b6 });
 
   const box1 = new THREE.Mesh(new THREE.BoxGeometry(0.7, 0.35, 0.5), cardMat);
@@ -2491,10 +2699,10 @@ export function createCardboardBundle(): THREE.Group {
 /** 9. Compact Dining Booth */
 export function createDiningBooth(): THREE.Group {
   const group = new THREE.Group();
-  const vinylMat = ps1Mat({ color: 0xa8201a });
+  const vinylMat = ps1Mat({ map: TextureLibrary.getRedVinylBoothTexture() });
   const yellowMat = ps1Mat({ color: 0xdf9a14 });
-  const topMat = ps1Mat({ color: 0xd9cca8 });
-  const chromeMat = ps1Mat({ color: 0xc4c4c4 });
+  const topMat = ps1Mat({ map: TextureLibrary.getFormicaTableTexture() });
+  const chromeMat = ps1Mat({ map: TextureLibrary.getStainlessSteelTexture(false) });
   const metalMat = ps1Mat({ color: 0x222222 });
 
   const tableBase = new THREE.Mesh(new THREE.CylinderGeometry(0.35, 0.35, 0.04, 5, 1), metalMat);
@@ -2533,13 +2741,28 @@ export function createDiningBooth(): THREE.Group {
 export function createSeatedCustomerInBooth(_archetypeIndex: number = 2): THREE.Group {
   const group = new THREE.Group();
   const skinHex = 0xd0ab8b;
-  const skinMat = ps1Mat({ color: skinHex });
-  const headMat = createPS1HeadMaterial(createPS1HumanFaceTexture(skinHex, 'tired'));
-  const coatMat = ps1Mat({ color: 0x3e322a });
-  const pantsMat = ps1Mat({ color: 0x252321 });
-  const shoeMat = ps1Mat({ color: 0x38241b });
-  const hatMat = ps1Mat({ color: 0x473c33 });
-  const scarfMat = ps1Mat({ color: 0x8a3a34 });
+  const skinMat = ps1CharacterMat(
+    TextureLibrary.getWrappedFabricTexture(skinHex, 'skin_hand', 48)
+  );
+  const headMat = createPS1HeadMaterial(
+    createPS1HumanFaceTexture(skinHex, 'tired', 0x3b2a1e, 'cap'),
+    0.34
+  );
+  const coatMat = ps1CharacterMat(
+    TextureLibrary.getWrappedFabricTexture(0x3e322a, 'jacket', 49)
+  );
+  const pantsMat = ps1CharacterMat(
+    TextureLibrary.getWrappedFabricTexture(0x252321, 'pants', 50)
+  );
+  const shoeMat = ps1CharacterMat(
+    TextureLibrary.getWrappedFabricTexture(0x38241b, 'shoes', 51)
+  );
+  const hatMat = ps1CharacterMat(
+    TextureLibrary.getWrappedFabricTexture(0x473c33, 'hoodie', 52)
+  );
+  const scarfMat = ps1CharacterMat(
+    TextureLibrary.getWrappedFabricTexture(0x8a3a34, 'hoodie', 53)
+  );
 
   const pelvis = new THREE.Mesh(new THREE.CylinderGeometry(0.155, 0.175, 0.15, 8, 1), pantsMat);
   pelvis.scale.set(1.06, 1.0, 0.74);
@@ -2641,8 +2864,8 @@ export function createKitchenCounter(): THREE.Group {
 /** 11. Deep Fryer */
 export function createDeepFryer(): THREE.Group {
   const group = new THREE.Group();
-  const steelMat = ps1Mat({ color: 0x8a9299 });
-  const oilMat = ps1Mat({ color: 0x6e4e10 });
+  const steelMat = ps1Mat({ map: TextureLibrary.getStainlessSteelTexture(true) });
+  const oilMat = ps1Mat({ map: TextureLibrary.getFryerOilTexture() });
 
   const base = new THREE.Mesh(new THREE.BoxGeometry(0.85, 0.95, 0.75), steelMat);
   base.position.set(0, 0.475, 0);
@@ -2703,7 +2926,7 @@ export function createDetailedPCModel(cameraScreens: THREE.Mesh[] = []): THREE.G
 /** 13. Security Office Desk + PC */
 export function createSecurityOfficeDesk(cameraScreens: THREE.Mesh[] = []): THREE.Group {
   const group = new THREE.Group();
-  const woodMat = ps1Mat({ color: 0x3d3027 });
+  const woodMat = ps1Mat({ map: TextureLibrary.getWoodGrainTexture(0x3d3027) });
   const metalMat = ps1Mat({ color: 0x222222 });
 
   const deskTop = new THREE.Mesh(new THREE.BoxGeometry(1.8, 0.08, 0.95), woodMat);
@@ -2742,7 +2965,10 @@ export function createSecurityOfficeDesk(cameraScreens: THREE.Mesh[] = []): THRE
 /** 14. Locker, Freezer Shelves, Table Mess, Trash Bag, Clipboard, Puddle, Mop */
 export function createLocker(): THREE.Group {
   const group = new THREE.Group();
-  const body = new THREE.Mesh(new THREE.BoxGeometry(0.6, 2.0, 0.6), ps1Mat({ color: 0x3f4e56 }));
+  const body = new THREE.Mesh(
+    new THREE.BoxGeometry(0.6, 2.0, 0.6),
+    ps1Mat({ color: 0x627782, map: TextureLibrary.getStainlessSteelTexture(false) })
+  );
   body.position.set(0, 1.0, 0);
   group.add(body);
   return group;
@@ -2750,8 +2976,8 @@ export function createLocker(): THREE.Group {
 
 export function createFreezerShelves(): THREE.Group {
   const group = new THREE.Group();
-  const wireMat = ps1Mat({ color: 0x8a9296 });
-  const boxMat = ps1Mat({ color: 0x825936 });
+  const wireMat = ps1Mat({ map: TextureLibrary.getStainlessSteelTexture(false) });
+  const boxMat = ps1Mat({ map: TextureLibrary.getCardboardTexture() });
 
   for (let i = 0; i < 3; i++) {
     const shelf = new THREE.Mesh(new THREE.BoxGeometry(1.5, 0.04, 0.6), wireMat);
@@ -2877,19 +3103,27 @@ export function createDriveThruOrderStation(): THREE.Group {
 /** 17. Commercial Coffee & Espresso Machine */
 export function createCommercialCoffeeMachine(): THREE.Group {
   const group = new THREE.Group();
-  const steelMat = ps1Mat({ color: 0x98a0a8 });
+  const steelMat = ps1Mat({ map: TextureLibrary.getStainlessSteelTexture(true) });
+  const frontPanelMat = ps1Mat({ map: TextureLibrary.getCoffeeMachineFrontTexture() });
   const darkMat = ps1Mat({ color: 0x202224 });
-  const chromeMat = ps1Mat({ color: 0xcfd4d9 });
-  const glassMat = ps1Mat({ color: 0xdbeafe, transparent: true, opacity: 0.55 });
+  const chromeMat = ps1Mat({ map: TextureLibrary.getStainlessSteelTexture(false) });
+  const glassMat = ps1Mat({
+    color: 0xdbeafe,
+    map: TextureLibrary.getGlassSmudgeTexture(),
+    transparent: true,
+    opacity: 0.55,
+  });
   const beanMat = ps1Mat({ color: 0x3b2219 });
-  const cupMat = ps1Mat({ color: 0xdfd4bc });
+  const cupMat = ps1Mat({ map: TextureLibrary.getDrinkCupTexture(0xdfd4bc) });
   const lidMat = ps1Mat({ color: 0x1a1a1a });
 
   const baseChassis = new THREE.Mesh(new THREE.BoxGeometry(0.72, 0.52, 0.44), steelMat);
   baseChassis.position.set(0, 0.26, 0);
+  const frontFace = new THREE.Mesh(new THREE.PlaneGeometry(0.68, 0.48), frontPanelMat);
+  frontFace.position.set(0, 0.26, 0.222);
   const dripTray = new THREE.Mesh(new THREE.BoxGeometry(0.68, 0.05, 0.22), darkMat);
   dripTray.position.set(0, 0.025, 0.2);
-  group.add(baseChassis, dripTray);
+  group.add(baseChassis, frontFace, dripTray);
 
   [-0.16, 0.16].forEach((gx) => {
     const head = new THREE.Mesh(new THREE.CylinderGeometry(0.05, 0.05, 0.06, 5, 1), chromeMat);
@@ -2964,9 +3198,9 @@ export function createCommercialCoffeeMachine(): THREE.Group {
 /** 17B. Commercial Fast-Food Soft Drink Dispenser (Fountain Soda Station with 4 nozzles & active cup pour) */
 export function createSoftDrinkDispenser(): THREE.Group {
   const group = new THREE.Group();
-  const standMat = ps1Mat({ color: 0x7c848c });
+  const standMat = ps1Mat({ map: TextureLibrary.getStainlessSteelTexture(false) });
   const darkMat = ps1Mat({ color: 0x1c1f24 });
-  const steelMat = ps1Mat({ color: 0xb0b8c0 });
+  const steelMat = ps1Mat({ map: TextureLibrary.getStainlessSteelTexture(true) });
   const trayMat = ps1Mat({ color: 0x262930 });
 
   // Stainless steel base cabinet
@@ -2985,7 +3219,7 @@ export function createSoftDrinkDispenser(): THREE.Group {
   sidePanelR.position.set(0.38, 1.26, -0.04);
   const headerMarquee = new THREE.Mesh(
     new THREE.BoxGeometry(0.72, 0.16, 0.04),
-    new THREE.MeshBasicMaterial({ color: 0xef4444 })
+    new THREE.MeshBasicMaterial({ map: TextureLibrary.getSodaMarqueeTexture() })
   );
   headerMarquee.position.set(0, 1.5, 0.195);
   group.add(tower, sidePanelL, sidePanelR, headerMarquee);
@@ -2998,11 +3232,10 @@ export function createSoftDrinkDispenser(): THREE.Group {
   group.add(dripTray, dripGrate);
 
   // 4 Backlit Soda Flavor Nozzles (Cola Red, Sprite Green, Fanta Orange, Root Beer Amber)
-  const flavorColors = [0xdc2626, 0x16a34a, 0xf97316, 0x92400e];
   [-0.24, -0.08, 0.08, 0.24].forEach((nx, idx) => {
     const label = new THREE.Mesh(
       new THREE.BoxGeometry(0.11, 0.1, 0.025),
-      new THREE.MeshBasicMaterial({ color: flavorColors[idx] })
+      new THREE.MeshBasicMaterial({ map: TextureLibrary.getSodaFlavorTexture(idx) })
     );
     label.position.set(nx, 1.32, 0.195);
     const nozzle = new THREE.Mesh(new THREE.CylinderGeometry(0.022, 0.016, 0.07, 5, 1), darkMat);
@@ -3037,11 +3270,14 @@ export function createSoftDrinkDispenser(): THREE.Group {
 /** 18. PS1 Fried Chicken Bucket (5-sided bucket + crispy PS1 drumsticks) */
 export function createFriedChickenBucket(): THREE.Group {
   const group = new THREE.Group();
-  const bucketMat = ps1Mat({ color: 0xcc1111 });
+  const bucketMat = ps1Mat({ map: TextureLibrary.getChickenBucketTexture() });
   const yellowMat = ps1Mat({ color: 0xffbb00 });
   const rimMat = ps1Mat({ color: 0xf1f5f9 });
-  const meatMat = ps1Mat({ color: 0xc47b1e });
-  const batterMat = ps1Mat({ color: 0xdc8d3e });
+  const meatMat = ps1Mat({ map: TextureLibrary.getFriedChickenTexture(false) });
+  const batterMat = ps1Mat({
+    color: 0xf4dfbf,
+    map: TextureLibrary.getFriedChickenTexture(false),
+  });
   const boneMat = ps1Mat({ color: 0xf5f0e1 });
 
   const bucketBody = new THREE.Mesh(new THREE.CylinderGeometry(0.12, 0.09, 0.2, 5, 1), bucketMat);
@@ -3069,15 +3305,20 @@ export function createFriedChickenBucket(): THREE.Group {
 /** 19. Fried Chicken & Potatoes Fryer Machine (With interactive basket & 3D smoke puffs) */
 export function createFriedChickenVendingMachine(): THREE.Group {
   const group = new THREE.Group();
-  const steelMat = ps1Mat({ color: 0x9098a0 });
+  const steelMat = ps1Mat({ map: TextureLibrary.getStainlessSteelTexture(true) });
   const darkMat = ps1Mat({ color: 0x25282c });
-  const wireMat = ps1Mat({ color: 0xc4c9ce });
-  const glassMat = ps1Mat({ color: 0xffeedd, transparent: true, opacity: 0.5 });
+  const wireMat = ps1Mat({ map: TextureLibrary.getStainlessSteelTexture(false) });
+  const glassMat = ps1Mat({
+    color: 0xffeedd,
+    map: TextureLibrary.getGlassSmudgeTexture(),
+    transparent: true,
+    opacity: 0.5,
+  });
   const redMat = ps1Mat({ color: 0xbb1111 });
   const goldMat = new THREE.MeshBasicMaterial({ color: 0xffbc0d });
-  const oilMat = ps1Mat({ color: 0x5a3e10 });
-  const chickenMat = ps1Mat({ color: 0xc47b1e });
-  const potatoMat = ps1Mat({ color: 0xeab308 });
+  const oilMat = ps1Mat({ map: TextureLibrary.getFryerOilTexture() });
+  const chickenMat = ps1Mat({ map: TextureLibrary.getFriedChickenTexture(false) });
+  const potatoMat = ps1Mat({ map: TextureLibrary.getPotatoFryTexture() });
   const heatLampMat = new THREE.MeshBasicMaterial({ color: 0xff8800 });
 
   const fryerBase = new THREE.Mesh(new THREE.BoxGeometry(0.95, 0.92, 0.85), steelMat);
@@ -3190,10 +3431,19 @@ export function createFriedChickenVendingMachine(): THREE.Group {
 /** 19B. Kitchen Microwave Station for Heating Big Macs (Stand + PS1 Microwave Oven) */
 export function createKitchenMicrowave(): THREE.Group {
   const group = new THREE.Group();
-  const standMat = ps1Mat({ color: 0x7c848c });
-  const bodyMat = ps1Mat({ color: 0xdbe0e6 });
+  const standMat = ps1Mat({ map: TextureLibrary.getStainlessSteelTexture(false) });
+  const bodyMat = ps1Mat({
+    color: 0xe6ecf2,
+    map: TextureLibrary.getStainlessSteelTexture(false),
+  });
   const darkMat = ps1Mat({ color: 0x1c1f24 });
-  const glassMat = ps1Mat({ color: 0x2a3542, transparent: true, opacity: 0.48, depthWrite: false });
+  const glassMat = ps1Mat({
+    color: 0x3b4958,
+    map: TextureLibrary.getGlassSmudgeTexture(),
+    transparent: true,
+    opacity: 0.55,
+    depthWrite: false,
+  });
   const ledMat = new THREE.MeshBasicMaterial({ color: 0x22ee55 });
 
   // Stainless steel pedestal stand
@@ -3299,9 +3549,15 @@ export function createFoodPrepTableItems(): THREE.Group {
 /** Shared PS1 Low-Poly Human Hand Builder for First-Person Held Viewmodels */
 function createPS1HumanHeldHand(side: 'left' | 'right'): THREE.Group {
   const g = new THREE.Group();
-  const skinMat = ps1Mat({ color: 0xdfb18a });
-  const fingerShadowMat = ps1Mat({ color: 0xc9966e });
-  const cuffMat = ps1Mat({ color: 0x7f1d1d });
+  const skinMat = ps1Mat({
+    map: TextureLibrary.getWrappedFabricTexture(0xdfb18a, 'skin_hand', 61),
+  });
+  const fingerShadowMat = ps1Mat({
+    map: TextureLibrary.getWrappedFabricTexture(0xc9966e, 'skin_hand', 62),
+  });
+  const cuffMat = ps1Mat({
+    map: TextureLibrary.getWrappedFabricTexture(0x7f1d1d, 'polo', 63),
+  });
 
   const cuff = new THREE.Mesh(new THREE.CylinderGeometry(0.028, 0.032, 0.065, 6, 1), cuffMat);
   cuff.rotation.x = Math.PI / 2;
@@ -3324,7 +3580,7 @@ function createPS1HumanHeldHand(side: 'left' | 'right'): THREE.Group {
 export function createFirstPersonHeldMeal(): THREE.Group {
   const group = new THREE.Group();
   const trayMat = ps1Mat({ color: 0x1f2124 });
-  const linerMat = ps1Mat({ color: 0xdf382b });
+  const linerMat = ps1Mat({ map: TextureLibrary.getFoodTrayLinerTexture() });
 
   const tray = new THREE.Mesh(new THREE.BoxGeometry(0.38, 0.014, 0.28), trayMat);
   const liner = new THREE.Mesh(new THREE.PlaneGeometry(0.34, 0.24), linerMat);
@@ -3359,11 +3615,14 @@ export function createFirstPersonHeldMeal(): THREE.Group {
 /** 21A-2. First-Person Held Raw Chicken & Potatoes Basket (Held Before Fryer) */
 export function createFirstPersonHeldRawFryItems(): THREE.Group {
   const group = new THREE.Group();
-  const trayMat = ps1Mat({ color: 0xc8d0d8 });
+  const trayMat = ps1Mat({ map: TextureLibrary.getStainlessSteelTexture(false) });
   const wireMat = ps1Mat({ color: 0x9aa2aa });
-  const rawChickenMat = ps1Mat({ color: 0xdca57a });
-  const batterMat = ps1Mat({ color: 0xe6b87c });
-  const potatoMat = ps1Mat({ color: 0xebd167 });
+  const rawChickenMat = ps1Mat({ map: TextureLibrary.getFriedChickenTexture(true) });
+  const batterMat = ps1Mat({
+    color: 0xf0d6b8,
+    map: TextureLibrary.getFriedChickenTexture(true),
+  });
+  const potatoMat = ps1Mat({ map: TextureLibrary.getPotatoFryTexture() });
 
   const pan = new THREE.Mesh(new THREE.BoxGeometry(0.36, 0.024, 0.26), trayMat);
   const rim = new THREE.Mesh(new THREE.BoxGeometry(0.37, 0.012, 0.27), wireMat);
@@ -3464,9 +3723,15 @@ export function createFirstPersonHeldMop(): THREE.Group {
   const handleMat = ps1Mat({ color: 0x4a7c59 });
   const clampMat = ps1Mat({ color: 0x1c1e1f });
   const strandMat = ps1Mat({ color: 0xe2e2dc });
-  const skinMat = ps1Mat({ color: 0xdfb18a });
-  const fingerShadowMat = ps1Mat({ color: 0xc9966e });
-  const cuffMat = ps1Mat({ color: 0x7f1d1d });
+  const skinMat = ps1Mat({
+    map: TextureLibrary.getWrappedFabricTexture(0xdfb18a, 'skin_hand', 64),
+  });
+  const fingerShadowMat = ps1Mat({
+    map: TextureLibrary.getWrappedFabricTexture(0xc9966e, 'skin_hand', 65),
+  });
+  const cuffMat = ps1Mat({
+    map: TextureLibrary.getWrappedFabricTexture(0x7f1d1d, 'polo', 66),
+  });
 
   const polePivot = new THREE.Group();
   polePivot.rotation.set(-0.55, 0.12, 0.12);
@@ -3496,7 +3761,10 @@ export function createFirstPersonHeldMop(): THREE.Group {
 export function createBoothMealTray(): THREE.Group {
   const group = new THREE.Group();
   const tray = new THREE.Mesh(new THREE.BoxGeometry(0.56, 0.016, 0.36), ps1Mat({ color: 0x1f2124 }));
-  const liner = new THREE.Mesh(new THREE.PlaneGeometry(0.5, 0.3), ps1Mat({ color: 0xdf382b }));
+  const liner = new THREE.Mesh(
+    new THREE.PlaneGeometry(0.5, 0.3),
+    ps1Mat({ map: TextureLibrary.getFoodTrayLinerTexture() })
+  );
   liner.rotation.x = -Math.PI / 2;
   liner.position.y = 0.009;
   group.add(tray, liner);
@@ -3580,11 +3848,15 @@ export function createWelcomingClownStatue(): THREE.Group {
   const group = new THREE.Group();
   const plinthRedMat = ps1Mat({ color: 0x991b1b });
   const goldMat = ps1Mat({ color: 0xfacc15 });
-  const suitYellowMat = ps1Mat({ color: 0xf5b800 });
-  const redMat = ps1Mat({ color: 0xc8102e });
+  const suitYellowMat = ps1Mat({
+    map: TextureLibrary.getWrappedFabricTexture(0xf5b800, 'hoodie', 71),
+  });
+  const redMat = ps1Mat({
+    map: TextureLibrary.getWrappedFabricTexture(0xc8102e, 'hoodie', 72),
+  });
   const whiteMat = ps1Mat({ color: 0xf5f2e9 });
   const blackMat = ps1Mat({ color: 0x151518 });
-  const hairMat = ps1Mat({ color: 0xb91c1c });
+  const hairMat = ps1Mat({ map: createPS1HairTexture(0xb91c1c) });
   const clownHeadMat = createPS1HeadMaterial(createPS1WelcomeClownFaceTexture(), 0.28);
 
   // 6-sided pedestal
@@ -3674,8 +3946,8 @@ export function createWelcomingClownStatue(): THREE.Group {
 /** Warehouse Rack, Restroom Stall/Sink/Sign, Indoor Trash Bin */
 export function createWarehouseSupplyRack(): THREE.Group {
   const group = new THREE.Group();
-  const steelMat = ps1Mat({ color: 0x5c636a });
-  const boxMat = ps1Mat({ color: 0x9b7247 });
+  const steelMat = ps1Mat({ map: TextureLibrary.getStainlessSteelTexture(false) });
+  const boxMat = ps1Mat({ map: TextureLibrary.getCardboardTexture() });
   const redMat = ps1Mat({ color: 0xdc2626 });
 
   [
@@ -3709,9 +3981,12 @@ export function createWarehouseSupplyRack(): THREE.Group {
 
 export function createRestroomToiletStall(): THREE.Group {
   const group = new THREE.Group();
-  const partMat = ps1Mat({ color: 0x3b444e });
+  const partMat = ps1Mat({
+    color: 0x52606e,
+    map: TextureLibrary.getStainlessSteelTexture(true),
+  });
   const hwMat = ps1Mat({ color: 0xcbd5e1 });
-  const porcMat = ps1Mat({ color: 0xe9eef2 });
+  const porcMat = ps1Mat({ map: TextureLibrary.getPorcelainTexture() });
   const seatMat = ps1Mat({ color: 0xd8dee4 });
   const waterMat = ps1Mat({ color: 0x2c6e85 });
 
@@ -3749,10 +4024,14 @@ export function createRestroomToiletStall(): THREE.Group {
 
 export function createRestroomSinkAndMirror(): THREE.Group {
   const group = new THREE.Group();
-  const counterMat = ps1Mat({ color: 0x5d646b });
-  const porcMat = ps1Mat({ color: 0xedf2f5 });
-  const chromeMat = ps1Mat({ color: 0xd8dee6 });
-  const mirrorMat = ps1Mat({ color: 0x9fb8c9 });
+  const counterMat = ps1Mat({ map: TextureLibrary.getFormicaTableTexture() });
+  const porcMat = ps1Mat({ map: TextureLibrary.getPorcelainTexture() });
+  const chromeMat = ps1Mat({ map: TextureLibrary.getStainlessSteelTexture(false) });
+  const mirrorMat = ps1Mat({
+    map: TextureLibrary.getRestroomMirrorTexture(),
+    roughness: 0.25,
+    metalness: 0.3,
+  });
   const darkMat = ps1Mat({ color: 0x1e2226 });
 
   const slab = new THREE.Mesh(new THREE.BoxGeometry(1.45, 0.08, 0.56), counterMat);
@@ -3785,7 +4064,10 @@ export function createRestroomDoorSign(): THREE.Group {
 
 export function createIndoorTrashBin(): THREE.Group {
   const group = new THREE.Group();
-  const body = new THREE.Mesh(new THREE.BoxGeometry(0.54, 0.78, 0.48), ps1Mat({ color: 0x26292e }));
+  const body = new THREE.Mesh(
+    new THREE.BoxGeometry(0.54, 0.78, 0.48),
+    ps1Mat({ color: 0x3b4048, map: TextureLibrary.getStainlessSteelTexture(true) })
+  );
   body.position.y = 0.39;
   const hood = new THREE.Mesh(new THREE.BoxGeometry(0.56, 0.28, 0.5), ps1Mat({ color: 0x991b1b }));
   hood.position.y = 0.92;
@@ -3798,10 +4080,13 @@ export function createIndoorTrashBin(): THREE.Group {
 /** Freezer Chicken Drumstick Tray Pickup & Held Viewmodel */
 export function createFreezerChickenTrayPickup(): THREE.Group {
   const group = new THREE.Group();
-  const rackMat = ps1Mat({ color: 0x94a3b8 });
+  const rackMat = ps1Mat({ map: TextureLibrary.getStainlessSteelTexture(false) });
   const trayMat = ps1Mat({ color: 0xdbeafe });
-  const meatMat = ps1Mat({ color: 0xc9762e });
-  const batterMat = ps1Mat({ color: 0xdc8d3e });
+  const meatMat = ps1Mat({ map: TextureLibrary.getFriedChickenTexture(true) });
+  const batterMat = ps1Mat({
+    color: 0xf4dcbf,
+    map: TextureLibrary.getFriedChickenTexture(true),
+  });
   const boneMat = ps1Mat({ color: 0xf5efe2 });
   const frostMat = ps1Mat({ color: 0xe0f2fe, emissive: 0x0284c7, emissiveIntensity: 0.25 });
   const tagMat = new THREE.MeshBasicMaterial({ color: 0x38bdf8 });
@@ -3848,10 +4133,13 @@ export function createFreezerChickenTrayPickup(): THREE.Group {
 
 export function createFirstPersonHeldChickenTray(): THREE.Group {
   const group = new THREE.Group();
-  const trayMat = ps1Mat({ color: 0xdce6f2 });
+  const trayMat = ps1Mat({ map: TextureLibrary.getStainlessSteelTexture(false) });
   const frostMat = ps1Mat({ color: 0xe0f2fe, emissive: 0x0ea5e9, emissiveIntensity: 0.18 });
-  const meatMat = ps1Mat({ color: 0xc9762e });
-  const batterMat = ps1Mat({ color: 0xdf9444 });
+  const meatMat = ps1Mat({ map: TextureLibrary.getFriedChickenTexture(true) });
+  const batterMat = ps1Mat({
+    color: 0xf4dcbf,
+    map: TextureLibrary.getFriedChickenTexture(true),
+  });
   const boneMat = ps1Mat({ color: 0xf5efe2 });
 
   const trayBottom = new THREE.Mesh(new THREE.BoxGeometry(0.42, 0.028, 0.3), trayMat);
@@ -3884,7 +4172,7 @@ export function createDriveThruExteriorRig(): THREE.Group {
   const postMat = ps1Mat({ color: 0x1e2226 });
   const redMat = ps1Mat({ color: 0xa61c1c });
   const yellowMat = new THREE.MeshBasicMaterial({ color: 0xffc312 });
-  const menuMat = new THREE.MeshBasicMaterial({ color: 0x111827 });
+  const menuMat = new THREE.MeshBasicMaterial({ map: TextureLibrary.getDriveThruMenuBoardTexture() });
 
   const awningRoof = new THREE.Mesh(new THREE.BoxGeometry(1.7, 0.12, 2.8), redMat);
   awningRoof.position.set(0.85, 2.85, 0);
@@ -4005,13 +4293,19 @@ export function createNoodlesAndWaterStall(): THREE.Group {
 /** 31. First-Person Viewmodel: Cup Noodles + Red Energy Drink Bottle (Human Hands) */
 export function createFirstPersonHeldNoodlesAndDrink(): THREE.Group {
   const group = new THREE.Group();
-  const skinMat = ps1Mat({ color: 0xdfb18a });
-  const fingerMat = ps1Mat({ color: 0xc9966e });
-  const cuffMat = ps1Mat({ color: 0x7f1d1d });
-  const cupBodyMat = ps1Mat({ color: 0xfff8ed });
+  const skinMat = ps1Mat({
+    map: TextureLibrary.getWrappedFabricTexture(0xdfb18a, 'skin_hand', 67),
+  });
+  const fingerMat = ps1Mat({
+    map: TextureLibrary.getWrappedFabricTexture(0xc9966e, 'skin_hand', 68),
+  });
+  const cuffMat = ps1Mat({
+    map: TextureLibrary.getWrappedFabricTexture(0x7f1d1d, 'polo', 69),
+  });
+  const cupBodyMat = ps1Mat({ map: TextureLibrary.getDrinkCupTexture(0xfff8ed) });
   const cupBandMat = ps1Mat({ color: 0xdc2626 });
   const cupLidMat = ps1Mat({ color: 0xf59e0b });
-  const bottleRedMat = ps1Mat({ color: 0xdc2626 });
+  const bottleRedMat = ps1Mat({ map: TextureLibrary.getDrinkCupTexture(0xdc2626) });
   const bottleCapMat = ps1Mat({ color: 0xfef08a });
   const bottleBandMat = ps1Mat({ color: 0x18181b });
 
@@ -4086,8 +4380,8 @@ export function createConvenienceSnackRack(withHeader: boolean = true): THREE.Gr
     group.add(shelf, lip);
   });
 
-  const itemMats = [0xef4444, 0xf59e0b, 0x22c55e, 0x3b82f6, 0xa855f7, 0xec4899].map((c) =>
-    ps1Mat({ color: c })
+  const itemMats = [0xef4444, 0xf59e0b, 0x22c55e, 0x3b82f6, 0xa855f7, 0xec4899].map((c, idx) =>
+    ps1Mat({ map: TextureLibrary.getMartProductBoxTexture(c, idx + 1) })
   );
 
   // Single-box colorful snack & drink items
@@ -4110,7 +4404,7 @@ export function createConvenienceSnackRack(withHeader: boolean = true): THREE.Gr
 /** 33. Back Wall Beverage Cooler Stock (5-sided bottles) */
 export function createConvenienceCoolerStock(): THREE.Group {
   const group = new THREE.Group();
-  const shelfMat = ps1Mat({ color: 0xe2e8f0 });
+  const shelfMat = ps1Mat({ map: TextureLibrary.getStainlessSteelTexture(false) });
   const waterMat = ps1Mat({ color: 0x93c5fd, transparent: true, opacity: 0.85 });
   const blueCapMat = ps1Mat({ color: 0x0284c7 });
   const redMat = ps1Mat({ color: 0xdc2626 });

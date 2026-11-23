@@ -1,15 +1,7 @@
 import React, { useRef, useState, useEffect, useCallback } from 'react';
 import { GameEngine } from '../game/GameEngine';
 import { GameNight, Language, PlayerStats } from '../types/game';
-import {
-  Flashlight,
-  Pause,
-  Hand,
-  ChevronDown,
-  ChevronUp,
-  Flame,
-  Smartphone,
-} from 'lucide-react';
+import { ChevronDown, ChevronUp } from 'lucide-react';
 import { getTranslations } from '../i18n/translations';
 import { soundEngine } from '../audio/SoundEngine';
 
@@ -24,13 +16,39 @@ interface MobileControlsProps {
   language: Language;
 }
 
+/** Weathered/distressed white outer circular border matching Unity-style horror touch controls */
+const DistressedCircleRing: React.FC<{ active?: boolean }> = ({ active = false }) => (
+  <svg
+    viewBox="0 0 100 100"
+    className="absolute inset-0 w-full h-full pointer-events-none"
+    aria-hidden="true"
+  >
+    <circle
+      cx="50"
+      cy="50"
+      r="46"
+      fill="none"
+      stroke={active ? 'rgba(255,255,255,0.98)' : 'rgba(255,255,255,0.82)'}
+      strokeWidth="3.2"
+      strokeDasharray="62 4 28 3 84 5 46 3"
+      strokeLinecap="round"
+    />
+    <circle
+      cx="50"
+      cy="50"
+      r="43.5"
+      fill="none"
+      stroke="rgba(255,255,255,0.28)"
+      strokeWidth="1.2"
+      strokeDasharray="18 14 35 19 22 12"
+    />
+  </svg>
+);
+
 export const MobileControls: React.FC<MobileControlsProps> = ({
   engine,
   stats,
   night,
-  onPause,
-  onPhone,
-  isPhoneOpen,
   showMobileControls,
   language,
 }) => {
@@ -58,7 +76,7 @@ export const MobileControls: React.FC<MobileControlsProps> = ({
     setPoppedBtn(id);
     if (popTimerRef.current) window.clearTimeout(popTimerRef.current);
     if (actionTimerRef.current) window.clearTimeout(actionTimerRef.current);
-    popTimerRef.current = window.setTimeout(() => setPoppedBtn(null), 240);
+    popTimerRef.current = window.setTimeout(() => setPoppedBtn(null), 220);
     if (delayMs > 0) {
       actionTimerRef.current = window.setTimeout(() => cb(), delayMs);
     } else {
@@ -117,7 +135,7 @@ export const MobileControls: React.FC<MobileControlsProps> = ({
       }
       if (!currentTouch) return;
 
-      const maxRadius = 48;
+      const maxRadius = 46;
       const dx = currentTouch.clientX - baseCenterRef.current.x;
       const dy = currentTouch.clientY - baseCenterRef.current.y;
       const dist = Math.sqrt(dx * dx + dy * dy);
@@ -209,7 +227,6 @@ export const MobileControls: React.FC<MobileControlsProps> = ({
 
   return (
     <>
-      {/* AUTO-DETECTED FULL-SCREEN TOUCH CONTROLS OVERLAY */}
       {showMobileControls && (
         <div className="fixed inset-0 z-40 pointer-events-none select-none overflow-hidden touch-none">
           {/* RIGHT-SIDE CAMERA LOOK AREA */}
@@ -221,124 +238,134 @@ export const MobileControls: React.FC<MobileControlsProps> = ({
             onTouchCancel={handleLookTouchEnd}
           />
 
-          {/* LEFT-SIDE VIRTUAL JOYSTICK */}
-          <div className="absolute bottom-6 left-6 pointer-events-auto touch-none">
+          {/* LEFT-SIDE VIRTUAL JOYSTICK (Distressed White Outer Ring + Solid White Knob) */}
+          <div className="absolute bottom-5 left-5 sm:bottom-7 sm:left-7 pointer-events-auto touch-none">
             <div
               ref={joystickBaseRef}
               onTouchStart={handleJoystickTouchStart}
               onTouchMove={handleJoystickTouchMove}
               onTouchEnd={handleJoystickTouchEnd}
               onTouchCancel={handleJoystickTouchEnd}
-              className={`relative w-32 h-32 rounded-full border-2 flex items-center justify-center transition-colors ${
-                joystickActive
-                  ? 'border-amber-400/80 bg-neutral-950/60 shadow-[0_0_20px_rgba(245,158,11,0.3)]'
-                  : 'border-white/20 bg-neutral-950/40'
+              className={`relative w-28 h-28 sm:w-32 sm:h-32 rounded-full flex items-center justify-center transition-transform ${
+                joystickActive ? 'scale-[1.03]' : ''
               }`}
             >
-              <div className="absolute inset-x-4 top-1/2 h-px bg-white/10 pointer-events-none" />
-              <div className="absolute inset-y-4 left-1/2 w-px bg-white/10 pointer-events-none" />
+              <DistressedCircleRing active={joystickActive} />
 
               <div
                 ref={joystickKnobRef}
                 style={{
                   transform: `translate(${knobPos.x}px, ${knobPos.y}px)`,
                 }}
-                className={`w-14 h-14 rounded-full border-2 flex items-center justify-center shadow-lg transition-transform duration-75 pointer-events-none ${
+                className={`w-12 h-12 sm:w-14 sm:h-14 rounded-full pointer-events-none transition-transform duration-75 ${
                   joystickActive
-                    ? 'border-amber-400 bg-amber-500/80 text-black font-black'
-                    : 'border-white/50 bg-white/30 text-white/70'
+                    ? 'bg-white shadow-[0_0_16px_rgba(255,255,255,0.55)]'
+                    : 'bg-white/90 shadow-[0_0_10px_rgba(255,255,255,0.28)]'
                 }`}
-              >
-                <span className="text-[10px] font-mono tracking-tighter uppercase">{t.move}</span>
-              </div>
+              />
             </div>
           </div>
 
-          {/* RIGHT-SIDE ACTION BUTTONS CONTAINER */}
-          <div className="absolute bottom-6 right-6 flex flex-col items-end gap-3 pointer-events-auto">
-            <div className="flex items-center gap-2.5">
-              <button
-                onClick={() => triggerBtnPop('crouch', () => engine?.toggleCrouch())}
-                className={`w-12 h-12 rounded-full border flex flex-col items-center justify-center shadow-lg cursor-pointer transition-all active:scale-90 ${
-                  poppedBtn === 'crouch' ? 'animate-cell-pop' : ''
-                } ${
-                  stats.isCrouched
-                    ? 'bg-amber-500 border-amber-400 text-black font-black shadow-[0_0_15px_rgba(245,158,11,0.4)]'
-                    : 'bg-neutral-900/80 border-neutral-600 text-neutral-300'
-                }`}
-              >
-                {stats.isCrouched ? <ChevronUp className="w-5 h-5" /> : <ChevronDown className="w-5 h-5" />}
-                <span className="text-[8px] font-mono font-bold leading-none">{t.crouch}</span>
-              </button>
-
-              <button
-                onClick={() => triggerBtnPop('flashlight', () => engine?.toggleFlashlight())}
-                className={`w-12 h-12 rounded-full border flex flex-col items-center justify-center shadow-lg cursor-pointer transition-all active:scale-90 ${
-                  poppedBtn === 'flashlight' ? 'animate-cell-pop' : ''
-                } ${
-                  stats.flashlightOn
-                    ? 'bg-amber-400 border-amber-300 text-black font-bold shadow-[0_0_15px_rgba(251,191,36,0.5)]'
-                    : 'bg-neutral-900/80 border-neutral-600 text-neutral-400'
-                }`}
-              >
-                <Flashlight className="w-5 h-5" />
-                <span className="text-[8px] font-mono font-bold leading-none">{t.light}</span>
-              </button>
-
-              <button
-                onClick={() => triggerBtnPop('phone', onPhone)}
-                className={`w-12 h-12 rounded-full border flex flex-col items-center justify-center shadow-lg cursor-pointer active:scale-90 transition-all ${
-                  poppedBtn === 'phone' ? 'animate-cell-pop' : ''
-                } ${
-                  isPhoneOpen
-                    ? 'bg-amber-500 border-amber-300 text-black font-black'
-                    : 'bg-neutral-900/80 border-amber-600/60 text-amber-300'
-                }`}
-              >
-                <Smartphone className="w-4 h-4" />
-                <span className="text-[7px] font-mono font-bold leading-none mt-0.5">{t.phone}</span>
-              </button>
-
-              <button
-                onClick={() => triggerBtnPop('pause', onPause, 130)}
-                className={`w-12 h-12 rounded-full border border-neutral-600 bg-neutral-900/80 text-neutral-300 flex flex-col items-center justify-center shadow-lg cursor-pointer active:scale-90 transition-all ${
-                  poppedBtn === 'pause' ? 'animate-cell-pop' : ''
-                }`}
-              >
-                <Pause className="w-4 h-4" />
-                <span className="text-[8px] font-mono font-bold leading-none">{t.pause}</span>
-              </button>
-            </div>
-
-            <div className="flex items-center gap-3">
-              {night !== 3 && (
-                <button
-                  onClick={() => triggerBtnPop('sprint', handleToggleSprint)}
-                  className={`w-16 h-16 rounded-full border-2 flex flex-col items-center justify-center shadow-2xl cursor-pointer transition-all active:scale-90 ${
-                    poppedBtn === 'sprint' ? 'animate-cell-pop' : ''
-                  } ${
-                    isSprintingMobile || stats.isSprinting
-                      ? 'bg-gradient-to-br from-red-600 to-amber-600 border-amber-300 text-white shadow-[0_0_25px_rgba(239,68,68,0.6)] scale-105'
-                      : 'bg-neutral-900/85 border-amber-500/50 text-amber-300'
-                  }`}
-                >
-                  <Flame className="w-5 h-5" />
-                  <span className="text-[10px] font-mono font-black tracking-wider leading-tight">
-                    {isSprintingMobile ? t.running : t.run}
-                  </span>
-                </button>
+          {/* RIGHT-SIDE TRIANGLE ACTION BUTTONS (Hand Interact Top, Runner Left, Flashlight Right) */}
+          <div className="absolute bottom-5 right-5 sm:bottom-7 sm:right-7 flex items-end gap-3 pointer-events-auto">
+            {/* Compact Crouch Utility Circle */}
+            <button
+              type="button"
+              aria-label={t.crouch}
+              onClick={() => triggerBtnPop('crouch', () => engine?.toggleCrouch())}
+              className={`relative w-11 h-11 sm:w-12 sm:h-12 rounded-full flex items-center justify-center cursor-pointer transition-all active:scale-90 mb-1 ${
+                poppedBtn === 'crouch' ? 'animate-cell-pop' : ''
+              } ${stats.isCrouched ? 'bg-white/20' : 'bg-white/[0.04]'}`}
+            >
+              <DistressedCircleRing active={stats.isCrouched} />
+              {stats.isCrouched ? (
+                <ChevronUp className="w-5 h-5 text-white drop-shadow-[0_1px_4px_rgba(0,0,0,0.85)]" />
+              ) : (
+                <ChevronDown className="w-5 h-5 text-white/90 drop-shadow-[0_1px_4px_rgba(0,0,0,0.85)]" />
               )}
+            </button>
 
+            {/* Primary 3-Button Triangle Cluster matching Reference Sample */}
+            <div className="flex flex-col items-center gap-2.5 sm:gap-3">
+              {/* TOP CENTER: OPEN HAND INTERACT */}
               <button
+                type="button"
+                aria-label={t.action}
                 onClick={() => triggerBtnPop('action', () => engine?.interact())}
-                className={`w-20 h-20 rounded-full border-2 border-amber-400 bg-gradient-to-tr from-amber-600 to-yellow-500 text-black font-black flex flex-col items-center justify-center shadow-[0_0_30px_rgba(245,158,11,0.5)] cursor-pointer active:scale-95 transition-all ${
+                className={`relative w-16 h-16 sm:w-[74px] sm:h-[74px] rounded-full bg-white/[0.05] hover:bg-white/15 flex items-center justify-center cursor-pointer active:scale-90 transition-all ${
                   poppedBtn === 'action' ? 'animate-cell-pop' : ''
                 }`}
               >
-                <Hand className="w-7 h-7" />
-                <span className="text-xs font-mono font-black tracking-wider">{t.action}</span>
-                <span className="text-[9px] font-mono opacity-80 leading-none">[E]</span>
+                <DistressedCircleRing active={poppedBtn === 'action'} />
+                <svg
+                  viewBox="0 0 64 64"
+                  className="w-9 h-9 sm:w-10 sm:h-10 text-white/95 drop-shadow-[0_2px_4px_rgba(0,0,0,0.7)]"
+                  fill="currentColor"
+                  aria-hidden="true"
+                >
+                  <path d="M29 10a2.5 2.5 0 0 1 5 0v18h2.5V12.5a2.5 2.5 0 0 1 5 0V29h2.2V17.5a2.4 2.4 0 0 1 4.8 0v19.8c0 9.8-6.4 16.7-15.6 16.7-7.7 0-13.2-4.7-16.5-11.2l-4.5-8.9a2.5 2.5 0 0 1 4.4-2.3l3.9 6.2V16a2.5 2.5 0 0 1 5 0v12h3.8V10Z" />
+                </svg>
               </button>
+
+              {/* LOWER ROW: RUNNER WITH SPEED LINES (LEFT) + ANGLED FLASHLIGHT (RIGHT) */}
+              <div className="flex items-center gap-4 sm:gap-5 -mt-1">
+                {night !== 3 && (
+                  <button
+                    type="button"
+                    aria-label={isSprintingMobile ? t.running : t.run}
+                    onClick={() => triggerBtnPop('sprint', handleToggleSprint)}
+                    className={`relative w-14 h-14 sm:w-[66px] sm:h-[66px] rounded-full flex items-center justify-center cursor-pointer transition-all active:scale-90 ${
+                      poppedBtn === 'sprint' ? 'animate-cell-pop' : ''
+                    } ${
+                      isSprintingMobile || stats.isSprinting
+                        ? 'bg-white/25 shadow-[0_0_18px_rgba(255,255,255,0.4)]'
+                        : 'bg-white/[0.04]'
+                    }`}
+                  >
+                    <DistressedCircleRing active={isSprintingMobile || stats.isSprinting} />
+                    <svg
+                      viewBox="0 0 64 64"
+                      className="w-8 h-8 sm:w-9 sm:h-9 text-white/95 drop-shadow-[0_2px_4px_rgba(0,0,0,0.7)]"
+                      fill="currentColor"
+                      aria-hidden="true"
+                    >
+                      {/* Speed streaks */}
+                      <rect x="6" y="21" width="16" height="2.6" rx="1.3" />
+                      <rect x="9" y="28" width="13" height="2.6" rx="1.3" />
+                      <rect x="5" y="35" width="15" height="2.6" rx="1.3" />
+                      {/* Runner figure */}
+                      <circle cx="40" cy="14" r="4.8" />
+                      <path d="M36 21c2.4-1.2 5.4-.4 6.6 1.9l3.3 6.2 5.8 1.5a2.3 2.3 0 0 1-1.2 4.4l-7.2-1.8a2.3 2.3 0 0 1-1.5-1.2l-1.5-2.8-2.9 7.8 6.8 6.4a2.4 2.4 0 0 1 .7 2.2l-1.8 8.9a2.4 2.4 0 0 1-4.7-.9l1.5-7.4-6.4-6-3.9 5.9a2.4 2.4 0 0 1-1.6 1.1l-7.4 1.3a2.4 2.4 0 0 1-.8-4.7l6.2-1.1 5.1-8.1 2.2-6.1-5.1 1.4-2.5 5a2.2 2.2 0 1 1-4-1.9l3.1-6.1a2.3 2.3 0 0 1 1.4-1.2l7-1.9Z" />
+                    </svg>
+                  </button>
+                )}
+
+                <button
+                  type="button"
+                  aria-label={t.light}
+                  onClick={() => triggerBtnPop('flashlight', () => engine?.toggleFlashlight())}
+                  className={`relative w-14 h-14 sm:w-[66px] sm:h-[66px] rounded-full flex items-center justify-center cursor-pointer transition-all active:scale-90 ${
+                    poppedBtn === 'flashlight' ? 'animate-cell-pop' : ''
+                  } ${stats.flashlightOn ? 'bg-white/20' : 'bg-white/[0.04] opacity-75'}`}
+                >
+                  <DistressedCircleRing active={stats.flashlightOn} />
+                  <svg
+                    viewBox="0 0 64 64"
+                    className="w-8 h-8 sm:w-9 sm:h-9 text-white/95 drop-shadow-[0_2px_4px_rgba(0,0,0,0.7)]"
+                    fill="currentColor"
+                    aria-hidden="true"
+                  >
+                    <g transform="rotate(-42 32 32)">
+                      {/* Flashlight head / bezel */}
+                      <path d="M40 20h10v24H40l-6-5V25l6-5z" />
+                      {/* Flashlight handle */}
+                      <rect x="13" y="25.5" width="21" height="13" rx="3" />
+                      {/* Power button dot */}
+                      <circle cx="30" cy="32" r="2.1" fill="rgba(0,0,0,0.55)" />
+                    </g>
+                  </svg>
+                </button>
+              </div>
             </div>
           </div>
         </div>

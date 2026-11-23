@@ -1,9 +1,9 @@
 import React, { useState, useRef, useEffect } from 'react';
-import { Play, RotateCcw, Home, Globe } from 'lucide-react';
 import { GameSettings } from '../types/game';
-import { McDonaldsLogo } from './McDonaldsLogo';
-import { getTranslations, LANGUAGE_OPTIONS } from '../i18n/translations';
+import { getTranslations } from '../i18n/translations';
 import { soundEngine } from '../audio/SoundEngine';
+import { OptionsModal } from './OptionsModal';
+import { ControlsModal } from './ControlsModal';
 
 interface PauseMenuProps {
   onResume: () => void;
@@ -22,6 +22,10 @@ export const PauseMenu: React.FC<PauseMenuProps> = ({
 }) => {
   const bundle = getTranslations(settings.language);
   const t = bundle.pause;
+  const menuT = bundle.menu;
+
+  const [subModal, setSubModal] = useState<'none' | 'options' | 'controls'>('none');
+  const [activeIdx, setActiveIdx] = useState<number>(0);
   const [poppedCell, setPoppedCell] = useState<string | null>(null);
   const timerRef = useRef<number | null>(null);
 
@@ -39,116 +43,59 @@ export const PauseMenu: React.FC<PauseMenuProps> = ({
     cb();
   };
 
+  const items: { id: string; label: string; onClick: () => void }[] = [
+    { id: 'resume', label: t.resume, onClick: onResume },
+    { id: 'options', label: menuT.settings, onClick: () => setSubModal('options') },
+    { id: 'controls', label: menuT.controls, onClick: () => setSubModal('controls') },
+    { id: 'restart', label: t.restartNight, onClick: onRestartNight },
+    { id: 'exit', label: t.mainMenu, onClick: onMainMenu },
+  ];
+
   return (
-    <div className="absolute inset-0 z-50 bg-black/85 flex items-center justify-center p-4 font-mono select-none">
-      <div className="bg-neutral-950 border border-neutral-700 rounded-lg p-6 max-w-sm w-full shadow-2xl">
-        <div className="flex flex-col items-center mb-3">
-          <McDonaldsLogo size="sm" neon={true} className="mb-2" />
-          <h2 className="text-xl font-bold text-amber-400 tracking-wider text-center uppercase border-b border-neutral-800 pb-2 w-full">
-            {t.title}
-          </h2>
-        </div>
+    <div className="absolute inset-0 z-50 bg-black/75 flex flex-col items-center justify-center p-3 font-sans select-none">
+      {subModal === 'none' && (
+        <nav
+          aria-label={t.title}
+          className="w-full max-w-sm flex flex-col items-center justify-center gap-1 sm:gap-2 max-h-[92dvh] overflow-y-auto py-2"
+        >
+          {items.map((item, idx) => {
+            const isHighlighted = activeIdx === idx;
+            return (
+              <button
+                key={item.id}
+                type="button"
+                onMouseEnter={() => setActiveIdx(idx)}
+                onFocus={() => setActiveIdx(idx)}
+                onClick={() => triggerPop(item.id, item.onClick)}
+                className={`w-full max-w-[300px] sm:max-w-[340px] py-1.5 sm:py-2 px-6 text-center text-xs sm:text-base uppercase tracking-[0.2em] cursor-pointer transition-all whitespace-nowrap ${
+                  poppedCell === item.id ? 'animate-cell-pop' : ''
+                } ${
+                  isHighlighted
+                    ? 'bg-[linear-gradient(90deg,transparent_0%,rgba(255,255,255,0.26)_50%,transparent_100%)] text-white font-black drop-shadow-[0_2px_8px_rgba(0,0,0,0.95)]'
+                    : 'bg-transparent text-neutral-300/75 hover:text-white font-semibold'
+                }`}
+              >
+                {item.label}
+              </button>
+            );
+          })}
+        </nav>
+      )}
 
-        {/* Buttons */}
-        <div className="space-y-3 mb-5">
-          <button
-            onClick={() => triggerPop('resume', onResume)}
-            className={`w-full flex items-center justify-center gap-2 py-3 bg-red-700 hover:bg-red-600 active:scale-95 text-white font-bold text-xs uppercase tracking-widest rounded border border-red-500 cursor-pointer transition-all ${
-              poppedCell === 'resume' ? 'animate-cell-pop' : ''
-            }`}
-          >
-            <Play className="w-4 h-4 fill-white" />
-            {t.resume}
-          </button>
+      {subModal === 'options' && (
+        <OptionsModal
+          settings={settings}
+          onUpdateSettings={onUpdateSettings}
+          onClose={() => setSubModal('none')}
+        />
+      )}
 
-          <button
-            onClick={() => triggerPop('restart', onRestartNight)}
-            className={`w-full flex items-center justify-center gap-2 py-2.5 bg-neutral-900 hover:bg-neutral-800 active:scale-95 text-neutral-200 font-bold text-xs uppercase tracking-widest rounded border border-neutral-700 cursor-pointer transition-all ${
-              poppedCell === 'restart' ? 'animate-cell-pop' : ''
-            }`}
-          >
-            <RotateCcw className="w-4 h-4" />
-            {t.restartNight}
-          </button>
-
-          <button
-            onClick={() => triggerPop('menu', onMainMenu)}
-            className={`w-full flex items-center justify-center gap-2 py-2.5 bg-neutral-900 hover:bg-neutral-800 active:scale-95 text-neutral-300 font-bold text-xs uppercase tracking-widest rounded border border-neutral-700 cursor-pointer transition-all ${
-              poppedCell === 'menu' ? 'animate-cell-pop' : ''
-            }`}
-          >
-            <Home className="w-4 h-4" />
-            {t.mainMenu}
-          </button>
-        </div>
-
-        {/* Language Quick Selector */}
-        <div className="border-t border-neutral-800 pt-3 pb-3">
-          <div className="flex items-center justify-between text-xs text-neutral-400 mb-2">
-            <span className="flex items-center gap-1.5">
-              <Globe className="w-3.5 h-3.5 text-amber-400" />
-              {bundle.languageLabel}
-            </span>
-            <span className="text-amber-400 font-bold">{bundle.languageName}</span>
-          </div>
-          <div className="grid grid-cols-4 gap-1.5">
-            {LANGUAGE_OPTIONS.map((opt) => {
-              const cellId = `pause_lang_${opt.code}`;
-              return (
-                <button
-                  key={opt.code}
-                  onClick={() => triggerPop(cellId, () => onUpdateSettings({ language: opt.code }))}
-                  title={opt.label}
-                  className={`py-1 rounded text-[11px] font-bold border cursor-pointer transition-all hover:scale-105 active:scale-95 ${
-                    poppedCell === cellId ? 'animate-cell-pop' : ''
-                  } ${
-                    (settings.language || 'en') === opt.code
-                      ? 'bg-amber-600 text-white border-amber-400'
-                      : 'bg-neutral-900 text-neutral-400 border-neutral-700 hover:bg-neutral-800'
-                  }`}
-                >
-                  {opt.short}
-                </button>
-              );
-            })}
-          </div>
-        </div>
-
-        {/* Quick Audio & Sens Controls */}
-        <div className="border-t border-neutral-800 pt-3 space-y-3 text-xs text-neutral-400">
-          <div>
-            <div className="flex justify-between mb-1">
-              <span>{t.volume}</span>
-              <span className="tabular-nums">{Math.round(settings.masterVolume * 100)}%</span>
-            </div>
-            <input
-              type="range"
-              min="0"
-              max="1"
-              step="0.05"
-              value={settings.masterVolume}
-              onChange={(e) => onUpdateSettings({ masterVolume: parseFloat(e.target.value) })}
-              className="w-full accent-amber-500"
-            />
-          </div>
-
-          <div>
-            <div className="flex justify-between mb-1">
-              <span>{t.sensitivity}</span>
-              <span className="tabular-nums">{settings.mouseSensitivity.toFixed(1)}x</span>
-            </div>
-            <input
-              type="range"
-              min="0.4"
-              max="3.0"
-              step="0.1"
-              value={settings.mouseSensitivity}
-              onChange={(e) => onUpdateSettings({ mouseSensitivity: parseFloat(e.target.value) })}
-              className="w-full accent-amber-500"
-            />
-          </div>
-        </div>
-      </div>
+      {subModal === 'controls' && (
+        <ControlsModal
+          language={settings.language}
+          onClose={() => setSubModal('none')}
+        />
+      )}
     </div>
   );
 };

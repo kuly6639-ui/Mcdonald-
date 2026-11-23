@@ -395,8 +395,8 @@ export class GameEngine {
     customerIndex: number;
   } | null = null;
   private readonly night1QueueIndices = [0, 1, 2, 3, 4];
-  private readonly night2QueueIndices = [0, 7, 2, 8, 3];
-  private readonly night3QueueIndices = [0, 1, 2, 3];
+  private readonly night2QueueIndices = [0, 1, 7, 2, 8, 3];
+  private readonly night3QueueIndices = [0, 1, 4, 2, 3];
   private readonly night1ArrivalQueue: ('regular' | 'drive_thru')[] = [
     'regular',
     'regular',
@@ -524,6 +524,14 @@ export class GameEngine {
   private flashlight: THREE.SpotLight;
   private flashlightTarget: THREE.Object3D;
   private playerDimLight: THREE.PointLight;
+  private menuClownLight: THREE.PointLight;
+  private menuTargetYawOffset: number = 0;
+  private menuTargetPitchOffset: number = 0;
+  private menuCurrentYawOffset: number = 0;
+  private menuCurrentPitchOffset: number = 0;
+  private menuTouchId: number | null = null;
+  private menuLastTouchX: number = 0;
+  private menuLastTouchY: number = 0;
 
   // Controls & Mobile Touch Input
   private keys: Record<string, boolean> = {};
@@ -531,7 +539,7 @@ export class GameEngine {
   private mobileSprint: boolean = false;
   private activeItemNearby: InteractiveItem | null = null;
   private isPaused: boolean = false;
-  private currentScreen: GameScreen = 'loading';
+  private currentScreen: GameScreen = 'warning';
   private callbacks: GameEngineCallbacks;
 
   // Customer & Vehicle AI state
@@ -696,12 +704,13 @@ export class GameEngine {
     this.clownActor.group.visible = false;
     this.scene.add(this.clownActor.group);
 
-    // 5. Flashlight (Unlimited battery)
+    this.menuClownLight = new THREE.PointLight(0xbfdfff, 0, 6.8);
+    this.menuClownLight.position.set(3.15, 1.95, 6.45);
+    this.scene.add(this.menuClownLight);
+
+    // 5. Flashlight (Unlimited battery, shadows disabled)
     this.flashlight = new THREE.SpotLight(0xffeedd, 3.2, 22, Math.PI / 6, 0.45, 1.2);
-    this.flashlight.castShadow = true;
-    this.flashlight.shadow.mapSize.width = 1024;
-    this.flashlight.shadow.mapSize.height = 1024;
-    this.flashlight.shadow.bias = -0.0005;
+    this.flashlight.castShadow = false;
 
     this.flashlightTarget = new THREE.Object3D();
     this.scene.add(this.flashlightTarget);
@@ -735,22 +744,18 @@ export class GameEngine {
     if (this.composer) {
       this.composer.setPixelRatio(1.0);
     }
+    this.renderer.shadowMap.enabled = false;
     if (quality === 'low') {
-      this.renderer.shadowMap.enabled = false;
       if (this.scene && this.scene.fog instanceof THREE.Fog) {
         this.scene.fog.near = 3.5;
         this.scene.fog.far = 22;
       }
     } else if (quality === 'medium') {
-      this.renderer.shadowMap.enabled = true;
-      this.renderer.shadowMap.type = THREE.PCFShadowMap;
       if (this.scene && this.scene.fog instanceof THREE.Fog) {
         this.scene.fog.near = 4.0;
         this.scene.fog.far = 24;
       }
     } else {
-      this.renderer.shadowMap.enabled = true;
-      this.renderer.shadowMap.type = THREE.PCFSoftShadowMap;
       if (this.scene && this.scene.fog instanceof THREE.Fog) {
         this.scene.fog.near = 4.5;
         this.scene.fog.far = 26;
@@ -781,6 +786,10 @@ export class GameEngine {
     });
 
     document.addEventListener('mousemove', this.handleMouseMove);
+    window.addEventListener('touchstart', this.handleMenuTouchStart, { passive: true });
+    window.addEventListener('touchmove', this.handleMenuTouchMove, { passive: true });
+    window.addEventListener('touchend', this.handleMenuTouchEnd, { passive: true });
+    window.addEventListener('touchcancel', this.handleMenuTouchEnd, { passive: true });
   }
 
   private handleWindowBlur = () => {
@@ -1726,6 +1735,16 @@ export class GameEngine {
   };
 
   private handleMouseMove = (e: MouseEvent) => {
+    if (this.currentScreen === 'menu') {
+      const w = Math.max(1, window.innerWidth);
+      const h = Math.max(1, window.innerHeight);
+      const nx = Math.max(-1, Math.min(1, (e.clientX / w - 0.5) * 2));
+      const ny = Math.max(-1, Math.min(1, (e.clientY / h - 0.5) * 2));
+      this.menuTargetYawOffset = -nx * 0.28;
+      this.menuTargetPitchOffset = -ny * 0.14;
+      return;
+    }
+
     if (!this.isPointerLocked || this.isPaused || this.currentScreen !== 'playing') return;
 
     const sens = 0.0022 * this.settings.mouseSensitivity;
@@ -1734,6 +1753,40 @@ export class GameEngine {
     const pitchFactor = this.settings.invertY ? 1 : -1;
     this.pitch += e.movementY * sens * pitchFactor;
     this.pitch = Math.max(-Math.PI / 2.1, Math.min(Math.PI / 2.1, this.pitch));
+  };
+
+  private handleMenuTouchStart = (e: TouchEvent) => {
+    if (this.currentScreen !== 'menu' || this.menuTouchId !== null || e.changedTouches.length === 0) return;
+    const t = e.changedTouches[0];
+    this.menuTouchId = t.identifier;
+    this.menuLastTouchX = t.clientX;
+    this.menuLastTouchY = t.clientY;
+  };
+
+  private handleMenuTouchMove = (e: TouchEvent) => {
+    if (this.currentScreen !== 'menu' || this.menuTouchId === null) return;
+    for (let i = 0; i < e.changedTouches.length; i++) {
+      const t = e.changedTouches[i];
+      if (t.identifier === this.menuTouchId) {
+        const dx = t.clientX - this.menuLastTouchX;
+        const dy = t.clientY - this.menuLastTouchY;
+        this.menuLastTouchX = t.clientX;
+        this.menuLastTouchY = t.clientY;
+        this.menuTargetYawOffset = Math.max(-0.42, Math.min(0.42, this.menuTargetYawOffset - dx * 0.0032));
+        this.menuTargetPitchOffset = Math.max(-0.24, Math.min(0.24, this.menuTargetPitchOffset - dy * 0.0025));
+        break;
+      }
+    }
+  };
+
+  private handleMenuTouchEnd = (e: TouchEvent) => {
+    if (this.menuTouchId === null) return;
+    for (let i = 0; i < e.changedTouches.length; i++) {
+      if (e.changedTouches[i].identifier === this.menuTouchId) {
+        this.menuTouchId = null;
+        break;
+      }
+    }
   };
 
   private handleResize = () => {
@@ -1904,6 +1957,9 @@ export class GameEngine {
     this.closingShiftTargetScreen = null;
     this.whiteFlashAlpha = 0;
     this.callbacks.onWhiteFlashAlphaUpdate?.(0);
+    if (this.menuClownLight) {
+      this.menuClownLight.intensity = 0;
+    }
     if (this.clownActor) {
       this.clownActor.setPeekPose?.(false, 0);
       this.clownActor.setHeadBloodied?.(false);
@@ -2267,10 +2323,15 @@ export class GameEngine {
   }
 
   public setScreen(screen: GameScreen) {
+    const prevScreen = this.currentScreen;
     this.currentScreen = screen;
     this.callbacks.onScreenChange(screen);
 
     if (screen === 'playing') {
+      if (this.menuClownLight) this.menuClownLight.intensity = 0;
+      if (prevScreen === 'menu') {
+        this.setStorePower(!this.powerOutageActive);
+      }
       this.requestPointerLock();
     } else {
       this.whiteFlashAlpha = 0;
@@ -2290,6 +2351,14 @@ export class GameEngine {
       if (screen === 'menu') {
         soundEngine.stopChaseMusic();
         soundEngine.stopCreditsMusic();
+        this.menuTargetYawOffset = 0;
+        this.menuTargetPitchOffset = 0;
+        this.menuCurrentYawOffset = 0;
+        this.menuCurrentPitchOffset = 0;
+        this.menuTouchId = null;
+        if (this.world?.rainSystem) this.world.rainSystem.visible = true;
+      } else if (this.menuClownLight) {
+        this.menuClownLight.intensity = 0;
       }
     }
   }
@@ -2619,8 +2688,13 @@ export class GameEngine {
       return;
     }
 
-    // Step 2: Fried Chicken & Potatoes Machine (must hold raw items first, 5s sizzle + smoke)
+    // Step 2: Fried Chicken & Potatoes Machine (must hold raw items first & stand in range, 5s sizzle + smoke)
     if (item.type === 'fryer_machine') {
+      const horizDist = Math.hypot(
+        this.playerPos.x - item.position[0],
+        this.playerPos.z - item.position[2]
+      );
+      if (horizDist > item.radius) return;
       if (this.mustDiscardFood && this.stats.hasFoodInHand) {
         this.callbacks.onObjectiveCompletedNotice(t.notices.discardFoodFirst);
         window.setTimeout(() => this.callbacks.onObjectiveCompletedNotice(null), 3000);
@@ -2674,8 +2748,13 @@ export class GameEngine {
       return;
     }
 
-    // Step 4: Kitchen Microwave (must hold Big Mac in hand first, 5s heating + hum + ding)
+    // Step 4: Kitchen Microwave (must hold Big Mac in hand first & stand in range, 5s heating + hum + ding)
     if (item.type === 'kitchen_microwave') {
+      const horizDist = Math.hypot(
+        this.playerPos.x - item.position[0],
+        this.playerPos.z - item.position[2]
+      );
+      if (horizDist > item.radius) return;
       if (this.mustDiscardFood && this.stats.hasFoodInHand) {
         this.callbacks.onObjectiveCompletedNotice(t.notices.discardFoodFirst);
         window.setTimeout(() => this.callbacks.onObjectiveCompletedNotice(null), 3000);
@@ -3263,13 +3342,39 @@ export class GameEngine {
     if (this.currentScreen === 'playing' && !this.isPaused) {
       this.updateSimulation(dt, clockDt);
     } else if (this.currentScreen === 'menu') {
-      // Outside-of-the-door cinematic view: camera faces the illuminated front entrance, McDonald's sign, ads, windows, and roof
-      const t = now * 0.0004;
-      const cx = Math.sin(t) * 1.8;
-      const cz = 11.5 + Math.cos(t * 0.7) * 1.0;
-      const cy = 2.4 + Math.sin(t * 0.5) * 0.2;
-      this.camera.position.set(cx, cy, cz);
-      this.camera.lookAt(0, 2.4, 6.0);
+      // Dark interior horror view: Front door & glowing wall fixture on left, right storefront window framing the Killer Clown outside in the rain
+      const timeSec = now * 0.001;
+      const swayX = Math.sin(timeSec * 0.32) * 0.05;
+      const swayY = Math.cos(timeSec * 0.41) * 0.025;
+      const camX = 1.95 + swayX;
+      const camY = 1.48 + swayY;
+      const camZ = 2.95;
+      this.camera.position.set(camX, camY, camZ);
+
+      this.menuCurrentYawOffset = THREE.MathUtils.damp(this.menuCurrentYawOffset, this.menuTargetYawOffset, 7.5, dt);
+      this.menuCurrentPitchOffset = THREE.MathUtils.damp(this.menuCurrentPitchOffset, this.menuTargetPitchOffset, 7.5, dt);
+
+      const baseYaw = Math.atan2(2.15 - camX, 6.0 - camZ);
+      const lookYaw = baseYaw + this.menuCurrentYawOffset;
+      const lookPitch = this.menuCurrentPitchOffset;
+      const cosPitch = Math.cos(lookPitch);
+      this.camera.lookAt(
+        camX + Math.sin(lookYaw) * cosPitch * 3.1,
+        camY + Math.sin(lookPitch) * 3.1,
+        camZ + Math.cos(lookYaw) * cosPitch * 3.1
+      );
+      this.flashlight.visible = false;
+
+      if (this.clownActor) {
+        this.clownActor.group.visible = true;
+        this.clownActor.setPeekPose?.(false, timeSec);
+        this.clownActor.setHeadBloodied?.(false);
+        this.clownActor.group.position.set(3.15, 0, 6.85);
+        this.clownActor.group.rotation.y = Math.atan2(1.95 - 3.15, 2.95 - 6.85);
+        this.clownActor.updateAnimation(timeSec, 0, false);
+        this.clownActor.head.rotation.x = 0.06;
+        this.clownActor.head.rotation.z = Math.sin(timeSec * 0.9) * 0.08;
+      }
     }
 
     // Always update customer traffic, automatic sliding doors, and rain
@@ -5483,9 +5588,12 @@ export class GameEngine {
           const fryerItem = this.world.interactiveItems.find((it) => it.id === 'fryer_machine');
           if (fryerItem) {
             this._tmpItemPos.set(fryerItem.position[0], fryerItem.position[1], fryerItem.position[2]);
-            const d = this.playerPos.distanceTo(this._tmpItemPos);
+            const horizDist = Math.hypot(
+              this.playerPos.x - fryerItem.position[0],
+              this.playerPos.z - fryerItem.position[2]
+            );
             this._tmpToItem.subVectors(this._tmpItemPos, this.camera.position).normalize();
-            if (d <= fryerItem.radius && this._tmpCamDir.dot(this._tmpToItem) > 0.25) {
+            if (horizDist <= fryerItem.radius && this._tmpCamDir.dot(this._tmpToItem) > 0.5) {
               this.activeItemNearby = fryerItem;
               if (this.cookingStep === 'frying') {
                 const secLeft = Math.max(1, Math.ceil(this.prepCountdown));
@@ -5502,9 +5610,12 @@ export class GameEngine {
           const microItem = this.world.interactiveItems.find((it) => it.id === 'kitchen_microwave');
           if (microItem) {
             this._tmpItemPos.set(microItem.position[0], microItem.position[1], microItem.position[2]);
-            const d = this.playerPos.distanceTo(this._tmpItemPos);
+            const horizDist = Math.hypot(
+              this.playerPos.x - microItem.position[0],
+              this.playerPos.z - microItem.position[2]
+            );
             this._tmpToItem.subVectors(this._tmpItemPos, this.camera.position).normalize();
-            if (d <= microItem.radius && this._tmpCamDir.dot(this._tmpToItem) > 0.25) {
+            if (horizDist <= microItem.radius && this._tmpCamDir.dot(this._tmpToItem) > 0.5) {
               this.activeItemNearby = microItem;
               if (this.cookingStep === 'microwaving') {
                 const secLeft = Math.max(1, Math.ceil(this.prepCountdown));
@@ -5521,9 +5632,12 @@ export class GameEngine {
           const coffeeItem = this.world.interactiveItems.find((it) => it.id === 'coffee_machine');
           if (coffeeItem) {
             this._tmpItemPos.set(coffeeItem.position[0], coffeeItem.position[1], coffeeItem.position[2]);
-            const d = this.playerPos.distanceTo(this._tmpItemPos);
+            const horizDist = Math.hypot(
+              this.playerPos.x - coffeeItem.position[0],
+              this.playerPos.z - coffeeItem.position[2]
+            );
             this._tmpToItem.subVectors(this._tmpItemPos, this.camera.position).normalize();
-            if (d <= coffeeItem.radius && this._tmpCamDir.dot(this._tmpToItem) > 0.22) {
+            if (horizDist <= coffeeItem.radius && this._tmpCamDir.dot(this._tmpToItem) > 0.48) {
               this.activeItemNearby = coffeeItem;
               if (this.cookingStep === 'brewing_coffee') {
                 const secLeft = Math.max(1, Math.ceil(this.prepCountdown));
@@ -5540,9 +5654,12 @@ export class GameEngine {
           const sodaItem = this.world.interactiveItems.find((it) => it.id === 'soda_dispenser');
           if (sodaItem) {
             this._tmpItemPos.set(sodaItem.position[0], sodaItem.position[1], sodaItem.position[2]);
-            const d = this.playerPos.distanceTo(this._tmpItemPos);
+            const horizDist = Math.hypot(
+              this.playerPos.x - sodaItem.position[0],
+              this.playerPos.z - sodaItem.position[2]
+            );
             this._tmpToItem.subVectors(this._tmpItemPos, this.camera.position).normalize();
-            if (d <= sodaItem.radius && this._tmpCamDir.dot(this._tmpToItem) > 0.22) {
+            if (horizDist <= sodaItem.radius && this._tmpCamDir.dot(this._tmpToItem) > 0.45) {
               this.activeItemNearby = sodaItem;
               if (this.cookingStep === 'pouring_soda') {
                 const secLeft = Math.max(1, Math.ceil(this.prepCountdown));
@@ -5558,40 +5675,45 @@ export class GameEngine {
 
       const prepStation = this.world.interactiveItems.find((it) => it.id === 'kitchen_prep_station');
       if (prepStation) {
-        this._tmpItemPos.set(prepStation.position[0], prepStation.position[1], prepStation.position[2]);
-        const d = this.playerPos.distanceTo(this._tmpItemPos);
-        this._tmpToItem.subVectors(this._tmpItemPos, this.camera.position).normalize();
-        if (d <= prepStation.radius && this._tmpCamDir.dot(this._tmpToItem) > 0.3) {
-          this.activeItemNearby = prepStation;
-          if (this.stats.hasChickenTrayInHand) {
-            this.callbacks.onInteractionPrompt(t.prompts.restockChickenTray);
-          } else if (this.cookingStep === 'need_pickup_fry') {
-            this.callbacks.onInteractionPrompt(t.prompts.takeRawFry);
-          } else if (this.cookingStep === 'need_pickup_burger') {
-            this.callbacks.onInteractionPrompt(t.prompts.takeBigMac);
-          } else if (this.cookingStep === 'need_pickup_coffee_cup') {
-            this.callbacks.onInteractionPrompt(t.prompts.takeCoffeeCup);
-          } else if (this.cookingStep === 'need_pickup_soda_cup') {
-            this.callbacks.onInteractionPrompt(t.prompts.takeSodaCup);
-          } else if (this.cookingStep === 'wrapping') {
-            const secLeft = Math.max(1, Math.ceil(this.prepCountdown));
-            this.callbacks.onInteractionPrompt(t.prompts.wrappingNow(secLeft));
-          } else if (this.cookingStep === 'need_wrap') {
-            this.callbacks.onInteractionPrompt(t.prompts.wrapFoodCounter);
-          } else if (this.cookingStep === 'need_pickup_finished') {
-            this.callbacks.onInteractionPrompt(t.prompts.takeFinishedDish);
-          } else if (this.cookingStep === 'need_fryer' || this.cookingStep === 'frying') {
-            this.callbacks.onInteractionPrompt(t.prompts.useFryer);
-          } else if (this.cookingStep === 'need_microwave' || this.cookingStep === 'microwaving') {
-            this.callbacks.onInteractionPrompt(t.prompts.useMicrowave);
-          } else if (this.cookingStep === 'need_coffee' || this.cookingStep === 'brewing_coffee') {
-            this.callbacks.onInteractionPrompt(t.prompts.useCoffeeMachine);
-          } else if (this.cookingStep === 'need_soda' || this.cookingStep === 'pouring_soda') {
-            this.callbacks.onInteractionPrompt(t.prompts.useSodaDispenser);
-          } else {
-            this.callbacks.onInteractionPrompt(t.prompts.cookKitchen);
+        const isPrepStep =
+          this.stats.hasChickenTrayInHand ||
+          this.cookingStep === 'need_pickup_fry' ||
+          this.cookingStep === 'need_pickup_burger' ||
+          this.cookingStep === 'need_pickup_coffee_cup' ||
+          this.cookingStep === 'need_pickup_soda_cup' ||
+          this.cookingStep === 'wrapping' ||
+          this.cookingStep === 'need_wrap' ||
+          this.cookingStep === 'need_pickup_finished';
+
+        if (isPrepStep) {
+          this._tmpItemPos.set(prepStation.position[0], prepStation.position[1], prepStation.position[2]);
+          const horizDist = Math.hypot(
+            this.playerPos.x - prepStation.position[0],
+            this.playerPos.z - prepStation.position[2]
+          );
+          this._tmpToItem.subVectors(this._tmpItemPos, this.camera.position).normalize();
+          if (horizDist <= prepStation.radius && this._tmpCamDir.dot(this._tmpToItem) > 0.45) {
+            this.activeItemNearby = prepStation;
+            if (this.stats.hasChickenTrayInHand) {
+              this.callbacks.onInteractionPrompt(t.prompts.restockChickenTray);
+            } else if (this.cookingStep === 'need_pickup_fry') {
+              this.callbacks.onInteractionPrompt(t.prompts.takeRawFry);
+            } else if (this.cookingStep === 'need_pickup_burger') {
+              this.callbacks.onInteractionPrompt(t.prompts.takeBigMac);
+            } else if (this.cookingStep === 'need_pickup_coffee_cup') {
+              this.callbacks.onInteractionPrompt(t.prompts.takeCoffeeCup);
+            } else if (this.cookingStep === 'need_pickup_soda_cup') {
+              this.callbacks.onInteractionPrompt(t.prompts.takeSodaCup);
+            } else if (this.cookingStep === 'wrapping') {
+              const secLeft = Math.max(1, Math.ceil(this.prepCountdown));
+              this.callbacks.onInteractionPrompt(t.prompts.wrappingNow(secLeft));
+            } else if (this.cookingStep === 'need_wrap') {
+              this.callbacks.onInteractionPrompt(t.prompts.wrapFoodCounter);
+            } else if (this.cookingStep === 'need_pickup_finished') {
+              this.callbacks.onInteractionPrompt(t.prompts.takeFinishedDish);
+            }
+            return;
           }
-          return;
         }
       }
     }
@@ -5670,21 +5792,67 @@ export class GameEngine {
       }
     }
 
-    // Rain particle animation
+    // Randomized angled rain animation
     const rain = this.world.rainSystem;
     const posAttr = rain.geometry.getAttribute('position') as THREE.BufferAttribute;
     const arr = posAttr.array as Float32Array;
-    for (let i = 0; i < arr.length; i += 3) {
-      arr[i + 1] -= dt * 18;
-      if (arr[i + 1] < 0) {
-        arr[i + 1] = 14;
+    const speeds = rain.userData.speeds as Float32Array | undefined;
+    const vxArr = rain.userData.vx as Float32Array | undefined;
+    const vzArr = rain.userData.vz as Float32Array | undefined;
+    const gustX = Math.sin(timeSec * 0.7) * 0.9;
+    const gustZ = Math.cos(timeSec * 0.55) * 0.5;
+    for (let i = 0, idx = 0; i < arr.length; i += 3, idx++) {
+      const vy = speeds ? speeds[idx] : 18;
+      const vx = (vxArr ? vxArr[idx] : 0) + gustX;
+      const vz = (vzArr ? vzArr[idx] : 0) + gustZ;
+      arr[i] += vx * dt;
+      arr[i + 1] -= vy * dt;
+      arr[i + 2] += vz * dt;
+
+      const outOfBounds =
+        arr[i + 1] < 0 ||
+        arr[i] < -30 ||
+        arr[i] > 30 ||
+        arr[i + 2] < -24 ||
+        arr[i + 2] > 34 ||
+        (arr[i] > -12.4 && arr[i] < 8.4 && arr[i + 2] > -6.4 && arr[i + 2] < 6.4);
+
+      if (outOfBounds) {
+        let rx = -28 + Math.random() * 56;
+        let rz = -22 + Math.random() * 54;
+        if (rx >= -12.4 && rx <= 8.4 && rz >= -6.4 && rz <= 6.4) {
+          rz = 6.6 + Math.random() * 22;
+        }
+        arr[i] = rx;
+        arr[i + 1] = 14 + Math.random() * 3.5;
+        arr[i + 2] = rz;
       }
     }
     posAttr.needsUpdate = true;
 
+    const isMenu = this.currentScreen === 'menu';
+    if (isMenu) {
+      this.menuClownLight.intensity = 2.0 + Math.sin(timeSec * 3.1) * 0.12;
+      this.world.hemiLight.intensity = 0.045;
+      if (this.scene) this.scene.environmentIntensity = 0.05;
+      this.world.storeLights.forEach((sl) => {
+        const isLobbyLamp =
+          Math.abs(sl.light.position.x - 1.62) < 0.2 && Math.abs(sl.light.position.z - 5.5) < 0.2;
+        if (isLobbyLamp) {
+          sl.light.intensity = sl.baseIntensity * 1.15;
+        } else if (!this.world.flickeringLights.some((f) => f.light === sl.light)) {
+          sl.light.intensity = sl.baseIntensity * 0.08;
+        }
+      });
+    } else {
+      this.menuClownLight.intensity = 0;
+    }
+
+    const menuDimFactor = isMenu ? 0.2 : 1.0;
+
     // Flickering lights (keep all store lights OFF during 3 AM power outage, and preserve horror flicker override on kitchenLight while preparing food)
     this.world.flickeringLights.forEach((fl) => {
-      if (this.powerOutageActive) {
+      if (this.powerOutageActive && !isMenu) {
         fl.light.intensity = 0;
         return;
       }
@@ -5692,8 +5860,8 @@ export class GameEngine {
         return;
       }
       const flicker = Math.sin(timeSec * 20 + fl.flickerRate * 100) > 0.88 ? 0.4 : 1.0;
-      const noise = (Math.random() - 0.5) * 0.1;
-      fl.light.intensity = fl.baseIntensity * flicker + noise;
+      const noise = (Math.random() - 0.5) * 0.1 * menuDimFactor;
+      fl.light.intensity = fl.baseIntensity * menuDimFactor * flicker + noise;
     });
   }
 
@@ -5707,6 +5875,10 @@ export class GameEngine {
     window.removeEventListener('blur', this.handleWindowBlur);
     window.removeEventListener('resize', this.handleResize);
     document.removeEventListener('mousemove', this.handleMouseMove);
+    window.removeEventListener('touchstart', this.handleMenuTouchStart);
+    window.removeEventListener('touchmove', this.handleMenuTouchMove);
+    window.removeEventListener('touchend', this.handleMenuTouchEnd);
+    window.removeEventListener('touchcancel', this.handleMenuTouchEnd);
 
     this.composer?.dispose();
     this.renderer.dispose();

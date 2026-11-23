@@ -1,8 +1,6 @@
 import React, { useEffect, useState, useRef, useCallback } from 'react';
 import { soundEngine } from '../audio/SoundEngine';
-import { CornerDownLeft, FastForward, MessageSquareQuote } from 'lucide-react';
 import { Language } from '../types/game';
-import { getTranslations } from '../i18n/translations';
 
 interface DuckChatBarProps {
   text: string;
@@ -15,13 +13,10 @@ interface DuckChatBarProps {
 
 export const DuckChatBar: React.FC<DuckChatBarProps> = ({
   text,
-  speaker = 'Duck (Night Shift)',
+  speaker = 'Duck',
   onAdvance,
-  isFadedOut = true,
   isMobileLayout = false,
-  language,
 }) => {
-  const t = getTranslations(language).dialogue;
   const [displayedLength, setDisplayedLength] = useState<number>(0);
   const [isTyping, setIsTyping] = useState<boolean>(true);
   const lastBeepRef = useRef<number>(0);
@@ -141,73 +136,35 @@ export const DuckChatBar: React.FC<DuckChatBarProps> = ({
         soundEngine.playUICellPop();
         handleAction();
       }}
-      className={`fixed left-1/2 -translate-x-1/2 z-50 w-[84%] max-w-[340px] cursor-pointer select-none font-mono animate-in fade-in slide-in-from-bottom-4 duration-300 transition-all ${
-        isMobileLayout ? 'bottom-48' : 'bottom-4'
-      } ${isFadedOut ? 'pointer-events-auto' : 'pointer-events-auto'}`}
+      className={`fixed left-1/2 -translate-x-1/2 z-[60] w-[88%] max-w-lg cursor-pointer select-none px-4 py-3 bg-[radial-gradient(ellipse_at_center,rgba(0,0,0,0.78)_0%,rgba(0,0,0,0.48)_62%,transparent_94%)] pointer-events-auto transition-all ${
+        isMobileLayout ? 'bottom-3 sm:bottom-7' : 'bottom-5 sm:bottom-8'
+      }`}
     >
-      <div className="relative overflow-hidden p-2.5 rounded-lg border border-amber-500/80 bg-neutral-950/95 shadow-[0_0_24px_rgba(245,158,11,0.2)]">
-        <div className="pointer-events-none absolute inset-0 bg-[linear-gradient(rgba(255,255,255,0.03)_50%,rgba(0,0,0,0.22)_50%)] bg-[length:100%_3px]" />
-        {/* Header: Duck Avatar & Name */}
-        <div className="flex items-center justify-between pb-1 mb-1 border-b border-amber-500/30">
-          <div className="flex items-center gap-1.5">
-            {/* Duck Avatar Icon */}
-            <div className="w-5 h-5 rounded bg-amber-500/20 border border-amber-400/60 flex items-center justify-center text-amber-400 shadow-[0_0_8px_rgba(245,158,11,0.25)]">
-              <span className="text-xs leading-none" role="img" aria-label="Duck">
-                🦆
-              </span>
-            </div>
+      {/* Left-aligned speaker label with colon */}
+      <div className="text-left text-xs sm:text-sm font-sans font-normal text-neutral-300/95 tracking-wide mb-1.5 drop-shadow-[0_2px_4px_rgba(0,0,0,0.95)]">
+        {speaker}:
+      </div>
 
-            <div>
-              <div className="text-[10px] font-black text-amber-400 tracking-wider uppercase flex items-center gap-1">
-                <span>{speaker}</span>
-                <span className="text-[8px] px-1 py-0 rounded bg-amber-950/80 border border-amber-600/40 text-amber-300 font-semibold normal-case">
-                  {t.internalThoughts}
-                </span>
-              </div>
-            </div>
-          </div>
+      {/* Centered text */}
+      <div className="min-h-[28px] flex items-center justify-center px-2">
+        <p className="text-center text-sm sm:text-base font-sans font-normal text-white leading-snug tracking-wide drop-shadow-[0_2px_6px_rgba(0,0,0,0.98)]">
+          {visibleText}
+          {isTyping && (
+            <span className="inline-block w-1.5 h-3.5 ml-1 bg-white/80 align-middle animate-pulse" />
+          )}
+        </p>
+      </div>
 
-          <MessageSquareQuote className="w-3.5 h-3.5 text-amber-400/60" />
-        </div>
-
-        {/* Text Area */}
-        <div className="min-h-[26px] flex items-center px-0.5">
-          <p className="text-[11px] sm:text-xs text-neutral-100 leading-snug tracking-wide">
-            “{visibleText}
-            {isTyping && (
-              <span className="inline-block w-1.5 h-3 ml-0.5 bg-amber-400 animate-pulse align-middle" />
-            )}”
-          </p>
-        </div>
-
-        {/* Action Prompt */}
-        <div className="mt-1.5 pt-1 border-t border-neutral-800 flex items-center justify-between text-[9px] text-neutral-400">
-          <span className="text-neutral-500 text-[8px]">
-            {isTyping ? t.scrambled : t.pressHint}
-          </span>
-
-          <span className="flex items-center gap-1 text-amber-400 font-bold">
-            {isTyping ? (
-              <button
-                type="button"
-                onClick={(e) => {
-                  e.stopPropagation();
-                  soundEngine.playUICellPop();
-                  handleSkipScrollingOnly();
-                }}
-                className="flex items-center gap-0.5 hover:text-amber-300 transition-colors cursor-pointer"
-              >
-                <span>{t.skipBtn}</span>
-                <FastForward className="w-2.5 h-2.5 text-amber-400" />
-              </button>
-            ) : (
-              <span className="flex items-center gap-0.5 animate-pulse">
-                <span>{t.continueBtn}</span>
-                <CornerDownLeft className="w-2.5 h-2.5" />
-              </span>
-            )}
-          </span>
-        </div>
+      {/* Centered downward triangle indicator */}
+      <div className="mt-2 flex items-center justify-center">
+        <span
+          aria-hidden="true"
+          className={`text-[11px] sm:text-xs text-white/95 leading-none drop-shadow-[0_2px_4px_rgba(0,0,0,0.95)] ${
+            !isTyping ? 'animate-bounce' : 'opacity-65'
+          }`}
+        >
+          ▼
+        </span>
       </div>
     </div>
   );

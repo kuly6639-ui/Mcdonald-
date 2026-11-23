@@ -2,7 +2,7 @@ import React from 'react';
 
 interface McDonaldsLogoProps {
   className?: string;
-  size?: 'sm' | 'md' | 'lg' | 'xl';
+  size?: 'xs' | 'sm' | 'md' | 'lg' | 'xl';
   neon?: boolean;
 }
 
@@ -12,22 +12,24 @@ export const McDonaldsLogo: React.FC<McDonaldsLogoProps> = ({
   neon = true,
 }) => {
   const sizeMap = {
+    xs: 'w-6 h-6',
     sm: 'w-8 h-8',
     md: 'w-12 h-12',
     lg: 'w-20 h-20',
     xl: 'w-32 h-32',
   };
 
+  const radiusClass = size === 'xs' ? 'rounded-md border' : size === 'sm' ? 'rounded-lg border-[1.5px]' : 'rounded-2xl border-2';
   const containerSize = sizeMap[size] || sizeMap.md;
 
   return (
     <div
-      className={`relative inline-flex items-center justify-center select-none ${containerSize} ${className}`}
+      className={`relative inline-flex items-center justify-center select-none shrink-0 ${containerSize} ${className}`}
       aria-label="McDonald's Golden Arches Logo"
     >
       {/* Outer crimson rounded emblem shield */}
       <div
-        className={`absolute inset-0 rounded-2xl bg-gradient-to-b from-[#bd1815] to-[#800d0b] border-2 border-[#ffba00]/60 flex items-center justify-center overflow-hidden transition-all ${
+        className={`absolute inset-0 ${radiusClass} bg-gradient-to-b from-[#bd1815] to-[#800d0b] border-[#ffba00]/60 flex items-center justify-center overflow-hidden transition-all ${
           neon ? 'shadow-[0_0_25px_rgba(255,186,0,0.45)]' : 'shadow-lg'
         }`}
       >

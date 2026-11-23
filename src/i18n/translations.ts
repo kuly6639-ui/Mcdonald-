@@ -10,11 +10,14 @@ export interface CustomerArchetypeTranslation {
 export interface TranslationBundle {
   languageName: string;
   languageLabel: string;
-  loading: {
+  warning: {
     badge: string;
-    subtitle: string;
-    messages: string[];
-    footerHints: [string, string, string];
+    title: string;
+    body: string;
+    subNote: string;
+    viSummary: string;
+    continueBtn: string;
+    autoTimerHint: (sec: number) => string;
   };
   menu: {
     est: string;
@@ -430,18 +433,14 @@ export const TRANSLATIONS: Record<Language, TranslationBundle> = {
   en: {
     languageName: 'English',
     languageLabel: 'Language',
-    loading: {
-      badge: 'System Initialization Protocol',
-      subtitle: '2-Night Psychological Horror Demo',
-      messages: [
-        'Connecting to restaurant power grid…',
-        'Calibrating automatic sliding doors & motion sensors…',
-        'Checking security systems & CCTV camera matrix…',
-        'Initializing late-night shift handover logs…',
-        'Preparing your overnight shift…',
-        'Opening the restaurant…',
-      ],
-      footerHints: ['Automatic Sliding Doors', 'Customer Arrival AI', 'Atmospheric Sound'],
+    warning: {
+      badge: 'PHOTOSENSITIVE & HEALTH ADVISORY',
+      title: 'WARNING',
+      body: 'This game is NOT suitable for people with weak hearts, heart conditions, or epilepsy. It contains flashing lights, sudden bright flickers, and intense horror sound effects.',
+      subNote: 'Please play in a comfortable environment and stop immediately if you feel dizzy or unwell.',
+      viSummary: 'Cảnh báo: Trò chơi không dành cho người có tiền sử yếu tim, bệnh động kinh và có ánh sáng chớp nháy.',
+      continueBtn: 'I UNDERSTAND — CONTINUE',
+      autoTimerHint: (sec) => `Proceeding in ${sec}s — or click anywhere to continue`,
     },
     menu: {
       est: 'EST. 1955',
@@ -469,7 +468,7 @@ export const TRANSLATIONS: Record<Language, TranslationBundle> = {
       credits: 'Credits',
       storyRuleLabel: 'Story Rule:',
       storyRule:
-        'Work both 6-hour overnight shifts until 6:00 AM, uncover the rumors of the missing former employee, and stay alert when someone watches from the shadows.',
+        'Work all three 6-hour overnight shifts until 6:00 AM, uncover the rumors of the missing former employee, and stay alert when someone watches from the shadows.',
       shiftMemo: 'Shift Memo',
       employeeRoutine: 'Employee Routine',
       memoItems: [
@@ -501,12 +500,14 @@ export const TRANSLATIONS: Record<Language, TranslationBundle> = {
       understood: 'Understood',
       creditsTitle: 'Credits & Lore',
       creditsIntro:
-        "McDonald's Nightfall is a 2-night slow-burn mascot horror experience.",
+        "McDonald's Nightfall is a 3-night slow-burn mascot horror experience.",
       creditsDetails: [
+        { label: 'Producer', value: 'Duc Nguyen' },
+        { label: 'Director & Game Design', value: 'Duc Nguyen' },
+        { label: '3D Art', value: 'AI' },
+        { label: 'Music', value: 'AI' },
         { label: 'Theme', value: 'Late-night fast-food observation & psychological dread' },
-        { label: 'Format', value: '2 Full Playable Nights (12:00 AM – 6:00 AM)' },
         { label: 'Engine', value: 'Three.js 3D WebGL & Web Audio API' },
-        { label: 'Story Direction', value: 'Uncover what happened to the missing former night-shift worker.' },
       ],
       returnMenu: 'Return to Menu',
       versionLabel: 'Version 1.5.0',
@@ -692,11 +693,16 @@ export const TRANSLATIONS: Record<Language, TranslationBundle> = {
       demoOverSubtitle: "THE DEMO IS OVER — MCDONALD'S NIGHTFALL",
       creditsHeading: 'CREDITS',
       creditRows: [
-        { role: 'Created & Directed By', name: 'Nguyen Duck' },
-        { role: '3D World & Engine', name: 'Three.js WebGL Architecture' },
-        { role: 'Audio & Horror Ambience', name: 'Web Audio Synthesis & Shift OST' },
+        { role: 'Producer', name: 'Duc Nguyen' },
+        { role: 'Director & Game Design', name: 'Duc Nguyen' },
+        { role: 'Programming & Scripting', name: 'Duc Nguyen & AI' },
+        { role: '3D Art', name: 'AI' },
+        { role: 'PS1 Textures & Visuals', name: 'AI' },
+        { role: 'Music', name: 'AI' },
+        { role: 'Sound Design & SFX', name: 'AI & Web Audio Synthesis' },
         { role: 'Credits Theme', name: 'After the Machine Stops' },
-        { role: 'Character Cast', name: 'Duck, John, Nurse Ramirez, Big Ray, Baby Leopards & The Clown' },
+        { role: 'Character Cast', name: 'Duck, John, Store Clerk, Tyler, Báo Con, Nurse Ramirez, Big Ray & The Clown' },
+        { role: 'Special Thanks', name: 'Thank you to everyone who survived the night shift until 6:00 AM' },
       ],
       thankYouNote: 'Thank you for playing the game...',
       returnToMenu: 'Return to Main Menu',
@@ -1496,18 +1502,14 @@ export const TRANSLATIONS: Record<Language, TranslationBundle> = {
   vi: {
     languageName: 'Tiếng Việt',
     languageLabel: 'Ngôn ngữ',
-    loading: {
-      badge: 'Giao thức khởi động hệ thống',
-      subtitle: 'Bản Demo Kinh Dị Tâm Lý 2 Đêm',
-      messages: [
-        'Đang kết nối lưới điện cửa hàng…',
-        'Đang hiệu chỉnh cửa kính trượt tự động & cảm biến…',
-        'Đang kiểm tra hệ thống an ninh & ma trận camera CCTV…',
-        'Đang khởi tạo nhật ký bàn giao ca đêm…',
-        'Đang chuẩn bị ca trực đêm của bạn…',
-        'Đang mở cửa nhà hàng…',
-      ],
-      footerHints: ['Cửa trượt tự động', 'AI Khách hàng ghé thăm', 'Âm thanh môi trường'],
+    warning: {
+      badge: 'CẢNH BÁO SỨC KHỎE & ÁNH SÁNG',
+      title: 'CẢNH BÁO',
+      body: 'Cảnh báo: Trò chơi này KHÔNG dành cho người có tiền sử yếu tim, bệnh tim mạch hoặc bệnh động kinh. Game có chứa các hiệu ứng ánh sáng chớp nháy liên tục và âm thanh kinh dị đột ngột.',
+      subNote: 'Vui lòng cân nhắc trước khi trải nghiệm và dừng chơi ngay nếu cảm thấy chóng mặt hoặc khó chịu.',
+      viSummary: 'Cảnh báo: Không dành cho người yếu tim, bệnh động kinh — có ánh sáng chớp nháy.',
+      continueBtn: 'TÔI ĐÃ HIỂU — TIẾP TỤC',
+      autoTimerHint: (sec) => `Tự động chuyển sau ${sec} giây — hoặc chạm vào màn hình để tiếp tục`,
     },
     menu: {
       est: 'TỪ 1955',
@@ -1535,7 +1537,7 @@ export const TRANSLATIONS: Record<Language, TranslationBundle> = {
       credits: 'Thông tin',
       storyRuleLabel: 'Quy tắc cốt truyện:',
       storyRule:
-        'Hoàn thành cả 2 ca trực 6 tiếng đến 6:00 sáng, lần theo tin đồn về cựu nhân viên mất tích và cảnh giác với bóng người rình rập ngoài cửa.',
+        'Hoàn thành cả 3 ca trực 6 tiếng đến 6:00 sáng, lần theo tin đồn về cựu nhân viên mất tích và cảnh giác với bóng người rình rập ngoài cửa.',
       shiftMemo: 'Ghi Chú Ca Trực',
       employeeRoutine: 'Quy Trình Nhân Viên',
       memoItems: [
@@ -1567,12 +1569,14 @@ export const TRANSLATIONS: Record<Language, TranslationBundle> = {
       understood: 'Đã Hiểu',
       creditsTitle: 'Thông Tin & Cốt Truyện',
       creditsIntro:
-        "McDonald's Nightfall là trải nghiệm kinh dị tâm lý 2 đêm trực ca muộn.",
+        "McDonald's Nightfall là trải nghiệm kinh dị tâm lý 3 đêm trực ca muộn.",
       creditsDetails: [
+        { label: 'Nhà sản xuất', value: 'Duc Nguyen' },
+        { label: 'Đạo diễn & Thiết kế', value: 'Duc Nguyen' },
+        { label: 'Phụ trách 3D', value: 'AI' },
+        { label: 'Nhạc', value: 'AI' },
         { label: 'Chủ đề', value: 'Trực đêm tiệm đồ ăn nhanh & nỗi sợ tâm lý' },
-        { label: 'Định dạng', value: '2 Đêm chơi đầy đủ (12:00 AM – 6:00 AM)' },
         { label: 'Công nghệ', value: 'Three.js 3D WebGL & Web Audio API' },
-        { label: 'Hướng truyện', value: 'Tìm hiểu chuyện đã xảy ra với cựu nhân viên ca đêm mất tích.' },
       ],
       returnMenu: 'Quay Lại Menu',
       versionLabel: 'Phiên bản 1.5.0',
@@ -1755,11 +1759,16 @@ export const TRANSLATIONS: Record<Language, TranslationBundle> = {
       demoOverSubtitle: "BẢN DEMO ĐÃ KẾT THÚC — MCDONALD'S NIGHTFALL",
       creditsHeading: 'DANH SÁCH THỰC HIỆN',
       creditRows: [
-        { role: 'Sáng Tạo & Đạo Diễn', name: 'Nguyen Duck' },
-        { role: 'Thế Giới 3D & Engine', name: 'Three.js WebGL Architecture' },
-        { role: 'Âm Thanh & Nhạc Nền', name: 'Web Audio Synthesis & Shift OST' },
-        { role: 'Nhạc Kết (Credits)', name: 'After the Machine Stops' },
-        { role: 'Nhân Vật Trong Game', name: 'Duck, John, Y tá Ramirez, Big Ray, Hội Báo Con & Chú Hề' },
+        { role: 'Nhà sản xuất', name: 'Duc Nguyen' },
+        { role: 'Đạo diễn & Thiết kế trò chơi', name: 'Duc Nguyen' },
+        { role: 'Lập trình & Kịch bản', name: 'Duc Nguyen & AI' },
+        { role: 'Phụ trách 3D', name: 'AI' },
+        { role: 'Texture & Đồ họa PS1', name: 'AI' },
+        { role: 'Nhạc', name: 'AI' },
+        { role: 'Âm thanh & Hiệu ứng (SFX)', name: 'AI & Web Audio Synthesis' },
+        { role: 'Nhạc kết (Credits)', name: 'After the Machine Stops' },
+        { role: 'Dàn nhân vật', name: 'Duck, John, Nhân viên 67-Eleven, Tyler, Báo Con, Y tá Ramirez, Big Ray & Chú Hề' },
+        { role: 'Lời cảm ơn đặc biệt', name: 'Cảm ơn tất cả người chơi đã trụ vững tới 6:00 sáng' },
       ],
       thankYouNote: 'Cảm ơn bạn đã chơi trò chơi...',
       returnToMenu: 'Quay Lại Menu Chính',
@@ -2559,18 +2568,14 @@ export const TRANSLATIONS: Record<Language, TranslationBundle> = {
   ru: {
     languageName: 'Русский',
     languageLabel: 'Язык',
-    loading: {
-      badge: 'Протокол инициализации системы',
-      subtitle: 'Психологический хоррор: Демо на 2 ночи',
-      messages: [
-        'Подключение к электросети ресторана…',
-        'Калибровка раздвижных дверей и датчиков движения…',
-        'Проверка систем безопасности и камер видеонаблюдения…',
-        'Инициализация журнала передачи ночной смены…',
-        'Подготовка к вашей ночной смене…',
-        'Открытие ресторана…',
-      ],
-      footerHints: ['Автоматические двери', 'ИИ посетителей', 'Атмосферный звук'],
+    warning: {
+      badge: 'ПРЕДУПРЕЖДЕНИЕ О ЗДОРОВЬЕ И ВСПЫШКАХ',
+      title: 'ВНИМАНИЕ',
+      body: 'Эта игра НЕ подходит людям со слабым сердцем или эпилепсией. Она содержит резкие вспышки света, мерцание и внезапные пугающие звуки.',
+      subNote: 'Если вы почувствуете дискомфорт или головокружение, немедленно прекратите игру.',
+      viSummary: 'Cảnh báo: Trò chơi không dành cho người có tiền sử yếu tim, bệnh động kinh và có ánh sáng chớp nháy.',
+      continueBtn: 'Я ПОНЯЛ — ПРОДОЛЖИТЬ',
+      autoTimerHint: (sec) => `Переход через ${sec} сек. — или нажмите в любом месте`,
     },
     menu: {
       est: 'ОСН. 1955',
@@ -2598,7 +2603,7 @@ export const TRANSLATIONS: Record<Language, TranslationBundle> = {
       credits: 'Об игре',
       storyRuleLabel: 'Правило сюжета:',
       storyRule:
-        'Отработайте обе 6-часовые ночные смены до 6:00 утра, раскройте слухи о пропавшем бывшем сотруднике и будьте начеку, когда кто-то следит из темноты.',
+        'Отработайте все три 6-часовые ночные смены до 6:00 утра, раскройте слухи о пропавшем бывшем сотруднике и будьте начеку, когда кто-то следит из темноты.',
       shiftMemo: 'Памятка смены',
       employeeRoutine: 'Распорядок сотрудника',
       memoItems: [
@@ -2630,12 +2635,14 @@ export const TRANSLATIONS: Record<Language, TranslationBundle> = {
       understood: 'Понятно',
       creditsTitle: 'Об игре и лор',
       creditsIntro:
-        "McDonald's Nightfall — двухночный психологический хоррор о работе в ночную смену.",
+        "McDonald's Nightfall — трёхночный психологический хоррор о работе в ночную смену.",
       creditsDetails: [
+        { label: 'Продюсер', value: 'Duc Nguyen' },
+        { label: 'Режиссёр и геймдизайн', value: 'Duc Nguyen' },
+        { label: '3D-графика', value: 'AI' },
+        { label: 'Музыка', value: 'AI' },
         { label: 'Тема', value: 'Ночная смена в фастфуде и нарастающая тревога' },
-        { label: 'Формат', value: '2 полноценные ночи (00:00 – 6:00 утра)' },
         { label: 'Движок', value: 'Three.js 3D WebGL и Web Audio API' },
-        { label: 'Сюжет', value: 'Узнайте, что случилось с пропавшим бывшим сотрудником ночной смены.' },
       ],
       returnMenu: 'Назад в меню',
       versionLabel: 'Версия 1.5.0',
@@ -2818,11 +2825,16 @@ export const TRANSLATIONS: Record<Language, TranslationBundle> = {
       demoOverSubtitle: "ДЕМОНСТРАЦИЯ ОКОНЧЕНА — MCDONALD'S NIGHTFALL",
       creditsHeading: 'ТИТРЫ',
       creditRows: [
-        { role: 'Автор и режиссёр', name: 'Nguyen Duck' },
-        { role: '3D-мир и движок', name: 'Three.js WebGL Architecture' },
-        { role: 'Звук и музыка', name: 'Web Audio Synthesis & Shift OST' },
+        { role: 'Продюсер', name: 'Duc Nguyen' },
+        { role: 'Режиссёр и геймдизайн', name: 'Duc Nguyen' },
+        { role: 'Программирование и сценарий', name: 'Duc Nguyen и AI' },
+        { role: '3D-графика', name: 'AI' },
+        { role: 'Текстуры и стиль PS1', name: 'AI' },
+        { role: 'Музыка', name: 'AI' },
+        { role: 'Звук и спецэффекты', name: 'AI & Web Audio Synthesis' },
         { role: 'Музыка титров', name: 'After the Machine Stops' },
-        { role: 'Персонажи', name: 'Дак, Джон, Медсестра Рамирес, Большой Рэй, Детёныши леопарда и Клоун' },
+        { role: 'Персонажи', name: 'Дак, Джон, Продавец 67-Eleven, Тайлер, Детёныш леопарда, Медсестра Рамирес, Большой Рэй и Клоун' },
+        { role: 'Особая благодарность', name: 'Всем игрокам, дожившим до 6:00 утра' },
       ],
       thankYouNote: 'Спасибо за игру...',
       returnToMenu: 'В главное меню',
@@ -3622,18 +3634,14 @@ export const TRANSLATIONS: Record<Language, TranslationBundle> = {
   id: {
     languageName: 'Bahasa Indonesia',
     languageLabel: 'Bahasa',
-    loading: {
-      badge: 'Protokol Inisialisasi Sistem',
-      subtitle: 'Demo Horor Psikologis 2 Malam',
-      messages: [
-        'Menghubungkan ke jaringan listrik restoran…',
-        'Mengkalibrasi pintu geser otomatis & sensor gerak…',
-        'Memeriksa sistem keamanan & matriks kamera CCTV…',
-        'Menyiapkan catatan serah terima shift malam…',
-        'Menyiapkan shift malam Anda…',
-        'Membuka restoran…',
-      ],
-      footerHints: ['Pintu Geser Otomatis', 'AI Pelanggan Datang', 'Audio Atmosferik'],
+    warning: {
+      badge: 'PERINGATAN KESEHATAN & CAHAYA BERKEDIP',
+      title: 'PERINGATAN',
+      body: 'Game ini TIDAK cocok bagi penderita lemah jantung atau epilepsi. Mengandung cahaya berkedip cepat, kilatan terang mendadak, dan efek suara horor.',
+      subNote: 'Berhenti bermain segera jika Anda merasa pusing atau tidak nyaman.',
+      viSummary: 'Cảnh báo: Trò chơi không dành cho người có tiền sử yếu tim, bệnh động kinh và có ánh sáng chớp nháy.',
+      continueBtn: 'SAYA MENGERTI — LANJUTKAN',
+      autoTimerHint: (sec) => `Melanjutkan dalam ${sec} dtk — atau ketuk di mana saja`,
     },
     menu: {
       est: 'SEJAK 1955',
@@ -3661,7 +3669,7 @@ export const TRANSLATIONS: Record<Language, TranslationBundle> = {
       credits: 'Kredit',
       storyRuleLabel: 'Aturan Cerita:',
       storyRule:
-        'Jalani kedua shift malam 6 jam hingga pukul 6:00 pagi, ungkap rumor mantan karyawan yang hilang, dan tetap waspada saat ada yang mengintip dari balik bayangan.',
+        'Jalani ketiga shift malam 6 jam hingga pukul 6:00 pagi, ungkap rumor mantan karyawan yang hilang, dan tetap waspada saat ada yang mengintip dari balik bayangan.',
       shiftMemo: 'Catatan Shift',
       employeeRoutine: 'Rutinitas Karyawan',
       memoItems: [
@@ -3693,12 +3701,14 @@ export const TRANSLATIONS: Record<Language, TranslationBundle> = {
       understood: 'Mengerti',
       creditsTitle: 'Kredit & Cerita',
       creditsIntro:
-        "McDonald's Nightfall adalah game horor psikologis shift malam berdurasi 2 malam penuh.",
+        "McDonald's Nightfall adalah game horor psikologis shift malam berdurasi 3 malam penuh.",
       creditsDetails: [
+        { label: 'Produser', value: 'Duc Nguyen' },
+        { label: 'Sutradara & Desain Game', value: 'Duc Nguyen' },
+        { label: 'Seni 3D', value: 'AI' },
+        { label: 'Musik', value: 'AI' },
         { label: 'Tema', value: 'Shift malam restoran cepat saji & ketegangan psikologis' },
-        { label: 'Format', value: '2 Malam Penuh Dimainkan (12:00 AM – 6:00 AM)' },
         { label: 'Mesin', value: 'Three.js 3D WebGL & Web Audio API' },
-        { label: 'Arah Cerita', value: 'Ungkap apa yang terjadi pada mantan pekerja shift malam yang hilang.' },
       ],
       returnMenu: 'Kembali ke Menu',
       versionLabel: 'Versi 1.5.0',
@@ -3881,11 +3891,16 @@ export const TRANSLATIONS: Record<Language, TranslationBundle> = {
       demoOverSubtitle: "DEMO BERAKHIR — MCDONALD'S NIGHTFALL",
       creditsHeading: 'KREDIT',
       creditRows: [
-        { role: 'Dibuat & Disutradarai Oleh', name: 'Nguyen Duck' },
-        { role: 'Dunia 3D & Mesin', name: 'Three.js WebGL Architecture' },
-        { role: 'Audio & Musik Horor', name: 'Web Audio Synthesis & Shift OST' },
+        { role: 'Produser', name: 'Duc Nguyen' },
+        { role: 'Sutradara & Desain Game', name: 'Duc Nguyen' },
+        { role: 'Pemrograman & Skenario', name: 'Duc Nguyen & AI' },
+        { role: 'Seni 3D', name: 'AI' },
+        { role: 'Tekstur & Visual PS1', name: 'AI' },
+        { role: 'Musik', name: 'AI' },
+        { role: 'Desain Suara & SFX', name: 'AI & Web Audio Synthesis' },
         { role: 'Lagu Kredit', name: 'After the Machine Stops' },
-        { role: 'Pemeran Karakter', name: 'Duck, John, Perawat Ramirez, Big Ray, Macan Muda & Sang Badut' },
+        { role: 'Pemeran Karakter', name: 'Duck, John, Kasir 67-Eleven, Tyler, Báo Con, Perawat Ramirez, Big Ray & Sang Badut' },
+        { role: 'Terima Kasih Khusus', name: 'Untuk semua pemain yang bertahan hingga pukul 06.00 pagi' },
       ],
       thankYouNote: 'Terima kasih telah memainkan game ini...',
       returnToMenu: 'Kembali ke Menu Utama',

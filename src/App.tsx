@@ -10,7 +10,7 @@ import {
   DialogueState,
   Night3EmergencyProgress,
 } from './types/game';
-import { LoadingScreen } from './components/LoadingScreen';
+import { WarningScreen } from './components/WarningScreen';
 import { MainMenu } from './components/MainMenu';
 import { HUD } from './components/HUD';
 import { CCTVOverlay } from './components/CCTVOverlay';
@@ -43,7 +43,7 @@ export default function App() {
   const canvasMountRef = useRef<HTMLDivElement>(null);
   const engineRef = useRef<GameEngine | null>(null);
 
-  const [currentScreen, setCurrentScreen] = useState<GameScreen>('loading');
+  const [currentScreen, setCurrentScreen] = useState<GameScreen>('warning');
   const [isPaused, setIsPaused] = useState(false);
   const [night2Unlocked, setNight2Unlocked] = useState(() => {
     return safeGetStorage('mcd_night2_unlocked') === 'true';
@@ -274,9 +274,9 @@ export default function App() {
         <div className="absolute inset-0 pointer-events-none z-10 bg-[linear-gradient(rgba(18,16,16,0)_50%,rgba(0,0,0,0.18)_50%)] bg-[length:100%_4px]" />
       )}
 
-      {/* Horror Loading Screen */}
-      {currentScreen === 'loading' && (
-        <LoadingScreen
+      {/* Health, Heart & Flashing Light Warning Screen */}
+      {currentScreen === 'warning' && (
+        <WarningScreen
           onComplete={() => {
             engineRef.current?.setScreen('menu');
             setCurrentScreen('menu');

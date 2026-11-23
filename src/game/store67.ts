@@ -1,10 +1,10 @@
 import * as THREE from 'three';
 import { InteractiveItem } from '../types/game';
 import {
+  TextureLibrary,
   create247WindowSignTexture,
   create67ElevenSignTexture,
   createAsphaltTexture,
-  createFloorTileTexture,
   createPS1NightMartSignTexture,
 } from './textures';
 import {
@@ -13,7 +13,10 @@ import {
   createConvenienceSnackRack,
   createNoodlesAndWaterStall,
   createProtagonistCar,
+  createRearServiceDoor,
   createStoreClerk,
+  createPS1Billboard,
+  createPS1WallAdPoster,
 } from './props';
 
 export interface Store67Area {
@@ -51,33 +54,54 @@ export function createLateNightMarket(
 
   const interactiveItems: InteractiveItem[] = [];
 
-  // Shared PS1 Flat-Shaded Rough Materials
-  const tileMat = ps1Mat({ map: createFloorTileTexture(), metalness: 0.05 });
-  const asphaltMat = ps1Mat({ map: createAsphaltTexture() });
-  const sidewalkMat = ps1Mat({ color: 0x646a72 });
-  const wallExtMat = ps1Mat({ color: 0xe6e4dc });
-  const wallIntMat = ps1Mat({ color: 0xf4f3ef });
-  const roofMat = ps1Mat({ color: 0x1e293b });
+  // Shared PS1 Flat-Shaded Digitized Materials
+  const martTileTex = TextureLibrary.getMartFloorTexture().clone();
+  martTileTex.repeat.set(5, 4);
+  martTileTex.needsUpdate = true;
+  const tileMat = ps1Mat({ map: martTileTex, metalness: 0.05 });
+
+  const martAsphaltTex = createAsphaltTexture().clone();
+  martAsphaltTex.repeat.set(8, 6);
+  martAsphaltTex.needsUpdate = true;
+  const asphaltMat = ps1Mat({ map: martAsphaltTex });
+
+  const sidewalkTex = TextureLibrary.getSidewalkTexture().clone();
+  sidewalkTex.repeat.set(6, 2);
+  sidewalkTex.needsUpdate = true;
+  const sidewalkMat = ps1Mat({ map: sidewalkTex });
+
+  const martWallTex = TextureLibrary.getMartWallTexture().clone();
+  martWallTex.repeat.set(3, 1);
+  martWallTex.needsUpdate = true;
+  const wallExtMat = ps1Mat({ map: martWallTex, color: 0xebe8e0 });
+  const wallIntMat = ps1Mat({ map: martWallTex });
+
+  const ceilingTex = TextureLibrary.getCeilingTileTexture().clone();
+  ceilingTex.repeat.set(4, 3);
+  ceilingTex.needsUpdate = true;
+  const roofMat = ps1Mat({ map: ceilingTex });
+
   const glassMat = ps1Mat({
+    map: TextureLibrary.getGlassSmudgeTexture(),
     color: 0xa5d8ff,
     transparent: true,
-    opacity: 0.34,
+    opacity: 0.36,
   });
-  const greenBandMat = ps1Mat({ color: 0x15803d });
-  const orangeBandMat = ps1Mat({ color: 0xf97316 });
-  const redBandMat = ps1Mat({ color: 0xdc2626 });
-  const frameDarkMat = ps1Mat({ color: 0x1f2937 });
+  const greenBandMat = ps1Mat({ map: TextureLibrary.getWrappedFabricTexture(0x15803d, 'backpack', 11) });
+  const orangeBandMat = ps1Mat({ map: TextureLibrary.getWrappedFabricTexture(0xf97316, 'backpack', 12) });
+  const redBandMat = ps1Mat({ map: TextureLibrary.getWrappedFabricTexture(0xdc2626, 'backpack', 13) });
+  const frameDarkMat = ps1Mat({ map: TextureLibrary.getStainlessSteelTexture(false), color: 0x3b424d });
 
   // 1. Exterior Asphalt Parking Lot & Sidewalk Apron (Z: 144..158)
   const asphaltPad = new THREE.Mesh(new THREE.PlaneGeometry(34, 24), asphaltMat);
   asphaltPad.rotation.x = -Math.PI / 2;
   asphaltPad.position.set(0, -0.02, 148);
-  asphaltPad.receiveShadow = true;
+  asphaltPad.receiveShadow = false;
   group.add(asphaltPad);
 
   const sidewalk = new THREE.Mesh(new THREE.BoxGeometry(14, 0.08, 3.2), sidewalkMat);
   sidewalk.position.set(0, 0.03, 145.6);
-  sidewalk.receiveShadow = true;
+  sidewalk.receiveShadow = false;
   group.add(sidewalk);
 
   // Parking bay white painted stripes around Duck's car
@@ -93,7 +117,7 @@ export function createLateNightMarket(
   const storeFloor = new THREE.Mesh(new THREE.PlaneGeometry(12, 10), tileMat);
   storeFloor.rotation.x = -Math.PI / 2;
   storeFloor.position.set(0, 0.01, 139);
-  storeFloor.receiveShadow = true;
+  storeFloor.receiveShadow = false;
   group.add(storeFloor);
 
   const ceiling = new THREE.Mesh(new THREE.BoxGeometry(12.4, 0.25, 10.4), roofMat);
@@ -113,7 +137,7 @@ export function createLateNightMarket(
   rightWall.position.set(6, 1.65, 139);
   group.add(rightWall);
 
-  // Front Wall Segments & Glass Storefront Windows (Z = 144, open center doorway X: -1.4..1.4)
+  // Front Wall Segments & Framed Glass Storefront Windows (Z = 144, open center doorway X: -1.4..1.4)
   const frontLeftWall = new THREE.Mesh(new THREE.BoxGeometry(4.6, 1.05, 0.2), wallExtMat);
   frontLeftWall.position.set(-3.7, 0.525, 144);
   const frontLeftGlass = new THREE.Mesh(new THREE.BoxGeometry(4.4, 1.9, 0.08), glassMat);
@@ -128,14 +152,38 @@ export function createLateNightMarket(
   const frontRightTop = new THREE.Mesh(new THREE.BoxGeometry(4.6, 0.35, 0.22), wallExtMat);
   frontRightTop.position.set(3.7, 3.12, 144);
 
-  const doorHeader = new THREE.Mesh(new THREE.BoxGeometry(2.8, 0.9, 0.24), frameDarkMat);
+  // Full Aluminum Perimeter Frames, Sills & Vertical Mullions for Storefront Windows & Entrance
+  [-3.7, 3.7].forEach((wx) => {
+    const sill = new THREE.Mesh(new THREE.BoxGeometry(4.56, 0.1, 0.26), frameDarkMat);
+    sill.position.set(wx, 1.05, 144);
+    const topBar = new THREE.Mesh(new THREE.BoxGeometry(4.56, 0.09, 0.24), frameDarkMat);
+    topBar.position.set(wx, 2.95, 144);
+    const outerJamb = new THREE.Mesh(new THREE.BoxGeometry(0.14, 1.95, 0.24), frameDarkMat);
+    outerJamb.position.set(wx < 0 ? -5.93 : 5.93, 2.0, 144);
+    const innerJamb = new THREE.Mesh(new THREE.BoxGeometry(0.12, 2.95, 0.24), frameDarkMat);
+    innerJamb.position.set(wx < 0 ? -1.42 : 1.42, 1.475, 144);
+    const midMullion = new THREE.Mesh(new THREE.BoxGeometry(0.08, 1.9, 0.14), frameDarkMat);
+    midMullion.position.set(wx, 2.0, 144);
+    const transom = new THREE.Mesh(new THREE.BoxGeometry(4.46, 0.06, 0.14), frameDarkMat);
+    transom.position.set(wx, 2.45, 144);
+    group.add(sill, topBar, outerJamb, innerJamb, midMullion, transom);
+  });
+
+  const doorHeader = new THREE.Mesh(new THREE.BoxGeometry(2.84, 0.9, 0.24), frameDarkMat);
   doorHeader.position.set(0, 2.85, 144);
+  const doorThreshold = new THREE.Mesh(new THREE.BoxGeometry(2.84, 0.04, 0.26), frameDarkMat);
+  doorThreshold.position.set(0, 0.02, 144);
 
   // Open automatic sliding glass panels slid aside so Duck walks freely inside/out
   const openDoorL = new THREE.Mesh(new THREE.BoxGeometry(1.15, 2.35, 0.06), glassMat);
   openDoorL.position.set(-1.95, 1.2, 143.92);
   const openDoorR = new THREE.Mesh(new THREE.BoxGeometry(1.15, 2.35, 0.06), glassMat);
   openDoorR.position.set(1.95, 1.2, 143.92);
+
+  // Rear Staff Service Door mounted cleanly along left back wall (Z = 134.08)
+  const rearStaffDoor = createRearServiceDoor();
+  rearStaffDoor.group.position.set(-3.75, 0, 134.12);
+  group.add(rearStaffDoor.group);
 
   // Illuminated "OPEN 24/7" window neon sign hung inside right storefront glass
   const neon247Mat = new THREE.MeshBasicMaterial({ map: create247WindowSignTexture() });
@@ -165,6 +213,7 @@ export function createLateNightMarket(
     frontRightGlass,
     frontRightTop,
     doorHeader,
+    doorThreshold,
     openDoorL,
     openDoorR,
     neon247Back,
@@ -211,7 +260,7 @@ export function createLateNightMarket(
   coolerFrame.position.set(1.2, 1.18, 134.48);
   const coolerBack = new THREE.Mesh(
     new THREE.PlaneGeometry(6.8, 2.05),
-    new THREE.MeshBasicMaterial({ color: 0xdbeafe })
+    new THREE.MeshBasicMaterial({ map: TextureLibrary.getMartCoolerBackTexture() })
   );
   coolerBack.position.set(1.2, 1.2, 134.34);
   const coolerStock = createConvenienceCoolerStock();
@@ -289,7 +338,30 @@ export function createLateNightMarket(
   group.add(snackRow5);
   registerCollision(-5.76, -4.88, 134.75, 137.05, 'store67_snack_row_5');
 
-  // 8. Duck's Parked Car outside Late-Night Market
+  // 8. Outdoor Parking Lot Pole Billboard & Interior Store Promo Ads
+  const martBillboard = createPS1Billboard({
+    variant: 'mart_noodles',
+    boardWidth: 3.8,
+    boardHeight: 2.35,
+    poleHeight: 2.65,
+    doubleSided: true,
+    lightColor: 0xffe6b3,
+    lightIntensity: 1.35,
+  });
+  martBillboard.position.set(-5.8, 0, 151.2);
+  martBillboard.rotation.y = Math.PI - 0.36;
+  group.add(martBillboard);
+  registerCollision(-7.3, -4.3, 150.6, 151.8, 'store67_billboard');
+
+  const interiorPoster1 = createPS1WallAdPoster('mart_noodles', 1.32, 1.32);
+  interiorPoster1.position.set(-5.85, 1.95, 138.6);
+  interiorPoster1.rotation.y = Math.PI / 2;
+  const interiorPoster2 = createPS1WallAdPoster('mart_snacks', 1.28, 1.28);
+  interiorPoster2.position.set(-5.85, 1.95, 141.3);
+  interiorPoster2.rotation.y = Math.PI / 2;
+  group.add(interiorPoster1, interiorPoster2);
+
+  // 9. Duck's Parked Car outside Late-Night Market
   const duckCar = createProtagonistCar(0x1f4e78);
   duckCar.position.set(3.8, 0, 150.2);
   duckCar.rotation.y = Math.PI;

@@ -1,7 +1,7 @@
 export type GameNight = 1 | 2 | 3;
 
 export type GameScreen =
-  | 'loading'
+  | 'warning'
   | 'menu'
   | 'playing'
   | 'cctv'

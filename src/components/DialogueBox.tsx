@@ -1,8 +1,6 @@
 import React, { useEffect, useState, useRef, useCallback } from 'react';
 import { DialogueState, Language } from '../types/game';
-import { MessageSquare, User, CornerDownLeft, FastForward } from 'lucide-react';
 import { soundEngine } from '../audio/SoundEngine';
-import { getTranslations } from '../i18n/translations';
 
 interface DialogueBoxProps {
   dialogue: DialogueState;
@@ -15,16 +13,13 @@ export const DialogueBox: React.FC<DialogueBoxProps> = ({
   dialogue,
   onAdvance,
   isMobileLayout = false,
-  language,
 }) => {
   if (!dialogue.active || !dialogue.lines || dialogue.lines.length === 0) {
     return null;
   }
 
-  const t = getTranslations(language).dialogue;
   const currentLine = dialogue.lines[dialogue.currentIndex] || dialogue.lines[0];
   const isDuck = currentLine.speaker.toUpperCase().includes('DUCK');
-  const isLastLine = dialogue.currentIndex >= dialogue.lines.length - 1;
 
   const fullText = currentLine.text;
   const lineKey = `${dialogue.npcId ?? ''}:${dialogue.currentIndex}:${fullText}`;
@@ -155,90 +150,35 @@ export const DialogueBox: React.FC<DialogueBoxProps> = ({
         soundEngine.playUICellPop();
         handleUserAction();
       }}
-      className={`absolute left-1/2 -translate-x-1/2 z-40 max-w-[300px] sm:max-w-[330px] w-[84%] pointer-events-auto cursor-pointer select-none animate-in fade-in zoom-in-95 duration-200 transition-all ${
-        isMobileLayout ? 'bottom-48' : 'bottom-12'
+      className={`fixed left-1/2 -translate-x-1/2 z-[60] w-[88%] max-w-lg pointer-events-auto cursor-pointer select-none px-4 py-3 bg-[radial-gradient(ellipse_at_center,rgba(0,0,0,0.78)_0%,rgba(0,0,0,0.48)_62%,transparent_94%)] transition-all ${
+        isMobileLayout ? 'bottom-3 sm:bottom-7' : 'bottom-5 sm:bottom-8'
       }`}
     >
-      <div
-        className={`relative overflow-hidden p-2.5 rounded-lg border shadow-xl transition-colors ${
-          isDuck
-            ? 'bg-neutral-950/95 border-amber-500/70 shadow-[0_0_16px_rgba(245,158,11,0.16)]'
-            : 'bg-neutral-950/95 border-sky-500/70 shadow-[0_0_16px_rgba(14,165,233,0.16)]'
-        }`}
-      >
-        <div className="pointer-events-none absolute inset-0 bg-[linear-gradient(rgba(255,255,255,0.03)_50%,rgba(0,0,0,0.22)_50%)] bg-[length:100%_3px]" />
-        {/* Top Speaker Bar */}
-        <div className="flex items-center justify-between pb-1 mb-1 border-b border-neutral-800">
-          <div className="flex items-center gap-1.5">
-            <div
-              className={`p-0.5 rounded ${
-                isDuck ? 'bg-amber-500/20 text-amber-400' : 'bg-sky-500/20 text-sky-400'
-              }`}
-            >
-              {isDuck ? <User className="w-3 h-3" /> : <MessageSquare className="w-3 h-3" />}
-            </div>
-            <span
-              className={`text-[10px] font-black tracking-wider uppercase ${
-                isDuck ? 'text-amber-400' : 'text-sky-400'
-              }`}
-            >
-              {currentLine.speaker}
-              {dialogue.isMonologue && (
-                <span className="ml-1 text-[8px] font-normal text-neutral-400 normal-case tracking-normal">
-                  {t.internal}
-                </span>
-              )}
-            </span>
-          </div>
+      {/* Left-aligned speaker label with colon */}
+      <div className="text-left text-xs sm:text-sm font-sans font-normal text-neutral-300/95 tracking-wide mb-1.5 drop-shadow-[0_2px_4px_rgba(0,0,0,0.95)]">
+        {currentLine.speaker}:
+      </div>
 
-          <span className="text-[9px] font-mono text-neutral-500">
-            {dialogue.currentIndex + 1}/{dialogue.lines.length}
-          </span>
-        </div>
+      {/* Centered dialogue text */}
+      <div className="min-h-[28px] flex items-center justify-center px-2">
+        <p className="text-center text-sm sm:text-base font-sans font-normal text-white leading-snug tracking-wide drop-shadow-[0_2px_6px_rgba(0,0,0,0.98)]">
+          {visibleText}
+          {isTyping && (
+            <span className="inline-block w-1.5 h-3.5 ml-1 bg-white/80 align-middle animate-pulse" />
+          )}
+        </p>
+      </div>
 
-        {/* Dialogue Text with Scrolling Typewriter */}
-        <div className="min-h-[26px] flex items-center">
-          <p className="text-[11px] sm:text-xs font-mono text-neutral-100 leading-snug tracking-wide">
-            “{visibleText}
-            {isTyping && (
-              <span
-                className={`inline-block w-1.5 h-3 ml-0.5 align-middle animate-pulse ${
-                  isDuck ? 'bg-amber-400' : 'bg-sky-400'
-                }`}
-              />
-            )}
-            ”
-          </p>
-        </div>
-
-        {/* Footer Hint */}
-        <div className="mt-1.5 pt-1 border-t border-neutral-900 flex items-center justify-between text-[9px] font-mono text-neutral-400">
-          <span className="text-[8px] text-neutral-500">
-            {isTyping ? t.transmitting : t.received}
-          </span>
-
-          <span className="flex items-center gap-1 text-amber-300 font-semibold">
-            {isTyping ? (
-              <button
-                type="button"
-                onClick={(e) => {
-                  e.stopPropagation();
-                  soundEngine.playUICellPop();
-                  handleSkipScrollingOnly();
-                }}
-                className="flex items-center gap-0.5 text-neutral-400 hover:text-amber-300 transition-colors cursor-pointer"
-              >
-                <span>{t.skip}</span>
-                <FastForward className="w-2.5 h-2.5 inline text-amber-400" />
-              </button>
-            ) : (
-              <span className="animate-pulse flex items-center gap-0.5 text-amber-300">
-                <span>{isLastLine ? t.close : t.next}</span>
-                <CornerDownLeft className="w-2.5 h-2.5 inline" />
-              </span>
-            )}
-          </span>
-        </div>
+      {/* Centered downward triangle indicator */}
+      <div className="mt-2 flex items-center justify-center">
+        <span
+          aria-hidden="true"
+          className={`text-[11px] sm:text-xs text-white/95 leading-none drop-shadow-[0_2px_4px_rgba(0,0,0,0.95)] ${
+            !isTyping ? 'animate-bounce' : 'opacity-65'
+          }`}
+        >
+          ▼
+        </span>
       </div>
     </div>
   );

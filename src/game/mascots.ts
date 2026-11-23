@@ -1,9 +1,11 @@
 import * as THREE from 'three';
 import {
+  TextureLibrary,
   createPS1BloodyBladeTexture,
   createPS1ClownFaceTexture,
   createPS1ClownSuitTexture,
   createPS1ClownStripedSleeveTexture,
+  createPS1HairTexture,
 } from './textures';
 import { buildSculptedPS1HeadGeometry, createPS1HeadMaterial, createPS1NoseMesh } from './props';
 
@@ -123,64 +125,105 @@ export function createKillerClown(): MascotCharacter {
   const root = new THREE.Group();
   root.name = 'PS1_KillerClown';
 
-  // Strict PS1 flat-shaded rough materials matching the reference killer clown palette
+  // Strict PS1 flat-shaded digitized textures matching the killer clown palette
+  const suitTex = createPS1ClownSuitTexture();
   const suitPatchworkMat = new THREE.MeshStandardMaterial({
-    map: createPS1ClownSuitTexture(), // Weathered mustard-yellow jumpsuit with dried blood splatters
+    map: suitTex, // Weathered mustard-yellow jumpsuit with cloth folds & dried blood
+    emissiveMap: suitTex,
+    emissive: 0xffffff,
+    emissiveIntensity: 0.14,
     flatShading: true,
     roughness: 0.9,
     metalness: 0.0,
   });
+  const suitYellowTex = TextureLibrary.getWrappedFabricTexture(0xb99622, 'clown_suit', 2);
   const suitYellowMat = new THREE.MeshStandardMaterial({
-    color: 0xb99622, // Faded mustard yellow jumpsuit
+    map: suitYellowTex,
+    emissiveMap: suitYellowTex,
+    emissive: 0xffffff,
+    emissiveIntensity: 0.14,
     flatShading: true,
     roughness: 0.9,
     metalness: 0.0,
   });
+  const suitDarkRedTex = TextureLibrary.getWrappedFabricTexture(0x701212, 'hoodie', 3);
   const suitDarkRedMat = new THREE.MeshStandardMaterial({
-    color: 0x701212, // Crimson red tie/bib, shoulder trim & clown shoes
+    map: suitDarkRedTex,
+    emissiveMap: suitDarkRedTex,
+    emissive: 0xffffff,
+    emissiveIntensity: 0.14,
     flatShading: true,
     roughness: 0.9,
     metalness: 0.0,
   });
+  const suitStripedTex = createPS1ClownStripedSleeveTexture();
   const suitStripedSleeveMat = new THREE.MeshStandardMaterial({
-    map: createPS1ClownStripedSleeveTexture(), // Alternating dark red & off-white horizontal sleeve rings
+    map: suitStripedTex,
+    emissiveMap: suitStripedTex,
+    emissive: 0xffffff,
+    emissiveIntensity: 0.14,
     flatShading: true,
     roughness: 0.9,
     metalness: 0.0,
   });
+  const sleeveWhiteTex = TextureLibrary.getWrappedFabricTexture(0xdedbd2, 'hoodie', 4);
   const suitSleeveWhiteMat = new THREE.MeshStandardMaterial({
-    color: 0xdedbd2, // Off-white sleeve stripes matching reference arms
+    map: sleeveWhiteTex,
+    emissiveMap: sleeveWhiteTex,
+    emissive: 0xffffff,
+    emissiveIntensity: 0.14,
     flatShading: true,
     roughness: 0.9,
   });
+  const hairTex = createPS1HairTexture(0x961414);
   const hairMat = new THREE.MeshStandardMaterial({
-    color: 0x7a1212, // Chunky crimson red Ronald clown wig (crown, back & sides)
+    map: hairTex,
+    emissiveMap: hairTex,
+    emissive: 0xffffff,
+    emissiveIntensity: 0.16,
     flatShading: true,
     roughness: 0.9,
   });
   const whiteSkinMat = new THREE.MeshStandardMaterial({
-    color: 0xf2efe8, // White greasepaint matching 64x64 face CanvasTexture
+    map: TextureLibrary.getWrappedFabricTexture(0xf2efe8, 'skin_hand', 8),
+    emissiveMap: TextureLibrary.getWrappedFabricTexture(0xf2efe8, 'skin_hand', 8),
+    emissive: 0xffffff,
+    emissiveIntensity: 0.16,
     flatShading: true,
     roughness: 0.9,
   });
   const noseMat = new THREE.MeshStandardMaterial({
-    color: 0xb81414, // Low-poly 3D crimson clown nose
+    color: 0xcc1818, // Low-poly 3D crimson clown nose
+    emissive: 0x3b0505,
+    emissiveIntensity: 0.25,
     flatShading: true,
-    roughness: 0.9,
+    roughness: 0.72,
   });
-  const faceMat = createPS1HeadMaterial(createPS1ClownFaceTexture(), 0.24);
+  const faceMat = createPS1HeadMaterial(createPS1ClownFaceTexture(), 0.30);
+  const gloveTex = TextureLibrary.getWrappedFabricTexture(0xd4d0c5, 'hoodie', 5);
   const gloveMat = new THREE.MeshStandardMaterial({
-    color: 0xd4d0c5,
+    map: gloveTex,
+    emissiveMap: gloveTex,
+    emissive: 0xffffff,
+    emissiveIntensity: 0.14,
     flatShading: true,
     roughness: 0.9,
   });
+  const collarTex = TextureLibrary.getWrappedFabricTexture(0xebe8df, 'polo', 6);
   const collarMat = new THREE.MeshStandardMaterial({
-    color: 0xebe8df, // Crisp folded white collar lapels
+    map: collarTex,
+    emissiveMap: collarTex,
+    emissive: 0xffffff,
+    emissiveIntensity: 0.14,
     flatShading: true,
     roughness: 0.9,
   });
+  const shoeTex = TextureLibrary.getWrappedFabricTexture(0x5c1010, 'shoes', 7);
   const shoeMat = new THREE.MeshStandardMaterial({
-    color: 0x5c1010,
+    map: shoeTex,
+    emissiveMap: shoeTex,
+    emissive: 0xffffff,
+    emissiveIntensity: 0.14,
     flatShading: true,
     roughness: 0.9,
   });
@@ -323,36 +366,57 @@ export function createKillerClown(): MascotCharacter {
   const clownNose = createPS1NoseMesh(headRadius, noseMat);
   headGroup.add(clownNose);
 
-  // Full low-poly dark crimson clown wig arching over top crown, back, and puffy sides (matches reference silhouette)
-  const wigCrown = new THREE.Mesh(new THREE.IcosahedronGeometry(0.22, 0), hairMat);
-  wigCrown.scale.set(1.16, 0.72, 1.05);
-  wigCrown.position.set(0, 0.235, -0.045);
-  const wigBack = new THREE.Mesh(new THREE.IcosahedronGeometry(0.205, 0), hairMat);
-  wigBack.scale.set(1.12, 1.05, 0.72);
+  // Full low-poly dark crimson spiky clown wig arching over top crown, back, and puffy sides
+  const wigCrown = new THREE.Mesh(new THREE.IcosahedronGeometry(0.21, 0), hairMat);
+  wigCrown.scale.set(1.14, 0.68, 1.04);
+  wigCrown.position.set(0, 0.225, -0.045);
+  const wigBack = new THREE.Mesh(new THREE.IcosahedronGeometry(0.198, 0), hairMat);
+  wigBack.scale.set(1.12, 1.02, 0.7);
   wigBack.position.set(0, 0.06, -0.15);
 
-  const hairConeGeoMain = new THREE.IcosahedronGeometry(0.125, 0);
-  const hairConeGeoLower = new THREE.IcosahedronGeometry(0.105, 0);
+  const hairConeGeoMain = new THREE.IcosahedronGeometry(0.115, 0);
+  const hairConeGeoLower = new THREE.IcosahedronGeometry(0.098, 0);
 
   const hairL1 = new THREE.Mesh(hairConeGeoMain, hairMat);
-  hairL1.scale.set(0.95, 1.25, 1.08);
-  hairL1.position.set(-0.21, 0.15, -0.025);
+  hairL1.scale.set(0.95, 1.22, 1.05);
+  hairL1.position.set(-0.205, 0.145, -0.025);
   hairL1.rotation.z = 0.22;
   const hairL2 = new THREE.Mesh(hairConeGeoLower, hairMat);
-  hairL2.scale.set(0.92, 1.15, 1.02);
-  hairL2.position.set(-0.215, 0.0, -0.04);
+  hairL2.scale.set(0.92, 1.12, 1.0);
+  hairL2.position.set(-0.21, 0.0, -0.04);
   hairL2.rotation.z = 0.12;
 
   const hairR1 = new THREE.Mesh(hairConeGeoMain, hairMat);
-  hairR1.scale.set(0.95, 1.25, 1.08);
-  hairR1.position.set(0.21, 0.15, -0.025);
+  hairR1.scale.set(0.95, 1.22, 1.05);
+  hairR1.position.set(0.205, 0.145, -0.025);
   hairR1.rotation.z = -0.22;
   const hairR2 = new THREE.Mesh(hairConeGeoLower, hairMat);
-  hairR2.scale.set(0.92, 1.15, 1.02);
-  hairR2.position.set(0.215, 0.0, -0.04);
+  hairR2.scale.set(0.92, 1.12, 1.0);
+  hairR2.position.set(0.21, 0.0, -0.04);
   hairR2.rotation.z = -0.12;
 
   headGroup.add(wigCrown, wigBack, hairL1, hairL2, hairR1, hairR2);
+
+  // Jagged angular 4-sided spiky crimson clown hair tufts around crown, temples & sides
+  const spikeTuftGeo = new THREE.ConeGeometry(0.072, 0.165, 4, 1);
+  const clownSpikes: [number, number, number, number, number, number][] = [
+    [0.0, 0.30, -0.02, -0.15, 0, 0],
+    [-0.12, 0.275, 0.01, 0.1, 0, 0.55],
+    [0.12, 0.275, 0.01, 0.1, 0, -0.55],
+    [-0.24, 0.19, -0.01, 0.0, 0, 1.05],
+    [0.24, 0.19, -0.01, 0.0, 0, -1.05],
+    [-0.25, 0.06, -0.04, 0.0, 0, 1.32],
+    [0.25, 0.06, -0.04, 0.0, 0, -1.32],
+    [-0.14, 0.22, -0.15, -0.85, 0, 0.45],
+    [0.14, 0.22, -0.15, -0.85, 0, -0.45],
+    [0.0, 0.18, -0.21, -1.15, 0, 0],
+  ];
+  clownSpikes.forEach(([sx, sy, sz, rx, ry, rz]) => {
+    const spike = new THREE.Mesh(spikeTuftGeo, hairMat);
+    spike.position.set(sx, sy, sz);
+    spike.rotation.set(rx, ry, rz);
+    headGroup.add(spike);
+  });
 
   // Forehead head-slam wound & dripping blood streaks (toggled on Night 3 car window impacts)
   const headBloodGroup = new THREE.Group();
@@ -564,7 +628,7 @@ export function createPurpleGlutton(): MascotCharacter {
   const root = new THREE.Group();
 
   const purpleMat = new THREE.MeshStandardMaterial({
-    color: 0x3d1754,
+    map: TextureLibrary.getWrappedFabricTexture(0x3d1754, 'purple_fur', 1),
     flatShading: true,
     roughness: 0.9,
     metalness: 0.05,

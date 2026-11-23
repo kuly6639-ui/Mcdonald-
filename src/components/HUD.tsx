@@ -66,7 +66,7 @@ export const HUD: React.FC<HUDProps> = ({
   const timeString = `${hourDisplay}:${minuteDisplay} AM`;
 
   return (
-    <div className="absolute inset-0 pointer-events-none select-none overflow-hidden font-mono text-white">
+    <div className="absolute inset-0 pointer-events-none select-none overflow-hidden font-sans text-white">
       {/* Subtle CRT Vignette */}
       <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_center,transparent_45%,rgba(0,0,0,0.7)_100%)] pointer-events-none" />
 
@@ -80,14 +80,14 @@ export const HUD: React.FC<HUDProps> = ({
                 ? `inset 0 0 ${70 + musicVis.intensity * 65}px rgba(220, 38, 38, ${
                     0.22 + musicVis.intensity * 0.34
                   })`
-                : `inset 0 0 ${48 + musicVis.intensity * 42}px rgba(245, 158, 11, ${
-                    (0.06 + musicVis.intensity * 0.14) * Math.max(0.35, musicVis.entryBannerAlpha)
+                : `inset 0 0 ${48 + musicVis.intensity * 42}px rgba(255, 255, 255, ${
+                    (0.05 + musicVis.intensity * 0.1) * Math.max(0.35, musicVis.entryBannerAlpha)
                   })`,
           }}
         />
       )}
 
-      {/* Prominent Soundtrack Entry Banner with Animated Equalizer when entering the game / music starts */}
+      {/* Prominent Soundtrack Entry Banner with Animated Equalizer */}
       {musicVis.active && musicVis.entryBannerAlpha > 0.02 && (
         <div
           className="absolute top-20 left-1/2 -translate-x-1/2 z-20 pointer-events-none"
@@ -97,28 +97,26 @@ export const HUD: React.FC<HUDProps> = ({
           }}
         >
           <div
-            className={`flex items-center gap-3 px-4 py-2 rounded-lg border backdrop-blur-sm shadow-2xl ${
+            className={`flex items-center gap-3 px-4 py-1.5 border backdrop-blur-[2px] shadow-2xl ${
               musicVis.mode === 'chase'
-                ? 'bg-red-950/85 border-red-500/80 text-red-100 shadow-[0_0_24px_rgba(220,38,38,0.45)]'
-                : 'bg-black/85 border-amber-500/60 text-amber-100 shadow-[0_0_20px_rgba(245,158,11,0.28)]'
+                ? 'bg-red-950/85 border-red-500/80 text-red-100'
+                : 'bg-black/65 border-white/75 text-white'
             }`}
           >
             <Music
               className={`w-3.5 h-3.5 shrink-0 animate-pulse ${
-                musicVis.mode === 'chase' ? 'text-red-400' : 'text-amber-400'
+                musicVis.mode === 'chase' ? 'text-red-400' : 'text-white'
               }`}
             />
             <span className="text-[10px] font-bold uppercase tracking-[0.2em] whitespace-nowrap">
               {musicVis.trackTitle}
             </span>
-            <div className="flex items-end gap-[2px] h-4 w-16">
+            <div className="flex items-end gap-[2px] h-3.5 w-14">
               {musicVis.bars.map((val, idx) => (
                 <div
                   key={idx}
-                  className={`flex-1 rounded-t-sm transition-[height] duration-75 ${
-                    musicVis.mode === 'chase'
-                      ? 'bg-gradient-to-t from-red-600 to-amber-300'
-                      : 'bg-gradient-to-t from-amber-600 to-amber-300'
+                  className={`flex-1 transition-[height] duration-75 ${
+                    musicVis.mode === 'chase' ? 'bg-red-400' : 'bg-white/90'
                   }`}
                   style={{ height: `${Math.round(val * 100)}%` }}
                 />
@@ -128,31 +126,36 @@ export const HUD: React.FC<HUDProps> = ({
         </div>
       )}
 
-      {/* TOP BAR: Compact Single Active Sequential Objective & Digital Clock */}
-      <div className="absolute top-3 left-3 right-3 flex items-start justify-between gap-2">
-        {/* COMPACT SINGLE ACTIVE OBJECTIVE CONTAINER */}
-        <div className="pointer-events-auto bg-black/85 border border-neutral-700/80 rounded-lg px-2.5 py-2 max-w-[235px] sm:max-w-[275px] w-auto shadow-xl">
-          <div className="flex items-center justify-between gap-2 text-[9px] text-amber-500 font-bold uppercase tracking-wider pb-1 border-b border-neutral-800">
-            <span className="flex items-center gap-1 truncate">
-              <ChevronRight className="w-3 h-3 text-amber-400 shrink-0" />
-              <span className="truncate">{t.nightShiftEmployee(nightState.night)}</span>
-            </span>
-            <span className="text-neutral-400 shrink-0">
-              {t.stepLabel(nightState.currentObjectiveIndex + 1)}
-            </span>
+      {/* TOP BAR: Settings-Harmonized White Cutout-Border Objective & Clock Panels */}
+      <div className="absolute top-3.5 left-3.5 right-3.5 flex items-start justify-between gap-2">
+        {/* OBJECTIVE UI — Harmonized with Options/Settings 1px white cutout-border panel */}
+        <div className="pointer-events-auto relative border-b border-l border-r border-white/85 bg-black/55 backdrop-blur-[2px] px-3 sm:px-4 pt-3.5 pb-2.5 max-w-[240px] sm:max-w-[295px] w-auto shadow-[0_4px_20px_rgba(0,0,0,0.65)]">
+          {/* Top border broken by Objective title + step */}
+          <div className="pointer-events-none absolute top-0 inset-x-0 flex items-center">
+            <div className="h-[1px] w-2.5 bg-white/85" />
+            <div className="px-2 -translate-y-1/2 flex items-center gap-1.5 text-[9px] sm:text-[10px] font-black uppercase tracking-[0.16em] text-white whitespace-nowrap drop-shadow-[0_2px_4px_rgba(0,0,0,0.95)]">
+              <ChevronRight className="w-3 h-3 text-white/85 shrink-0" />
+              <span className="truncate max-w-[140px]">
+                {t.nightShiftEmployee(nightState.night)}
+              </span>
+              <span className="text-neutral-300 font-semibold">
+                · {t.stepLabel(nightState.currentObjectiveIndex + 1)}
+              </span>
+            </div>
+            <div className="h-[1px] flex-1 bg-white/85" />
           </div>
 
           {activeObjective ? (
-            <div className="mt-1.5">
-              <div className="text-[11px] font-bold text-amber-300 uppercase tracking-wide leading-tight mb-0.5">
+            <div className="space-y-0.5">
+              <div className="text-[11px] sm:text-xs font-black text-white uppercase tracking-[0.12em] leading-tight">
                 {activeObjective.title}
               </div>
-              <p className="text-[11px] text-neutral-200 leading-snug">
+              <p className="text-[11px] text-neutral-200/95 leading-snug font-normal">
                 {activeObjective.description}
               </p>
             </div>
           ) : (
-            <div className="mt-1.5 text-[11px] text-emerald-400 font-bold">
+            <div className="text-[11px] sm:text-xs text-white font-bold uppercase tracking-wider">
               {t.allDutiesDone}
             </div>
           )}
@@ -160,35 +163,43 @@ export const HUD: React.FC<HUDProps> = ({
 
         {/* OBJECTIVE COMPLETED BANNER POPUP */}
         {objectiveCompletedNotice && (
-          <div className="bg-emerald-950/95 border-2 border-emerald-500 text-emerald-200 text-xs font-bold px-4 py-2 rounded-lg shadow-[0_0_25px_rgba(16,185,129,0.4)] flex items-center gap-2">
-            <CheckCircle2 className="w-4 h-4 text-emerald-400 shrink-0" />
-            <span className="tracking-wide uppercase font-black">{objectiveCompletedNotice}</span>
+          <div className="bg-black/80 border border-white/85 text-white text-[11px] sm:text-xs font-bold px-4 py-2 shadow-2xl flex items-center gap-2 uppercase tracking-[0.14em]">
+            <CheckCircle2 className="w-4 h-4 text-white shrink-0" />
+            <span>{objectiveCompletedNotice}</span>
           </div>
         )}
 
-        {/* Top Right: Digital Shift Clock, Compact Equalizer & Pause */}
-        <div className="flex items-center gap-2.5 shrink-0">
-          <div className="bg-black/85 border border-neutral-700/80 rounded-lg px-3.5 py-1.5 text-right shadow-xl">
+        {/* Top Right: Harmonized Clock Panel & Compact Actions */}
+        <div className="flex items-start gap-2 shrink-0">
+          <div className="relative border-b border-l border-r border-white/85 bg-black/55 backdrop-blur-[2px] px-3.5 sm:px-4 pt-3 pb-1.5 text-right shadow-[0_4px_20px_rgba(0,0,0,0.65)] min-w-[104px] sm:min-w-[122px]">
+            {/* Top border broken by Shift Clock label */}
+            <div className="pointer-events-none absolute top-0 inset-x-0 flex items-center">
+              <div className="h-[1px] flex-1 bg-white/85" />
+              <span className="px-2 -translate-y-1/2 text-[9px] sm:text-[10px] font-black uppercase tracking-[0.18em] text-white whitespace-nowrap drop-shadow-[0_2px_4px_rgba(0,0,0,0.95)]">
+                {t.shiftClock}
+              </span>
+              <div className="h-[1px] w-2.5 bg-white/85" />
+            </div>
+
             <div className="flex items-center justify-end gap-2">
               {musicVis.active && (
-                <div className="flex items-end gap-[2px] h-2.5 w-8 opacity-85">
-                  {musicVis.bars.slice(0, 7).map((val, idx) => (
+                <div className="flex items-end gap-[2px] h-2.5 w-7 opacity-85">
+                  {musicVis.bars.slice(0, 6).map((val, idx) => (
                     <div
                       key={idx}
-                      className={`flex-1 rounded-t-xs ${
-                        musicVis.mode === 'chase' ? 'bg-red-500' : 'bg-amber-400'
+                      className={`flex-1 ${
+                        musicVis.mode === 'chase' ? 'bg-red-400' : 'bg-white/90'
                       }`}
                       style={{ height: `${Math.round(val * 100)}%` }}
                     />
                   ))}
                 </div>
               )}
-              <div className="text-[9px] text-neutral-400 uppercase tracking-widest">{t.shiftClock}</div>
+              <div className="text-base sm:text-lg font-black text-white tabular-nums tracking-[0.14em] leading-tight">
+                {timeString}
+              </div>
             </div>
-            <div className="text-lg font-black text-amber-400 tabular-nums tracking-wider leading-tight">
-              {timeString}
-            </div>
-            <div className="text-[9px] text-neutral-400 uppercase tracking-wider">
+            <div className="text-[9px] text-neutral-300 uppercase tracking-[0.16em] mt-0.5">
               {nightState.timeHour >= 6 ? t.dawnLabel : t.closingLabel}
             </div>
           </div>
@@ -198,10 +209,10 @@ export const HUD: React.FC<HUDProps> = ({
               soundEngine.playUICellPop();
               onPhoneClick();
             }}
-            className={`pointer-events-auto flex items-center gap-1.5 active:scale-95 border text-xs px-3 py-2 rounded-lg font-bold cursor-pointer transition-all shadow-lg whitespace-nowrap ${
+            className={`pointer-events-auto flex items-center gap-1.5 active:scale-95 border text-[11px] px-2.5 py-2 font-bold uppercase tracking-[0.14em] cursor-pointer transition-all shadow-lg whitespace-nowrap ${
               isPhoneOpen
-                ? 'bg-amber-500 text-black border-amber-300'
-                : 'bg-neutral-900/90 hover:bg-neutral-800 text-amber-300 border-amber-600/60'
+                ? 'bg-white text-black border-white'
+                : 'bg-black/55 hover:bg-white/15 text-white border-white/70'
             }`}
           >
             <Smartphone className="w-3.5 h-3.5" />
@@ -210,7 +221,7 @@ export const HUD: React.FC<HUDProps> = ({
 
           <button
             onClick={handlePauseClick}
-            className={`pointer-events-auto bg-neutral-900/90 hover:bg-neutral-800 active:scale-95 text-neutral-300 border border-neutral-700 text-xs px-3 py-2 rounded-lg font-bold cursor-pointer transition-all shadow-lg whitespace-nowrap ${
+            className={`pointer-events-auto bg-black/55 hover:bg-white/15 active:scale-95 text-white border border-white/70 text-[11px] px-2.5 py-2 font-bold uppercase tracking-[0.14em] cursor-pointer transition-all shadow-lg whitespace-nowrap ${
               pausePopped ? 'animate-cell-pop' : ''
             }`}
           >
@@ -221,10 +232,10 @@ export const HUD: React.FC<HUDProps> = ({
 
       {/* CENTER INTERACTION CROSSHAIR & PROMPT */}
       <div className="absolute inset-0 flex flex-col items-center justify-center pointer-events-none">
-        <div className="w-1.5 h-1.5 rounded-full bg-white/70 shadow-[0_0_4px_white]" />
+        <div className="w-1.5 h-1.5 rounded-full bg-white/80 shadow-[0_0_4px_white]" />
 
         {interactionPrompt && (
-          <div className="mt-4 px-3.5 py-1.5 bg-black/95 border border-amber-400 text-amber-300 font-bold text-xs tracking-wider rounded-md shadow-2xl">
+          <div className="mt-4 px-4 py-1.5 bg-black/75 border border-white/80 text-white font-bold text-xs uppercase tracking-[0.14em] shadow-2xl">
             {interactionPrompt}
           </div>
         )}
